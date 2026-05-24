@@ -1,0 +1,14 @@
+﻿@page "/"
+
+<CalendarHeader CurrentMonth="CurrentMonth" 
+                OnPreviousMonth="PreviousMonth" 
+                OnNextMonth="NextMonth" />
+
+<CalendarGrid CurrentMonth="CurrentMonth" />
+
+@code {
+    private DateTime CurrentMonth = DateTime.Today;
+
+    private void NextMonth() => CurrentMonth = CurrentMonth.AddMonths(1);
+    private void PreviousMonth() => CurrentMonth = CurrentMonth.AddMonths(-1);
+}

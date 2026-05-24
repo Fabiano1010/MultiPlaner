@@ -1,0 +1,121 @@
+﻿@using MauiApp1.Models
+@using MauiApp1.Services
+
+@inject EventService EventApi
+
+<div class="calendar-grid-wrapper">
+
+   
+    @foreach (var day in DayNames)
+    {
+        <div class="calendar-day-name">@day</div>
+    }
+    
+    @foreach (var cell in Days)
+    {
+        <div class="calendar-cell
+                    @(!cell.IsCurrentMonth ? "other-month" : "")
+                    @(cell.IsSelected ? "selected" : "")
+                    @(cell.IsInRange ? "in-range" : "")
+                    @(cell.IsRangeStart ? "range-start" : "")
+                    @(cell.IsRangeEnd ? "range-end" : "")
+                    @(cell.IsSunday ? "sunday" : "")
+                    @(cell.IsToday ? "today" : "")"
+             @onclick="() => HandleDayClick(cell)">
+            <div class="day-number-div">
+                <span class="day-number">@cell.Day</span>
+            </div>
+           
+            <div class="dots">
+                @if (cell.HasEvent)
+                {
+                    <div class="event-dot"></div>
+                }
+            </div>
+            
+
+        </div>
+    }
+
+</div>
+
+@code {
+    [Parameter] public DateTime CurrentMonth { get; set; }
+    [Parameter] public EventCallback<(DateTime, DateTime)> OnRangeSelected { get; set; }
+
+    private List<DayCell> Days = new();
+    private DateTime? RangeStart = null;
+
+    private string[] DayNames = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await GenerateDays();
+    }
+
+    private async Task GenerateDays()
+    {
+        Days.Clear();
+
+        var firstDay = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
+        var daysInMonth = DateTime.DaysInMonth(CurrentMonth.Year, CurrentMonth.Month);
+
+        
+        int startOffset = ((int)firstDay.DayOfWeek + 6) % 7;
+
+       
+        for (int i = 0; i < startOffset; i++)
+        {
+            var date = firstDay.AddDays(-(startOffset - i));
+            Days.Add(new DayCell { Day = date.Day, Date = date, IsCurrentMonth = false, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
+        }
+
+        for (int i = 1; i <= daysInMonth; i++)
+        {
+            var date = new DateTime(CurrentMonth.Year, CurrentMonth.Month, i);
+            Days.Add(new DayCell { Day = i, Date = date, IsCurrentMonth = true, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
+        }
+
+        while (Days.Count % 7 != 0)
+        {
+            var date = firstDay.AddDays(Days.Count - startOffset);
+            Days.Add(new DayCell { Day = date.Day, Date = date, IsCurrentMonth = false, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
+        }
+      
+        var events = await EventApi.GetEventsAsync(CurrentMonth.Year, CurrentMonth.Month);
+        foreach (var cell in Days.Where(d => d.IsCurrentMonth))
+        {
+            cell.HasEvent = events.Any(e =>
+                cell.Date >= e.StartDate.Date &&
+                cell.Date <= e.EndDate.Date);
+        }
+    }
+
+    private async Task HandleDayClick(DayCell cell)
+    {
+        if (RangeStart == null)
+        {
+   
+            RangeStart = cell.Date;
+            foreach (var d in Days) { d.IsSelected = false; d.IsInRange = false; }
+            cell.IsSelected = true;
+        }
+        else
+        {
+  
+            var start = RangeStart.Value < cell.Date ? RangeStart.Value : cell.Date;
+            var end = RangeStart.Value < cell.Date ? cell.Date : RangeStart.Value;
+
+            foreach (var d in Days)
+            {
+                d.IsRangeStart = d.Date == start;
+                d.IsRangeEnd = d.Date == end;
+                d.IsInRange = d.Date > start && d.Date < end;
+                d.IsSelected = d.IsRangeStart || d.IsRangeEnd;
+            }
+
+            RangeStart = null;
+            await OnRangeSelected.InvokeAsync((start, end));
+        }
+    }
+}

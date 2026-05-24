@@ -1,16 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using Prototype.Data;
-
+using Prototype.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite("Data Source=./db/calendar.db"));    
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=./db/calendar.db"));
 
 builder.Services.AddScoped<EventService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -20,9 +31,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
+app.UseCors("DevPolicy");
 app.UseHttpsRedirection();
-
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
@@ -31,6 +41,4 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-
 app.Run();
-

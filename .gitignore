@@ -1,0 +1,32 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# baza danych SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# User settings
+*.user
+.vs/
+.idea/
+*.suo
+
+# NuGet
+**/packages/
+*.nupkg
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MAUI
+**/MauiApp1/bin/
+**/MauiApp1/obj/
+
+# Rider
+.idea/

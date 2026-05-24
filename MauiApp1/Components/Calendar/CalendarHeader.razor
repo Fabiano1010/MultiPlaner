@@ -1,0 +1,50 @@
+@using MauiApp1.Models
+@using MauiApp1.Services
+
+@inject EventService EventApi
+
+<div class="header">
+    <div class="date-controls-div">
+        <div class="date-controls">
+            <div class="date-controls-year">@CurrentMonth.Year</div>
+            <div class="date-controls-month">@CurrentMonth.ToString("MMMM")</div>
+        </div>
+        <div class="date-move">
+            <button class="date-move-control" @onclick="OnPreviousMonth">-</button>
+            <button class="date-move-control" @onclick="OnNextMonth">+</button>
+        </div>
+    </div>
+    <div class="calendar-data">
+        <div class="calendar-data-name">
+            Room name
+        </div>
+        <div class="calendar-data-owner">
+            Owner
+        </div>
+            
+    </div>
+    <div class="action-buttons">
+        <div class="action-button">
+            
+        </div>
+        <div class="action-button">
+            
+        </div>
+        <div class="action-button">
+            
+        </div>
+        <div class="action-button">
+            
+        </div>
+    </div>
+    
+</div>
+@code{
+
+
+
+    [Parameter] public DateTime CurrentMonth { get; set; }
+    [Parameter] public EventCallback OnNextMonth { get; set; }
+    [Parameter] public EventCallback OnPreviousMonth { get; set; }
+
+}

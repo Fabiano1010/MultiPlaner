@@ -1,0 +1,14 @@
+﻿.header{
+    height:3%;
+    min-height: 30px;
+    width:100%;
+    border-bottom: 1px black solid;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem 1rem 2rem;
+}
+.date-controls-div{
+    display: flex;
+    
+}

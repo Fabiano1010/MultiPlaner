@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Prototype.Data;
 using Prototype.Models;
+using Prototype.Services;
 
 namespace Prototype.Controllers;
 
@@ -20,9 +21,18 @@ public class EventController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetEvents()
+    public async Task<IActionResult> GetEvents([FromQuery] int? year, [FromQuery] int? month)
     {
-        var events = await _db.Events.ToListAsync();
+        var query = _db.Events.AsQueryable();
+
+        if (year.HasValue && month.HasValue)
+        {
+            query = query.Where(e => 
+                e.StartDate.Year == year && 
+                e.StartDate.Month == month);
+        }
+
+        var events = await query.ToListAsync();
         return Ok(events);
     }
 

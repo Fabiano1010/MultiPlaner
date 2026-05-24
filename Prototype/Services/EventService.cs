@@ -2,6 +2,8 @@
 using Prototype.Data;
 using Prototype.Models;
 
+namespace Prototype.Services;
+
 public class EventService
 {
     private readonly AppDbContext _db;
@@ -20,14 +22,6 @@ public class EventService
 
         if (newEvent.StartDate < DateTime.Today)
             throw new ArgumentException("Nie można dodać wydarzenia w przeszłości");
-
-      
-        var overlap = await _db.Events.AnyAsync(e =>
-            e.StartDate < newEvent.EndDate &&
-            e.EndDate > newEvent.StartDate);
-
-        if (overlap)
-            throw new ArgumentException("Wydarzenie nakłada się na istniejące");
 
         _db.Events.Add(newEvent);
         await _db.SaveChangesAsync();
