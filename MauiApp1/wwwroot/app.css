@@ -14,8 +14,9 @@
 }
 
 
-* {
+*, *::before, *::after {
     font-family: var(--font-sans);
+    box-sizing: border-box;    
 }
 html, body{
     background-color: var(--color-background);
@@ -47,7 +48,7 @@ html, body{
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 1rem;
+    padding: 0.5vw;
 }
 
 .nav-user{
@@ -79,7 +80,7 @@ html, body{
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 80%;
+    height: 90%;
 }
 .nav-items{
     display: flex;
@@ -91,15 +92,15 @@ html, body{
     padding-top: 2vh;
 }
 .nav-item{
-    width: 70%;
+    width: 100%;
     color: var(--color-text-reversed);
     border-radius: var(--border-radius);
     transition: 0.25s ease-in-out;
-    height: 30px;
+    height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 5px;
+    padding: 10px;
     text-align: center;
     text-decoration: none;
     font-size: var(--font-size-medium);
@@ -115,7 +116,7 @@ html, body{
     color: var(--color-text);
 }
 .logout-btn {
- margin-bottom: 1.5rem;
+ margin-bottom: 0.5rem;
 }
 .logout-btn:hover{
     background-color: #d90000;
@@ -123,7 +124,7 @@ html, body{
 .main-content{
     display: flex;
     flex-direction: column;
-    width: 100%;
+    width: 100vw;
     height: 100%;
     
 }

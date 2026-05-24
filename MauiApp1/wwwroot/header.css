@@ -1,8 +1,8 @@
 ﻿.header{
-    height:3%;
+    height:10%;
     min-height: 30px;
-    width:100%;
-    border-bottom: 1px black solid;
+    width:93vw;
+    border-bottom: 1px solid var(--color-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -10,5 +10,99 @@
 }
 .date-controls-div{
     display: flex;
+    gap: 1rem;
+    align-items: center;
+    /*justify-content: space-between;*/
+    width: 25%;
+    flex-shrink: 0;
+}
+.date-controls{
+    display: flex;
     
+    flex-direction: column;
+    justify-content: left;
+    gap:5px;
+    width: 30%;
+}
+.date-controls-date{
+    text-transform: Capitalize;
+    font-size: 1.2rem;
+}
+
+
+.calendar-data{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+}
+
+.calendar-data-name{
+    text-align: center;
+    font-weight: bolder;
+    font-size: 1.5rem;
+    
+}
+.calendar-data-owner{
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.action-buttons{
+    display: flex;
+    gap: 0.5rem
+}
+.action-button{
+    width:30px;
+    height:30px;
+    border-radius: 8px;
+    background-color: var(--color-primary);
+}
+.date-controls-today {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    width: 80px;
+    height: auto;
+    padding: 5px;
+    background-color: var(--color-secondary);
+    color: var(--color-text-reversed);
+    border-radius: 10px;
+    transition: 0.25s ease-in-out;
+    cursor: pointer;
+    text-transform: uppercase;
+    user-select: none;
+}
+.date-move{
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    user-select: none;
+}
+.date-control-move{
+    outline: none;
+    border: none;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    background-color: var(--color-secondary);
+    color: var(--color-text-reversed);
+    border-radius: 10px;
+    transition: 0.25s ease-in-out;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.date-control-move:hover, .date-controls-today:hover {
+    background-color: var(--color-primary);
+    color: var(--color-text);
+    filter: drop-shadow(0px 5px 5px var(--color-primary));
+    transform: translateY(-2px);
 }

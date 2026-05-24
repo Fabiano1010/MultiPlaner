@@ -6,13 +6,17 @@
 <div class="header">
     <div class="date-controls-div">
         <div class="date-controls">
-            <div class="date-controls-year">@CurrentMonth.Year</div>
-            <div class="date-controls-month">@CurrentMonth.ToString("MMMM")</div>
+            <div class="date-controls-date">@CurrentMonth.Year</div>
+            <div class="date-controls-date">@CurrentMonth.ToString("MMMM")</div>
         </div>
         <div class="date-move">
-            <button class="date-move-control" @onclick="OnPreviousMonth">-</button>
-            <button class="date-move-control" @onclick="OnNextMonth">+</button>
+            <button class="date-control-move" @onclick="OnPreviousMonth">-</button>
+            <div class="date-controls-today " @onclick="GoToToday">
+            Today
+            </div>
+            <button class="date-control-move" @onclick="OnNextMonth">+</button>
         </div>
+        
     </div>
     <div class="calendar-data">
         <div class="calendar-data-name">
@@ -46,5 +50,6 @@
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public EventCallback OnNextMonth { get; set; }
     [Parameter] public EventCallback OnPreviousMonth { get; set; }
+    [Parameter] public EventCallback GoToToday { get; set; }
 
 }

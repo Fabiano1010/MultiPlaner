@@ -2,13 +2,31 @@
 
 <CalendarHeader CurrentMonth="CurrentMonth" 
                 OnPreviousMonth="PreviousMonth" 
-                OnNextMonth="NextMonth" />
+                OnNextMonth="NextMonth" 
+                GoToToday="GoToToday"/>
 
-<CalendarGrid CurrentMonth="CurrentMonth" />
+<CalendarGrid CurrentMonth="CurrentMonth" 
+              IsAddingEvent="IsAddingEvent"
+              OnRangeSelected="HandleRangeSelected"
+              OnDaySelected="HandleDaySelected" />
+<CalendarEvents CurrentMonth="CurrentMonth"
+                SelectedDate="SelectedDate"
+                OnAddEvent="StartAddingEvent" />
 
 @code {
     private DateTime CurrentMonth = DateTime.Today;
+    private DateTime? SelectedDate = null;
+    private bool IsAddingEvent = false;
 
     private void NextMonth() => CurrentMonth = CurrentMonth.AddMonths(1);
     private void PreviousMonth() => CurrentMonth = CurrentMonth.AddMonths(-1);
+    private void GoToToday() => CurrentMonth = DateTime.Today;
+    private void StartAddingEvent() => IsAddingEvent = true;
+    private void HandleDaySelected(DateTime date) => SelectedDate = date;
+
+    private async Task HandleRangeSelected((DateTime Start, DateTime End) range)
+    {
+        
+        IsAddingEvent = false;
+    }
 }

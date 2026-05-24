@@ -36,6 +36,17 @@ public class EventController : ControllerBase
         return Ok(events);
     }
 
+ [HttpGet("day")]
+     public async Task<IActionResult> GetEventsAtDay([FromQuery] int year, [FromQuery] int month, [FromQuery] int day)
+     {
+         var date = new DateTime(year, month, day);
+        
+         var events = await _db.Events
+             .Where(e => e.StartDate.Date <= date && e.EndDate.Date >= date)
+             .ToListAsync();
+
+         return Ok(events);
+     }
     [HttpPost]
     public async Task<IActionResult> AddEvent([FromBody] Event newEvent)
     {

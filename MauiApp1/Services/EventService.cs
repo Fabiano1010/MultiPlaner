@@ -32,4 +32,11 @@ public class EventService
         var response = await _http.DeleteAsync($"api/events/{id}");
         return response.IsSuccessStatusCode;
     }
+    
+    public async Task<List<Event>> GetEventsAtDayAsync(DateTime date)
+    {
+        return await _http.GetFromJsonAsync<List<Event>>(
+                   $"api/event/day?year={date.Year}&month={date.Month}&day={date.Day}") 
+               ?? new List<Event>();
+    }
 }

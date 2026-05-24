@@ -3,6 +3,7 @@
 
 @inject EventService EventApi
 
+
 <div class="calendar-grid-wrapper">
 
    
@@ -27,9 +28,9 @@
             </div>
            
             <div class="dots">
-                @if (cell.HasEvent)
+                @foreach (var color in cell.EventColors)
                 {
-                    <div class="event-dot"></div>
+                    <div class="event-dot" style="background-color: @color"></div>
                 }
             </div>
             
@@ -42,7 +43,9 @@
 @code {
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public EventCallback<(DateTime, DateTime)> OnRangeSelected { get; set; }
-
+    [Parameter] public EventCallback<DateTime> OnDaySelected { get; set; }
+    [Parameter] public bool IsAddingEvent { get; set; }
+    
     private List<DayCell> Days = new();
     private DateTime? RangeStart = null;
 
@@ -82,40 +85,51 @@
             Days.Add(new DayCell { Day = date.Day, Date = date, IsCurrentMonth = false, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
         }
       
+      
         var events = await EventApi.GetEventsAsync(CurrentMonth.Year, CurrentMonth.Month);
         foreach (var cell in Days.Where(d => d.IsCurrentMonth))
         {
-            cell.HasEvent = events.Any(e =>
-                cell.Date >= e.StartDate.Date &&
-                cell.Date <= e.EndDate.Date);
+            cell.EventColors = events
+                .Where(e => cell.Date >= e.StartDate.Date && cell.Date <= e.EndDate.Date)
+                .Select(e => $"#{e.Color}")  
+                .ToList();
         }
     }
 
     private async Task HandleDayClick(DayCell cell)
     {
-        if (RangeStart == null)
+        if (IsAddingEvent)
         {
-   
-            RangeStart = cell.Date;
-            foreach (var d in Days) { d.IsSelected = false; d.IsInRange = false; }
-            cell.IsSelected = true;
+            
+            if (RangeStart == null)
+            {
+                RangeStart = cell.Date;
+                foreach (var d in Days) { d.IsSelected = false; d.IsInRange = false; }
+                cell.IsSelected = true;
+            }
+            else
+            {
+                var start = RangeStart.Value < cell.Date ? RangeStart.Value : cell.Date;
+                var end = RangeStart.Value < cell.Date ? cell.Date : RangeStart.Value;
+                foreach (var d in Days)
+                {
+                    d.IsRangeStart = d.Date == start;
+                    d.IsRangeEnd = d.Date == end;
+                    d.IsInRange = d.Date > start && d.Date < end;
+                    d.IsSelected = d.IsRangeStart || d.IsRangeEnd;
+                }
+                RangeStart = null;
+                await OnRangeSelected.InvokeAsync((start, end));
+            }
         }
         else
         {
-  
-            var start = RangeStart.Value < cell.Date ? RangeStart.Value : cell.Date;
-            var end = RangeStart.Value < cell.Date ? cell.Date : RangeStart.Value;
-
-            foreach (var d in Days)
-            {
-                d.IsRangeStart = d.Date == start;
-                d.IsRangeEnd = d.Date == end;
-                d.IsInRange = d.Date > start && d.Date < end;
-                d.IsSelected = d.IsRangeStart || d.IsRangeEnd;
-            }
-
-            RangeStart = null;
-            await OnRangeSelected.InvokeAsync((start, end));
+           
+            foreach (var d in Days) d.IsSelected = false;
+            cell.IsSelected = true;
+            await OnDaySelected.InvokeAsync(cell.Date);
         }
     }
+
+    
 }

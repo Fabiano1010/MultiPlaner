@@ -1,1 +1,60 @@
-﻿
+﻿@using MauiApp1.Models
+@using MauiApp1.Services
+@inject EventService EventApi
+
+<div class="events-container">
+    <div class="events-controls">
+        <div class="events-controls-div">
+            <div class="events-control-date">
+                Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd.MM.yyyy") : DateTime.Today.ToString("dd.MM.yyyy"))
+            </div>
+            <div class="events-button @(IsAddingEvent ? "active" : "")" 
+                 @onclick="OnAddEvent">
+                <div class="plus-icon">+</div>
+                <div class="events-button-name">Add Event</div>
+            </div>
+            <div class="events-button">
+                <div class="plus-icon">+</div>
+                <div class="events-button-name">Add Poll</div>
+            </div>
+        </div>
+    </div>
+    <div class="events-list">
+        @if (Events.Count == 0)
+        {
+            <div class="events-empty">Nothing is happening here :c</div>
+        }
+        @foreach (var ev in Events)
+        {
+            <div class="events-item" style="border-left: 5px solid #@ev.Color">
+                <div class="events-item-name">@ev.Title</div>
+                <div class="events-item-user">@ev.User</div>
+                <div class="events-item-data">
+                    @ev.StartDate.ToString("dd.MM.yyyy") - @ev.EndDate.ToString("dd.MM.yyyy")
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public DateTime CurrentMonth { get; set; }
+    [Parameter] public DateTime? SelectedDate { get; set; }
+    [Parameter] public EventCallback OnAddEvent { get; set; }
+    [Parameter] public bool IsAddingEvent { get; set; }
+
+    private List<Event> Events = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        if (SelectedDate.HasValue)
+            Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
+        else
+            Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
+    }
+}
