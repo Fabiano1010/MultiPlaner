@@ -4,7 +4,7 @@
         <div class="popup-container" @onclick:stopPropagation="true">
             <div class="popup-header">
                 <span class="popup-title">@Title</span>
-                <button class="popup-close" @onclick="OnClose">✕</button>
+                <img src="images/x.svg" class="popup-close" @onclick="OnClose">
             </div>
             <div class="popup-content">
                 @ChildContent

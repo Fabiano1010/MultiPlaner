@@ -31,7 +31,9 @@
         }
         @foreach (var ev in Events)
         {
-            <div class="events-item" style="border-left: 5px solid #@ev.Color">
+            <div class="events-item" 
+                 style="border-left: 5px solid #@ev.Color"
+                 @onclick="() => OpenDetails(ev)">
                 <div class="events-item-name">@ev.Title</div>
                 <div class="events-item-user">@ev.User</div>
                 <div class="events-item-data">
@@ -42,6 +44,11 @@
     </div>
 </div>
 
+<EventDetails IsVisible="ShowDetails"
+                   Event="SelectedEvent"
+                   OnClose="CloseDetails"
+                   OnDeleted="HandleDeleted" />
+
 @code {
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public DateTime? SelectedDate { get; set; }
@@ -49,6 +56,8 @@
     [Parameter] public bool IsAddingEvent { get; set; }
 
     private List<Event> Events = new();
+    private Event? SelectedEvent = null;
+    private bool ShowDetails = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -61,5 +70,22 @@
             Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
         else
             Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
+    }
+
+    private void OpenDetails(Event ev)
+    {
+        SelectedEvent = ev;
+        ShowDetails = true;
+    }
+
+    private void CloseDetails()
+    {
+        ShowDetails = false;
+        SelectedEvent = null;
+    }
+
+    private async Task HandleDeleted()
+    {
+        await LoadEvents();
     }
 }

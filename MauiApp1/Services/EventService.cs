@@ -27,7 +27,7 @@ public class EventService
 
     public async Task<bool> DeleteEventAsync(int id)
     {
-        var response = await _http.DeleteAsync($"api/events/{id}");
+        var response = await _http.DeleteAsync($"api/event/{id}");
         return response.IsSuccessStatusCode;
     }
     
