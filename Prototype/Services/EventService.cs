@@ -17,11 +17,11 @@ public class EventService
     {
 
         if (newEvent.EndDate < newEvent.StartDate)
-            throw new ArgumentException("EndDate nie może być wcześniej niż StartDate");
+            throw new ArgumentException("EndDate cant be before StartDate");
 
 
         if (newEvent.StartDate < DateTime.Today)
-            throw new ArgumentException("Nie można dodać wydarzenia w przeszłości");
+            throw new ArgumentException("Cannot add event in the past");
 
         _db.Events.Add(newEvent);
         await _db.SaveChangesAsync();

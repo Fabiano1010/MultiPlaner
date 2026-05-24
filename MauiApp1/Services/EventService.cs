@@ -19,11 +19,9 @@ public class EventService
 
     public async Task<Event?> AddEventAsync(Event newEvent)
     {
-        var response = await _http.PostAsJsonAsync("api/events", newEvent);
-        
+        var response = await _http.PostAsJsonAsync("api/event", newEvent);
         if (response.IsSuccessStatusCode)
             return await response.Content.ReadFromJsonAsync<Event>();
-            
         return null;
     }
 

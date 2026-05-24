@@ -9,14 +9,24 @@
               IsAddingEvent="IsAddingEvent"
               OnRangeSelected="HandleRangeSelected"
               OnDaySelected="HandleDaySelected" />
+
 <CalendarEvents CurrentMonth="CurrentMonth"
                 SelectedDate="SelectedDate"
+                IsAddingEvent="IsAddingEvent"
                 OnAddEvent="StartAddingEvent" />
+
+<AddEventForm IsVisible="ShowAddEventPopup"
+              StartDate="SelectedRange.Start"
+              EndDate="SelectedRange.End"
+              OnClose="ClosePopup"
+              OnSaved="HandleEventSaved" />
 
 @code {
     private DateTime CurrentMonth = DateTime.Today;
     private DateTime? SelectedDate = null;
     private bool IsAddingEvent = false;
+    private bool ShowAddEventPopup = false;
+    private (DateTime Start, DateTime End) SelectedRange;
 
     private void NextMonth() => CurrentMonth = CurrentMonth.AddMonths(1);
     private void PreviousMonth() => CurrentMonth = CurrentMonth.AddMonths(-1);
@@ -26,7 +36,22 @@
 
     private async Task HandleRangeSelected((DateTime Start, DateTime End) range)
     {
-        
+        SelectedRange = range;
         IsAddingEvent = false;
+        ShowAddEventPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        ShowAddEventPopup = false;
+        IsAddingEvent = false;
+    }
+
+    private async Task HandleEventSaved()
+    {
+        ShowAddEventPopup = false;
+        IsAddingEvent = false;
+       
+        CurrentMonth = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
     }
 }
