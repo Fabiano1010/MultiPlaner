@@ -40,9 +40,8 @@ html, body{
     height: 100%;
 }
 .sidebar{
-    width: 8vw;
-    max-width: 110px;
-    min-width: 80px;
+    width: 7vw;
+    
     background-color: var(--color-secondary);
     color: var(--color-text-reversed);
     display: flex;
@@ -63,11 +62,19 @@ html, body{
     gap: 0.5rem;
     min-height: 100px;
 }
-.user-img-placeholder{
+.user-img-div{
     width: 64px;
     height: 64px;
     border-radius: 100%;
     background-color: var(--color-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+}
+.user-img{
+    filter: invert(1);
+    transform: scale(1.2);
 }
 .nav-user-name{
     text-align: center;
@@ -105,11 +112,15 @@ html, body{
     text-decoration: none;
     font-size: var(--font-size-medium);
     letter-spacing: 2px;
+    gap: 0.5rem;
     
 }
 .nav-item:hover{
     background-color: var(--color-background);
     color: var(--color-text);
+}
+.nav-item:hover .nav-item-img{
+    filter: invert(0);
 }
 .nav-item-current{
     background-color: var(--color-primary);
@@ -124,7 +135,7 @@ html, body{
 .main-content{
     display: flex;
     flex-direction: column;
-    width: 100vw;
+    width: 93vw;
     height: 100%;
     
 }
@@ -283,4 +294,8 @@ html, body{
     transform: translateY(-2px);
     background: var(--color-secondary);
     color: var(--color-text-reversed);
+}
+.nav-item-img{
+    filter: invert(1);
+    height: 20px;
 }

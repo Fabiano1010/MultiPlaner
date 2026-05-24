@@ -10,11 +10,11 @@
             <div class="date-controls-date">@CurrentMonth.ToString("MMMM")</div>
         </div>
         <div class="date-move">
-            <button class="date-control-move" @onclick="OnPreviousMonth">-</button>
+            <div class="action-button" @onclick="OnPreviousMonth"><img src="images/chevron-left.svg" alt="" class="action-button-img"></div>
             <div class="date-controls-today " @onclick="GoToToday">
             Today
             </div>
-            <button class="date-control-move" @onclick="OnNextMonth">+</button>
+            <div class="action-button" @onclick="OnNextMonth"><img src="images/chevron-right.svg" alt="" class="action-button-img"></div>
         </div>
         
     </div>
@@ -29,16 +29,16 @@
     </div>
     <div class="action-buttons">
         <div class="action-button">
-            
+            <img src="images/link.svg" alt="" class="action-button-img">
         </div>
         <div class="action-button">
-            
+            <img src="images/users.svg" alt="" class="action-button-img">
         </div>
         <div class="action-button">
-            
+            <img src="images/settings.svg" alt="" class="action-button-img">
         </div>
         <div class="action-button">
-            
+            <img src="images/bell.svg" alt="" class="action-button-img">
         </div>
     </div>
     

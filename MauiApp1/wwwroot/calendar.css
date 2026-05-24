@@ -2,8 +2,8 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 10px;
-    padding-left: 1.5vw;
-    padding-right: 1vw;
+    padding-left: 0.5vw;
+    padding-right: 0.5vw;
     height: 65vh;
     /*max-height: 580px;*/
     overflow-y: scroll;
@@ -58,7 +58,7 @@
 
 
 .calendar-cell.selected {
-    background: #b800ff;
+    background: #ffe224;
     color: white;
 }
 

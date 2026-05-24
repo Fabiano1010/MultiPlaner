@@ -8,18 +8,20 @@
             <div class="events-control-date">
                 Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd.MM.yyyy") : DateTime.Today.ToString("dd.MM.yyyy"))
             </div>
-            <div class="events-button @(IsAddingEvent ? "active" : "")" 
-                 @onclick="OnAddEvent">
-                <div class="plus-icon">+</div>
-                <div class="events-button-name">Add Event</div>
-            </div>
-            <div class="events-button">
-                <div class="plus-icon">+</div>
-                <div class="events-button-name">Add Poll</div>
+            <div class="events-buttons-container">
+                <div class="events-button @(IsAddingEvent ? "active" : "")" 
+                     @onclick="OnAddEvent">
+                    <img src="images/plus.svg" alt="" class="plus-icon @(IsAddingEvent ? "plus-icon-active" : "")">
+                    <div class="events-button-name">Add Event</div>
+                </div>
+                <div class="events-button">
+                    <img src="images/plus.svg" alt="" class="plus-icon">
+                    <div class="events-button-name">Add Poll</div>
+                </div>
             </div>
         </div>
         <div class="chat-btn action-button">
-            
+            <img src="images/message-square.svg" alt="" class="action-button-img">
         </div>
     </div>
     <div class="events-list">
