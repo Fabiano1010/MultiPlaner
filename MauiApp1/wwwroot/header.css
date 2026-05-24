@@ -1,7 +1,7 @@
 ﻿.header{
-    height:10%;
+    height:10vh;
     min-height: 30px;
-    width:93vw;
+    width:95vw;
     border-bottom: 1px solid var(--color-primary);
     display: flex;
     justify-content: space-between;
