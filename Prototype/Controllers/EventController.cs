@@ -21,15 +21,19 @@ public class EventController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> GetEvents([FromQuery] int? year, [FromQuery] int? month)
     {
         var query = _db.Events.AsQueryable();
 
         if (year.HasValue && month.HasValue)
         {
-            query = query.Where(e => 
-                e.StartDate.Year == year && 
-                e.StartDate.Month == month);
+            var firstDay = new DateTime(year.Value, month.Value, 1);
+            var lastDay = firstDay.AddMonths(1).AddDays(-1);
+
+            query = query.Where(e =>
+                e.StartDate.Date <= lastDay &&
+                e.EndDate.Date >= firstDay);
         }
 
         var events = await query.ToListAsync();
