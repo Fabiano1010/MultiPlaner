@@ -55,11 +55,12 @@
 .action-button-img{
     width: 25px;
     height: 25px;
+    transition: 0.25s ease-in-out;
 }
 .action-button{
     width:35px;
     height:35px;
-    border-radius: 8px;
+    border-radius: 10px;
     transition: 0.25s ease;
     display: flex;
     justify-content: center;
@@ -68,7 +69,7 @@
 .action-button:hover{
     background-color: var(--color-secondary);
     transform: translateY(-2px);
-    filter: drop-shadow(0px 5px 5px var(--color-secondary));
+    filter: drop-shadow(0px 5px 5px var(--color-primary));
     color: var(--color-text-reversed);
 }
 .action-button:hover .action-button-img {
@@ -123,4 +124,7 @@
     color: var(--color-text);
     filter: drop-shadow(0px 5px 5px var(--color-primary));
     transform: translateY(-2px);
+}
+.bell-btn{
+  transform: rotate(25deg);
 }
