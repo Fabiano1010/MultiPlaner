@@ -4,7 +4,7 @@
     padding: 1vh 0 0 1vw;
     justify-content: center;
     align-items: center;
-    width: 100%;
+    width: 99%;
     gap: 10px;
     border-top: 1px solid var(--color-primary);
     height: 25vh;
@@ -26,11 +26,11 @@
     flex-direction: row;
 }
 .events-controls-div{
-    width: 35%;
+    width: 40vw;
     align-items: center;
 }
 .events-control-date{
-    font-size: 2rem;
+    font-size: 1.7rem;
     font-weight: bold;
     width: 50%;
     

@@ -1,14 +1,16 @@
 ﻿.calendar-grid-wrapper {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
+    column-gap: 1vh;
+    row-gap: 1vw;
     padding-left: 0.5vw;
     padding-right: 0.5vw;
     height: 65vh;
     /*max-height: 580px;*/
     overflow-y: scroll;
    padding-bottom: 10px;
-    align-content: start
+    align-content: start;
+    max-width: 99%;
 }
 
 .calendar-day-name {
@@ -20,7 +22,7 @@
 }
 
 .calendar-cell {
-    aspect-ratio: 1.78;
+    aspect-ratio: 16/9;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -29,7 +31,7 @@
     position: relative;
     transition: background 0.15s;
     border: 1px solid var(--color-secondary);
-    max-width: 240px;
+    max-width: 12vw;
 }
 
 .day-number-div{
@@ -100,3 +102,4 @@
     color: var(--color-text-reversed);
     
 }
+

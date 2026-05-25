@@ -10,5 +10,4 @@
     public bool IsSunday { get; set; }
     public bool IsToday => Date.Date == DateTime.Today;
     public List<string> EventColors { get; set; } = new(); 
-    public bool HasEvent => EventColors.Count > 0;
 }

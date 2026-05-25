@@ -41,14 +41,15 @@ html, body{
     height: 100%;
 }
 .sidebar{
-    width: 7vw;
-    
+    width: 8vw;
+    min-width: 120px;
     background-color: var(--color-secondary);
     color: var(--color-text-reversed);
     display: flex;
     flex-direction: column;
     height: 100%;
     padding: 0.5vw;
+    flex-shrink: 0;
 }
 
 .nav-user{
@@ -62,10 +63,11 @@ html, body{
     border-bottom: 1px solid var(--color-background);
     gap: 0.5rem;
     min-height: 100px;
+    flex-shrink: 0;
 }
 .user-img-div{
-    width: 64px;
-    height: 64px;
+    aspect-ratio: 1;
+    width: 60%;
     border-radius: 100%;
     background-color: var(--color-primary);
     display: flex;
@@ -74,6 +76,8 @@ html, body{
     
 }
 .user-img{
+    aspect-ratio: 1;
+    width: 60%;
     filter: invert(1);
     transform: scale(1.2);
 }
