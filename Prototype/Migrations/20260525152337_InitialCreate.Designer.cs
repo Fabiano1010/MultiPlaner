@@ -11,8 +11,8 @@ using Prototype.Data;
 namespace Prototype.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260522193140_second")]
-    partial class second
+    [Migration("20260525152337_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,7 +31,6 @@ namespace Prototype.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("EndDate")
