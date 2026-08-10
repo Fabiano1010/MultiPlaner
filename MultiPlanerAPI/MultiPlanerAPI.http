@@ -1,0 +1,6 @@
+@MultiPlanerAPI_HostAddress = http://localhost:5147
+
+GET {{MultiPlanerAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

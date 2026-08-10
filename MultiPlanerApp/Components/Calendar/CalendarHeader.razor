@@ -1,0 +1,55 @@
+@using MultiPlanerApp.Models
+@using MultiPlanerApp.Services
+
+@inject EventService EventApi
+
+<div class="header">
+    <div class="date-controls-div">
+        <div class="date-controls">
+            <div class="date-controls-date">@CurrentMonth.Year</div>
+            <div class="date-controls-date">@CurrentMonth.ToString("MMMM")</div>
+        </div>
+        <div class="date-move">
+            <div class="action-button" @onclick="OnPreviousMonth"><img src="images/chevron-left.svg" alt="" class="action-button-img"></div>
+            <div class="date-controls-today " @onclick="GoToToday">
+            Today
+            </div>
+            <div class="action-button" @onclick="OnNextMonth"><img src="images/chevron-right.svg" alt="" class="action-button-img"></div>
+        </div>
+        
+    </div>
+    <div class="calendar-data">
+        <div class="calendar-data-name">
+            Room name
+        </div>
+        <div class="calendar-data-owner">
+            Owner
+        </div>
+            
+    </div>
+    <div class="action-buttons">
+        <div class="action-button">
+            <img src="images/link.svg" alt="" class="action-button-img">
+        </div>
+        <div class="action-button">
+            <img src="images/users.svg" alt="" class="action-button-img">
+        </div>
+        <div class="action-button">
+            <img src="images/settings.svg" alt="" class="action-button-img">
+        </div>
+        <div class="action-button">
+            <img src="images/bell.svg" alt="" class="action-button-img bell-btn">
+        </div>
+    </div>
+    
+</div>
+@code{
+
+
+
+    [Parameter] public DateTime CurrentMonth { get; set; }
+    [Parameter] public EventCallback OnNextMonth { get; set; }
+    [Parameter] public EventCallback OnPreviousMonth { get; set; }
+    [Parameter] public EventCallback GoToToday { get; set; }
+
+}
