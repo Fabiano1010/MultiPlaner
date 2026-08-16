@@ -1,16 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-<!--        <TargetFrameworks>net10.0-android</TargetFrameworks>-->
-        <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+        <!-- Android jest wspólną bazą - buduje się ZAWSZE (na Linux, Windows i macOS) -->
+        <TargetFramework>net10.0-android</TargetFramework>
+
+        <!-- Windows dorzuca się TYLKO gdy pracujesz na Windowsie -->
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
-        <!-- Note for MacCatalyst:
-            The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
-            When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
-            The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
-            either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-        <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+        <!-- iOS i MacCatalyst dorzucają się TYLKO gdy ktoś odpala projekt na macOS -->
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
 
         <OutputType>Exe</OutputType>
         <RootNamespace>MultiPlanerApp</RootNamespace>
@@ -20,39 +18,28 @@
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
 
-        <!-- Enable XAML source generation for faster build times and improved performance.
-             This generates C# code from XAML at compile time instead of runtime inflation.
-             To disable, remove this line.
-             For individual files, you can override by setting Inflator metadata:
-               <MauiXaml Update="MyPage.xaml" Inflator="Default" /> (reverts to defaults: Runtime for Debug, XamlC for Release)
-               <MauiXaml Update="MyPage.xaml" Inflator="Runtime" /> (force runtime inflation) -->
         <MauiXamlInflator>SourceGen</MauiXamlInflator>
 
-        <!-- Display name -->
+        <!-- Display name & App Id -->
         <ApplicationTitle>MultiPlanerApp</ApplicationTitle>
-
-        <!-- App Identifier -->
         <ApplicationId>com.companyname.multiplanerapp</ApplicationId>
-
-        <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
         <ApplicationVersion>1</ApplicationVersion>
 
-        <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
+        <!-- Unpackaged Windows App (do łatwego developmentu lokalnego) -->
         <WindowsPackageType>None</WindowsPackageType>
 
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+        <!-- Wersje wspieranych platform -->
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
     </PropertyGroup>
 
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4"/>
-
-        <!-- Splash Screen -->
 
         <!-- Images -->
         <MauiImage Include="Resources\Images\*"/>
@@ -61,7 +48,7 @@
         <!-- Custom Fonts -->
         <MauiFont Include="Resources\Fonts\*"/>
 
-        <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+        <!-- Raw Assets -->
         <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)"/>
     </ItemGroup>
 
@@ -71,9 +58,10 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0"/>
     </ItemGroup>
 
+    <!-- Referencje do Twoich projektów współdzielonych (dostosuj ścieżki względne, jeśli masz inną strukturę) -->
     <ItemGroup>
-      <Folder Include="Pages\" />
-      <Folder Include="Resources\Images\" />
+        <ProjectReference Include="..\MultiPlaner.Shared.Models\MultiPlaner.Shared.Models.csproj" />
+        <ProjectReference Include="..\MultiPlaner.Shared.UI\MultiPlaner.Shared.UI.csproj" />
     </ItemGroup>
 
 </Project>

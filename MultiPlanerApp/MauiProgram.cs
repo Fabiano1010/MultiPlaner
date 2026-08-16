@@ -1,5 +1,11 @@
-﻿using MultiPlanerApp.Services;
+﻿using System;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Controls.Hosting;
+using Microsoft.Maui.Devices;
+using Microsoft.Maui.Hosting;
+using MultiPlanerApp.Services;
 
 namespace MultiPlanerApp;
 
@@ -17,8 +23,15 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
-        builder.Services.AddScoped(sp =>
-            new HttpClient { BaseAddress = new Uri("http://localhost:5147/") });
+        // Wymaga using Microsoft.Maui.Devices;
+        string apiBaseUrl = DeviceInfo.Platform == DevicePlatform.Android
+            ? "http://10.0.2.2:5147/"
+            : "http://localhost:5147/";
+
+        builder.Services.AddScoped(sp => new HttpClient 
+        { 
+            BaseAddress = new Uri(apiBaseUrl) 
+        });
 
         builder.Services.AddScoped<EventService>();
 
