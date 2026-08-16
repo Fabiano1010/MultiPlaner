@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
-using MultiPlanerAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,10 +7,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=./db/calendar.db"));
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+                       ?? throw new InvalidOperationException("Not found connection string 'DefaultConnection'.");
 
-builder.Services.AddScoped<EventService>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+
 
 builder.Services.AddCors(options =>
 {
@@ -34,6 +36,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("DevPolicy");
 app.UseHttpsRedirection();
 app.MapControllers();
+app.UseAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {

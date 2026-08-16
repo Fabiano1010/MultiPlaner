@@ -12,7 +12,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.8">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -21,8 +21,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Database\" />
+      <Folder Include="Controllers\" />
       <Folder Include="Migrations\" />
+      <Folder Include="Modules\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MultiPlanerSharedModels\MultiPlanerSharedModels.csproj" />
     </ItemGroup>
 
 </Project>
