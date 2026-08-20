@@ -25,24 +25,24 @@ switch ($Command) {
     }
     "db-migrate" {
         Write-Host "▶ Wykonywanie migracji EF Core..." -ForegroundColor Green
-        dotnet ef database update --project src/MyApp.Api
+        dotnet ef database update --project MultiPlanerAPI
     }
     "api" {
-        dotnet run --project src/MyApp.Api
+        dotnet run --project MultiPlanerAPI
     }
     "web" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie Blazor Web..." -ForegroundColor Green
-        dotnet run --project src/MyApp.Web
+        dotnet run --project MultiPlanerWeb
     }
     "android" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie MAUI Android..." -ForegroundColor Green
-        dotnet build src/MyApp.Maui -t:Run -f net10.0-android
+        dotnet build MultiPlanerApp -t:Run -f net10.0-android
     }
     "windows" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie MAUI Windows..." -ForegroundColor Green
-        dotnet build src/MyApp.Maui -t:Run -f net10.0-windows10.0.19041.0
+        dotnet build MultiPlanerApp -t:Run -f net10.0-windows10.0.19041.0
     }
 }

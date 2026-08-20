@@ -6,7 +6,7 @@ services:
     container_name: myapp-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${SA_PASSWORD:USTAWKURWAHASŁO}
+      - MSSQL_SA_PASSWORD=${SA_PASSWORD:-SETYOURPASSWORD}
       - MSSQL_PID=Developer
     ports:
       - "${DB_PORT:-1433}:1433"
