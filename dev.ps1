@@ -6,10 +6,10 @@ param (
 
 function Start-ApiBackground {
     Write-Host "▶ Uruchamianie Web API w osobnym oknie..." -ForegroundColor Cyan
-    Start-Process wt -ArgumentList "dotnet run --project src/MyApp.Api" -ErrorAction SilentlyContinue
+    Start-Process wt -ArgumentList "dotnet run --project MultiPlanerAPI" -ErrorAction SilentlyContinue
     if (-not $?) {
         # Fallback jeśli brak Windows Terminal
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "dotnet run --project src/MyApp.Api"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "dotnet run --project MultiPlanerAPI"
     }
     Start-Sleep -Seconds 3
 }
