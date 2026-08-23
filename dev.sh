@@ -5,12 +5,12 @@ COMMAND=$1
 
 function run_api {
     echo "▶ Uruchamianie Web API..."
-    dotnet run --project src/MyApp.Api
+    dotnet run --project MultiPlanerAPI
 }
 
 function run_api_background {
     echo "▶ Sprawdzanie / Uruchamianie Web API w tle..."
-    dotnet run --project src/MyApp.Api &
+    dotnet run --project MultiPlanerAPI &
     API_PID=$!
     trap "echo 'Zatrzymywanie API...'; kill $API_PID 2>/dev/null" EXIT
     sleep 3
@@ -27,7 +27,7 @@ case "$COMMAND" in
         ;;
     "db-migrate")
         echo "▶ Aplikowanie migracji EF Core..."
-        dotnet ef database update --project src/MyApp.Api
+        dotnet ef database update --project MultiPlanerAPI
         ;;
     "api")
         run_api
@@ -35,12 +35,12 @@ case "$COMMAND" in
     "web")
         run_api_background
         echo "▶ Uruchamianie aplikacji Blazor Web..."
-        dotnet run --project src/MyApp.Web
+        dotnet run --project MultiPlanerWeb
         ;;
     "android")
         run_api_background
         echo "▶ Uruchamianie MAUI Android..."
-        dotnet build src/MyApp.Maui -t:Run -f net10.0-android
+        dotnet build MultiPlanerApp -t:Run -f net10.0-android
         ;;
     "windows")
         echo "❌ Błąd: Kompilacja Windows nie jest wspierana na środowisku Linux/macOS."
