@@ -46,14 +46,20 @@ case "$COMMAND" in
         echo "❌ Błąd: Kompilacja Windows nie jest wspierana na środowisku Linux/macOS."
         exit 1
         ;;
+    "db-add-migration")
+        MIGRATION_NAME=${2:-"AutoMigration_$(date +%Y%m%d%H%M%S)"}
+        echo "▶ Tworzenie nowej migracji: $MIGRATION_NAME..."
+        dotnet ef migrations add "$MIGRATION_NAME" --project MultiPlanerAPI
+        ;;
     *)
         echo "Użycie: ./dev.sh [opcja]"
         echo "Opcje:"
-        echo "  db-up       - Podnosi bazę SQL Server w Dockerze"
-        echo "  db-down     - Zatrzymuje bazę SQL Server"
-        echo "  db-migrate  - Aplikuje migracje EF Core"
-        echo "  api         - Uruchamia samo Web API"
-        echo "  web         - Uruchamia API w tle + Blazor Web"
-        echo "  android     - Uruchamia API w tle + MAUI Android"
+        echo "  db-up               - Podnosi bazę SQL Server w Dockerze"
+        echo "  db-down             - Zatrzymuje bazę SQL Server"
+        echo "  db-migrate          - Aplikuje migracje EF Core"
+        echo "  db-add-migration    - Dodaje nową migracje EF Core"
+        echo "  api                 - Uruchamia samo Web API"
+        echo "  web                 - Uruchamia API w tle + Blazor Web"
+        echo "  android             - Uruchamia API w tle + MAUI Android"
         ;;
 esac
