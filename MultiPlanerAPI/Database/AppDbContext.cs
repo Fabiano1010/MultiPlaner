@@ -134,8 +134,12 @@
 
                 entity.HasIndex(e => e.MessageRoomId).IsUnique().HasDatabaseName("unq_message_room_messages");
 
-                entity.OwnsOne(e => e.Messages, b => b.ToJson());
-
+                entity.Property(e => e.Messages)
+                    .HasColumnName("messages")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<MultiPlanerSharedModels.JSON.MessageRoomMessagesContent>(v, (System.Text.Json.JsonSerializerOptions?)null)!
+                    );
                 entity.HasOne(e => e.MessageRoom)
                       .WithOne(mr => mr.MessageRoomMessages)
                       .HasForeignKey<MessageRoomMessages>(e => e.MessageRoomId)
@@ -151,8 +155,19 @@
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasColumnType("datetime").IsRequired();
                 entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasColumnType("datetime").IsRequired();
 
-                entity.OwnsOne(e => e.Content, b => b.ToJson());
-                entity.OwnsOne(e => e.Result, b => b.ToJson());
+                entity.Property(e => e.Content)
+                    .HasColumnName("content")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<MultiPlanerSharedModels.JSON.PollContent>(v, (System.Text.Json.JsonSerializerOptions?)null)!
+                    );
+
+                entity.Property(e => e.Result)
+                    .HasColumnName("result")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<MultiPlanerSharedModels.JSON.PollResult>(v, (System.Text.Json.JsonSerializerOptions?)null)!
+                    );
             });
 
             modelBuilder.Entity<Menu>(entity =>
@@ -244,8 +259,14 @@
                 entity.Property(e => e.CalendarId).HasColumnName("calendar_id");
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
-                entity.OwnsOne(e => e.StateContent, b => b.ToJson());
-
+                entity.Property(e => e.StateContent)
+                    .HasColumnName("state_content")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<MultiPlanerSharedModels.JSON.CalendarStateContent>(v, (System.Text.Json.JsonSerializerOptions?)null)!
+                    );
+                
+                
                 entity.HasOne(e => e.Calendar)
                       .WithMany(c => c.CalendarStates)
                       .HasForeignKey(e => e.CalendarId)
