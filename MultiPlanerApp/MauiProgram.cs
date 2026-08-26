@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Hosting;
-using MultiPlanerApp.Services;
+using MultiPlanerSharedModels.Services;
 
 namespace MultiPlanerApp;
 

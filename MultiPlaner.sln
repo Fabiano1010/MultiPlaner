@@ -8,7 +8,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerSharedUI", "Mult
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerSharedModels", "MultiPlanerSharedModels\MultiPlanerSharedModels.csproj", "{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerWeb", "MultiPlanerWeb\MultiPlanerWeb.csproj", "{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerWeb", "MultiPlanerWeb\MultiPlanerWeb.csproj", "{8456FE9F-A398-4341-9CC5-9184CEE12802}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,9 +32,9 @@ Global
 		{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

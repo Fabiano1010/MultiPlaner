@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <!-- Android jest wspólną bazą - buduje się ZAWSZE (na Linux, Windows i macOS) -->
-        <TargetFramework>net10.0-android</TargetFramework>
+<!--        <TargetFramework>net10.0-android</TargetFramework>-->
 
         <!-- Windows dorzuca się TYLKO gdy pracujesz na Windowsie -->
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
@@ -58,10 +58,10 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0"/>
     </ItemGroup>
 
-    <!-- Referencje do Twoich projektów współdzielonych (dostosuj ścieżki względne, jeśli masz inną strukturę) -->
+
     <ItemGroup>
-        <ProjectReference Include="..\MultiPlaner.Shared.Models\MultiPlaner.Shared.Models.csproj" />
-        <ProjectReference Include="..\MultiPlaner.Shared.UI\MultiPlaner.Shared.UI.csproj" />
+        <ProjectReference Include="..\MultiPlanerSharedModels\MultiPlanerSharedModels.csproj" />
+        <ProjectReference Include="..\MultiPlanerSharedUI\MultiPlanerSharedUI.csproj" />
     </ItemGroup>
 
 </Project>

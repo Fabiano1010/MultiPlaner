@@ -15,4 +15,48 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\MultiPlanerSharedModels\MultiPlanerSharedModels.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Components\Calendar\CalendarEvents.razor" />
+      <UpToDateCheckInput Remove="Components\Calendar\CalendarGrid.razor" />
+      <UpToDateCheckInput Remove="Components\Calendar\CalendarHeader.razor" />
+      <UpToDateCheckInput Remove="Components\Events\AddEventForm.razor" />
+      <UpToDateCheckInput Remove="Components\Events\EventDetails.razor" />
+      <UpToDateCheckInput Remove="Components\Events\EventsList.razor" />
+      <UpToDateCheckInput Remove="Components\Layout\MainLayout.razor" />
+      <UpToDateCheckInput Remove="Components\Layout\NavMenu.razor" />
+      <UpToDateCheckInput Remove="Components\Layout\Popup.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Calendar\CalendarEvents.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Calendar\CalendarGrid.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Calendar\CalendarHeader.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Events\AddEventForm.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Events\EventDetails.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Events\EventsList.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Layout\MainLayout.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Layout\MainLayout.razor.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Layout\NavMenu.razor" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Layout\NavMenu.razor.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\Components\Layout\Popup.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Components\Calendar\CalendarEvents.razor" />
+      <AdditionalFiles Include="Components\Calendar\CalendarGrid.razor" />
+      <AdditionalFiles Include="Components\Calendar\CalendarHeader.razor" />
+      <AdditionalFiles Include="Components\Events\AddEventForm.razor" />
+      <AdditionalFiles Include="Components\Events\EventDetails.razor" />
+      <AdditionalFiles Include="Components\Events\EventsList.razor" />
+      <AdditionalFiles Include="Components\Layout\MainLayout.razor" />
+      <AdditionalFiles Include="Components\Layout\NavMenu.razor" />
+      <AdditionalFiles Include="Components\Layout\Popup.razor" />
+    </ItemGroup>
+
+ 
+
 </Project>
