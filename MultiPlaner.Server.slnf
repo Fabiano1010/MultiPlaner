@@ -1,0 +1,11 @@
+{
+  "solution": {
+    "path": "MultiPlaner.sln",
+    "projects": [
+      "MultiPlanerAPI/MultiPlanerAPI.csproj",
+      "MultiPlanerSharedModels/MultiPlanerSharedModels.csproj",
+      "MultiPlanerAPI.UnitTests/MultiPlanerAPI.UnitTests.csproj",
+      "MultiPlanerAPI.IntegrationTests/MultiPlanerAPI.IntegrationTests.csproj"
+    ]
+  }
+}

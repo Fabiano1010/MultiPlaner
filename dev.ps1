@@ -6,10 +6,10 @@ param (
 
 function Start-ApiBackground {
     Write-Host "▶ Uruchamianie Web API w osobnym oknie..." -ForegroundColor Cyan
-    Start-Process wt -ArgumentList "dotnet run --project MultiPlanerAPI" -ErrorAction SilentlyContinue
+    Start-Process wt -ArgumentList "dotnet run --project MultiPlanerAPI --launch-profile https" -ErrorAction SilentlyContinue
     if (-not $?) {
         # Fallback jeśli brak Windows Terminal
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "dotnet run --project MultiPlanerAPI"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "dotnet run --project MultiPlanerAPI --launch-profile https"
     }
     Start-Sleep -Seconds 3
 }
@@ -28,12 +28,12 @@ switch ($Command) {
         dotnet ef database update --project MultiPlanerAPI
     }
     "api" {
-        dotnet run --project MultiPlanerAPI
+        dotnet run --project MultiPlanerAPI --launch-profile https
     }
     "web" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie Blazor Web..." -ForegroundColor Green
-        dotnet run --project MultiPlanerWeb
+        dotnet run --project MultiPlanerWeb --launch-profile https
     }
     "android" {
         Start-ApiBackground

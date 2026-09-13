@@ -5,12 +5,12 @@ COMMAND=$1
 
 function run_api {
     echo "▶ Uruchamianie Web API..."
-    dotnet run --project MultiPlanerAPI
+    dotnet run --project MultiPlanerAPI --launch-profile https
 }
 
 function run_api_background {
     echo "▶ Sprawdzanie / Uruchamianie Web API w tle..."
-    dotnet run --project MultiPlanerAPI &
+    dotnet run --project MultiPlanerAPI --launch-profile https &
     API_PID=$!
     trap "echo 'Zatrzymywanie API...'; kill $API_PID 2>/dev/null" EXIT
     sleep 3
@@ -35,7 +35,7 @@ case "$COMMAND" in
     "web")
         run_api_background
         echo "▶ Uruchamianie aplikacji Blazor Web..."
-        dotnet run --project MultiPlanerWeb
+        dotnet run --project MultiPlanerWeb --launch-profile https
         ;;
     "android")
         run_api_background

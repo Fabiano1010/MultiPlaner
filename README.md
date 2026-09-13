@@ -1,5 +1,23 @@
 # MultiPlaner - Dev Guide
 
+## API — wdrożone kroki 1–3
+
+Serwer ma nowy schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,
+profil, cookies z CSRF i wewnętrzną obsługę sesji gości.
+Instrukcja przygotowania **pustej bazy**, kontrakty i uruchamianie testów:
+[Fundament API](docs/api-foundation.md).
+
+Sam backend nie wymaga workloadu MAUI. Użyj filtra rozwiązania:
+
+```bash
+dotnet build MultiPlaner.Server.slnf
+dotnet test MultiPlaner.Server.slnf
+```
+
+Testy integracyjne wymagają Dockera/Podmana albo testowego SQL Servera.
+API i Swagger uruchamiaj przez HTTPS: `https://localhost:7157/swagger`.
+Stara migracja deweloperska została zastąpiona; szczegóły przejścia są w instrukcji powyżej.
+
 ## Wymagania
 - .NET SDK (z zainstalowanym workloadem: `dotnet workload install maui`)
 - Docker & Docker Compose
@@ -47,7 +65,7 @@ Parametry połączeń i porty
 
   - SQL Server: localhost:1433 (Użytkownik: sa, Hasło: YourStrong@Password123,
     Baza: MultiPlanerDb)
-  - Web API: http://localhost:5147
+  - Web API: https://localhost:7157 (HTTP na 5147 przekierowuje na HTTPS)
   - Emulator Androida: http://10.0.2.2:5147 (mapowane automatycznie w kodzie)
 
 Git Workflow
