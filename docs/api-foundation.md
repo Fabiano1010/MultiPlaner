@@ -148,7 +148,8 @@ z kodowaniem HTML; odpowiedź JSON nie jest zgodą na renderowanie surowego HTML
 
 ## Model i granice modułów
 
-- `Modules/Users`: kontrolery, usługi kont, sesje i odczyt bieżącej tożsamości.
+- `Controllers`: kontrolery HTTP wywołujące usługi z modułów.
+- `Modules/Users`: usługi kont, sesje i odczyt bieżącej tożsamości.
 - `Infrastructure`: wspólne błędy i ochrona CSRF.
 - `Database/Configurations`: mapowania i ograniczenia SQL Server.
 - `Models`: encje serwera; nie są kontraktem dla UI.

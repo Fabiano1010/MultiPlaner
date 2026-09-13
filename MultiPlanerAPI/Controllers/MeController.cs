@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MultiPlanerAPI.Modules.Users;
 using MultiPlanerSharedModels.Contracts.Auth;
 using MultiPlanerSharedModels.Contracts.Users;
 
-namespace MultiPlanerAPI.Modules.Users;
+namespace MultiPlanerAPI.Controllers;
 
 [ApiController]
 [Route("api/me")]
