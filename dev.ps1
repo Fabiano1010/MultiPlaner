@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param (
     [Parameter(Position = 0)]
-    [ValidateSet("help", "db-up", "db-down", "db-migrate", "db-add-migration", "api", "web", "android", "windows")]
+    [ValidateSet("help", "db-up", "db-down", "db-reset", "db-migrate", "db-add-migration", "api", "web", "android", "windows")]
     [string]$Command = "help",
 
     [Parameter(Position = 1)]
@@ -151,6 +151,12 @@ switch ($Command) {
         Write-Host "▶ Zatrzymywanie bazy..." -ForegroundColor Yellow
         Invoke-Compose -Arguments @("down")
     }
+    "db-reset" {
+        Test-DockerAvailable
+        Write-Host "▶ Usuwanie developerskiego kontenera i całego wolumenu SQL Server..." -ForegroundColor Yellow
+        Invoke-Compose -Arguments @("down", "--volumes", "--remove-orphans")
+        Write-Host "✅ Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte." -ForegroundColor Green
+    }
     "db-migrate" {
         Start-Database
         Write-Host "▶ Wykonywanie migracji EF Core..." -ForegroundColor Green
@@ -184,6 +190,7 @@ switch ($Command) {
         Write-Host "Opcje:"
         Write-Host "  db-up               - Podnosi bazę SQL Server w Dockerze"
         Write-Host "  db-down             - Zatrzymuje bazę SQL Server"
+        Write-Host "  db-reset            - Usuwa kontener i cały developerski wolumen SQL Server"
         Write-Host "  db-migrate          - Aplikuje migracje EF Core"
         Write-Host "  db-add-migration    - Dodaje migrację EF Core"
         Write-Host "  api                 - Uruchamia samo Web API"

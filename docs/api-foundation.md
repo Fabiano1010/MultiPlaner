@@ -30,7 +30,7 @@ Cookies uwierzytelniające zawsze wymagają HTTPS, również w development.
 Migracja `InitialApiSchema` zastępuje dawną migrację
 `20260825144737_InitialSqlServerCreate`. Nie przenosi jej danych.
 
-Przy pierwszym uruchomieniu wskaż nową, pustą bazę, np. `MultiPlanerV2Db`,
+Przy pierwszym uruchomieniu wskaż nową, pustą bazę `MultiPlanerSQLDb`,
 w `ConnectionStrings:DefaultConnection`. Można użyć tego samego serwera SQL
 i dotychczasowych danych logowania, zmieniając tylko nazwę bazy.
 Nie trzeba usuwać całego kontenera ani jego wolumenu.
@@ -38,7 +38,7 @@ Nie trzeba usuwać całego kontenera ani jego wolumenu.
 Przykład konfiguracji przez środowisko (uzupełnij własne hasło):
 
 ```bash
-export ConnectionStrings__DefaultConnection='Server=localhost,1433;Database=MultiPlanerV2Db;User Id=sa;Password=<hasło SQL>;Encrypt=True;TrustServerCertificate=True'
+export ConnectionStrings__DefaultConnection='Server=localhost,1433;Database=MultiPlanerSQLDb;User Id=sa;Password=<hasło SQL>;Encrypt=True;TrustServerCertificate=True'
 dotnet ef database update --project MultiPlanerAPI
 dotnet run --project MultiPlanerAPI --launch-profile https
 ```
@@ -46,7 +46,7 @@ dotnet run --project MultiPlanerAPI --launch-profile https
 PowerShell:
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection = 'Server=localhost,1433;Database=MultiPlanerV2Db;User Id=sa;Password=<hasło SQL>;Encrypt=True;TrustServerCertificate=True'
+$env:ConnectionStrings__DefaultConnection = 'Server=localhost,1433;Database=MultiPlanerSQLDb;User Id=sa;Password=<hasło SQL>;Encrypt=True;TrustServerCertificate=True'
 dotnet ef database update --project MultiPlanerAPI
 dotnet run --project MultiPlanerAPI --launch-profile https
 ```

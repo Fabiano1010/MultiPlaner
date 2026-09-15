@@ -105,6 +105,12 @@ case "$COMMAND" in
         echo "▶ Zatrzymywanie bazy danych..."
         "${COMPOSE[@]}" down
         ;;
+    "db-reset")
+        require_docker
+        echo "▶ Usuwanie developerskiego kontenera i całego wolumenu SQL Server..."
+        "${COMPOSE[@]}" down --volumes --remove-orphans
+        echo "✅ Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte."
+        ;;
     "db-migrate")
         start_database
         echo "▶ Aplikowanie migracji EF Core..."
@@ -137,6 +143,7 @@ case "$COMMAND" in
         echo "Opcje:"
         echo "  db-up               - Podnosi bazę SQL Server w Dockerze"
         echo "  db-down             - Zatrzymuje bazę SQL Server"
+        echo "  db-reset            - Usuwa kontener i cały developerski wolumen SQL Server"
         echo "  db-migrate          - Aplikuje migracje EF Core"
         echo "  db-add-migration    - Dodaje nową migracje EF Core"
         echo "  api                 - Uruchamia samo Web API"

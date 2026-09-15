@@ -58,10 +58,4 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0"/>
     </ItemGroup>
 
-    <!-- Referencje do Twoich projektów współdzielonych (dostosuj ścieżki względne, jeśli masz inną strukturę) -->
-    <ItemGroup>
-        <ProjectReference Include="..\MultiPlaner.Shared.Models\MultiPlaner.Shared.Models.csproj" />
-        <ProjectReference Include="..\MultiPlaner.Shared.UI\MultiPlaner.Shared.UI.csproj" />
-    </ItemGroup>
-
 </Project>
