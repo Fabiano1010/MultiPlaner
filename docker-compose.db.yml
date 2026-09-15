@@ -1,12 +1,12 @@
-version: '3.8'
-
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: MultiPlanerSQLDb
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${SA_PASSWORD:-SETYOURPASSWORD}
+      # Development default only. Set SA_PASSWORD in .env or the shell for any
+      # shared/non-development environment.
+      - MSSQL_SA_PASSWORD=${SA_PASSWORD:-YourStrong@Password123}
       - MSSQL_PID=Developer
     ports:
       - "${DB_PORT:-1433}:1433"
