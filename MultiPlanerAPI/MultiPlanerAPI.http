@@ -1,6 +1,61 @@
-@MultiPlanerAPI_HostAddress = http://localhost:5147
+@MultiPlanerAPI_HostAddress = https://localhost:7157
+@email = api-demo@example.com
+@password = Correct-Horse9!Battery
 
-GET {{MultiPlanerAPI_HostAddress}}/weatherforecast/
+### 1. Pobierz CSRF. Klient HTTP musi zachowywać cookies.
+GET {{MultiPlanerAPI_HostAddress}}/api/auth/csrf
 Accept: application/json
 
-###
+> {%
+    client.global.set("csrfToken", response.body.token);
+%}
+
+### 2. Zarejestruj konto (201). Rejestracja nie loguje automatycznie.
+POST {{MultiPlanerAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "displayName": "Użytkownik API",
+  "countryCode": "PL",
+  "timeZoneId": "Europe/Warsaw"
+}
+
+### 3. Zaloguj się (200 + cookie).
+POST {{MultiPlanerAPI_HostAddress}}/api/auth/login
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 4. Po zmianie tożsamości pobierz nowy CSRF.
+GET {{MultiPlanerAPI_HostAddress}}/api/auth/csrf
+
+> {%
+    client.global.set("csrfToken", response.body.token);
+%}
+
+### 5. Odczytaj profil.
+GET {{MultiPlanerAPI_HostAddress}}/api/me
+Accept: application/json
+
+### 6. Zmień profil.
+PATCH {{MultiPlanerAPI_HostAddress}}/api/me
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "displayName": "Nowa nazwa",
+  "countryCode": "PL",
+  "timeZoneId": "Europe/Warsaw",
+  "contactDetails": "Kontakt opcjonalny"
+}
+
+### 7. Wyloguj wszystkie sesje tego konta (204).
+POST {{MultiPlanerAPI_HostAddress}}/api/auth/logout
+X-CSRF-TOKEN: {{csrfToken}}
