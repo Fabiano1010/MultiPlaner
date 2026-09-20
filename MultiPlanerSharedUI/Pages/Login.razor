@@ -1,0 +1,32 @@
+﻿@page "/login"
+@layout AuthLayout
+@inject AuthService Auth
+@inject NavigationManager Nav
+@attribute [AllowAnonymous]
+<h2>Login</h2>
+
+<div>
+    <input @bind="email" placeholder="Email"/>
+    <input @bind="password" type="password" placeholder="Password"/>
+    <input type="checkbox" @bind="remember"/> Remember Me
+    <button @onclick="LoginAsync">Login</button>
+    
+    @if (error is not null) {
+        <p class="error">@error</p>
+    }
+    
+</div>
+
+@code {
+    string email = "", password = "", error;
+    bool remember = false;
+    async Task LoginAsync() {
+        error = null;
+        try {
+            await Auth.LoginAsync(email, password, remember);
+            Nav.NavigateTo("/");
+        } catch (Exception ex) {
+            error = ex.Message;
+        }
+    }
+}

@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Net;
 using System.Net.Http;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Hosting;
 using MultiPlanerSharedModels.Services;
+using MultiPlanerSharedUI.Services;
 
 namespace MultiPlanerApp;
 
@@ -23,17 +26,43 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
-        // Wymaga using Microsoft.Maui.Devices;
+        // HTTPS jest wymagane, bo cookies API mają flagę Secure
         string apiBaseUrl = DeviceInfo.Platform == DevicePlatform.Android
-            ? "http://10.0.2.2:5147/"
-            : "http://localhost:5147/";
+            ? "https://10.0.2.2:7157/"
+            : "https://localhost:7157/";
 
-        builder.Services.AddScoped(sp => new HttpClient 
-        { 
-            BaseAddress = new Uri(apiBaseUrl) 
+        // Cookies trzymane w pamięci (jeden kontener na całą aplikację)
+        var cookies = new CookieContainer();
+        builder.Services.AddSingleton(cookies);
+
+        builder.Services.AddSingleton(sp =>
+        {
+            var handler = new HttpClientHandler
+            {
+                CookieContainer = cookies,
+                UseCookies = true
+            };
+
+#if DEBUG
+            // Tylko development: akceptuj certyfikat deweloperski
+            handler.ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+#endif
+
+            return new HttpClient(handler)
+            {
+                BaseAddress = new Uri(apiBaseUrl)
+            };
         });
 
-        builder.Services.AddScoped<EventService>();
+        // Autoryzacja (w MAUI Blazor Hybrid scope jest jeden, więc Singleton)
+        builder.Services.AddAuthorizationCore();
+        builder.Services.AddSingleton<ApiAuthStateProvider>();
+        builder.Services.AddSingleton<AuthenticationStateProvider>(sp =>
+            sp.GetRequiredService<ApiAuthStateProvider>());
+        builder.Services.AddSingleton<AuthService>();
+
+        builder.Services.AddSingleton<EventService>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
