@@ -150,4 +150,8 @@
 .auth-btn:disabled {
     cursor: not-allowed;
 }
+.auth-register{
+    height: 50vh;
+    min-height: 460px;
+}
 

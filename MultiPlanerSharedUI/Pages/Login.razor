@@ -43,7 +43,7 @@
     
     string email = "", password = "", error;
     bool remember = false;
-    bool CanSubmit => !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password);
+    bool CanSubmit => !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password) && System.Net.Mail.MailAddress.TryCreate(email, out _);
     async Task LoginAsync() {
         error = null;
         try {

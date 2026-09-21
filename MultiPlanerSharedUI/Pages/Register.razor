@@ -4,26 +4,52 @@
 @inject NavigationManager Nav
 @attribute [AllowAnonymous]
 
-<h2>Register</h2>
 
-<div>
+<div class="main-content-box-auth ">
+    <h2>Register</h2>
+    <div class="form-box auth-register">
+        <div class="auth-form">
+            <div class="input-group">
+                <label for="name">Name</label>
+                <input @bind="name" id="name" placeholder="Name" class="auth-input"/>
+                <div class="input-error"></div>
+            </div>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input @bind="email" id="email" placeholder="Email" class="auth-input"/>
+                <div class="input-error"></div>
+            </div>
 
-    <input @bind="name" placeholder="Name">
-    <input @bind="email" placeholder="Email"/>
-    <input @bind="password" type="password" placeholder="Password"/>
-    <input @bind="passwordConfirm" type="password" placeholder="Confirm Password"/>
-    <button @onclick="RegisterAsync">Register</button>
-    
-    @if (error is not null) {
-        <p class="error">@error</p>
-    }
-    
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input @bind="password" type="password" id="password" placeholder="Password" class="auth-input"/>
+                <div class="input-error"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="passwordConfirm">Confirm Password</label>
+                <input @bind="passwordConfirm" type="password" id="passwordConfirm" placeholder="Confirm Password" class="auth-input"/>
+                <div class="input-error"></div>
+            </div>
+            
+            <button @onclick="RegisterAsync" class="auth-btn" disabled="@(!CanSubmit)">Register</button>
+
+            @if (error is not null) {
+                <p class="error">@error</p>
+            }
+            <div class="register-direction">
+                <p>Already have an account? <a href="/login">Log in</a></p>
+            </div>
+        </div>
+    </div>
 </div>
+
+
 
 @code {
     string email = "", password = "", passwordConfirm = "" , name = "", error, countryCode = "PL", timeZoneId = "Europe/Warsaw";
     
-    
+    bool CanSubmit => !string.IsNullOrWhiteSpace(email) && System.Net.Mail.MailAddress.TryCreate(email, out _) && !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && !string.IsNullOrWhiteSpace(name);
     bool remember = false;
     async Task RegisterAsync() {
         error = null;
