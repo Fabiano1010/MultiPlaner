@@ -1,0 +1,22 @@
+﻿.main-content-box-auth{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.form-box{
+    width: 10vw;
+    height: 40vh;
+    min-height: 400px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.auth-form{
+    display: flex;
+    flex-direction: column;
+}

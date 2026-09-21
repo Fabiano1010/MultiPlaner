@@ -3,19 +3,25 @@
 @inject AuthService Auth
 @inject NavigationManager Nav
 @attribute [AllowAnonymous]
-<h2>Login</h2>
 
-<div>
-    <input @bind="email" placeholder="Email"/>
-    <input @bind="password" type="password" placeholder="Password"/>
-    <input type="checkbox" @bind="remember"/> Remember Me
-    <button @onclick="LoginAsync">Login</button>
-    
-    @if (error is not null) {
-        <p class="error">@error</p>
-    }
-    
+<div class="main-content-box-auth">
+    <div class="form-box">
+        <h2>Login</h2>
+
+        <div class="auth-form">
+            <input @bind="email" placeholder="Email"/>
+            <input @bind="password" type="password" placeholder="Password"/>
+            <input type="checkbox" @bind="remember"/> Remember Me
+            <button @onclick="LoginAsync">Login</button>
+
+            @if (error is not null) {
+                <p class="error">@error</p>
+            }
+
+        </div>
+    </div>
 </div>
+
 
 @code {
     string email = "", password = "", error;

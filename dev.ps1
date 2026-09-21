@@ -173,7 +173,7 @@ switch ($Command) {
     "web" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie Blazor Web..." -ForegroundColor Green
-        Invoke-Checked -FilePath "dotnet" -Arguments @("run", "--project", $WebProject, "--launch-profile", "https")
+        Invoke-Checked -FilePath "dotnet" -Arguments @("watch", "--project", $WebProject, "--launch-profile", "https")
     }
     "android" {
         Start-ApiBackground
