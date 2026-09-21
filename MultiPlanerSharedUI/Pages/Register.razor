@@ -22,13 +22,30 @@
 
             <div class="input-group">
                 <label for="password">Password</label>
-                <input @bind="password" type="password" id="password" placeholder="Password" class="auth-input"/>
-                <div class="input-error"></div>
+                <div class="password-wrapper">
+                    <input @bind="password" @bind:event="oninput"
+                           type="@(showPassword ? "text" : "password")"
+                           id="password" placeholder="Password" class="auth-input-pass"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => showPassword = !showPassword"
+                            aria-label="@(showPassword ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
+                    </button>
+                </div>
             </div>
 
             <div class="input-group">
                 <label for="passwordConfirm">Confirm Password</label>
-                <input @bind="passwordConfirm" type="password" id="passwordConfirm" placeholder="Confirm Password" class="auth-input"/>
+                <div class="password-wrapper">
+                    <input @bind="passwordConfirm" @bind:event="oninput"
+                           type="@(showPasswordConfirm ? "text" : "password")"
+                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => showPasswordConfirm = !showPasswordConfirm"
+                            aria-label="@(showPasswordConfirm ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(showPasswordConfirm ? "eye-off.svg" : "eye.svg")" alt="" />
+                    </button>
+                </div>
                 <div class="input-error"></div>
             </div>
             
@@ -50,7 +67,7 @@
     string email = "", password = "", passwordConfirm = "" , name = "", error, countryCode = "PL", timeZoneId = "Europe/Warsaw";
     
     bool CanSubmit => !string.IsNullOrWhiteSpace(email) && System.Net.Mail.MailAddress.TryCreate(email, out _) && !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && !string.IsNullOrWhiteSpace(name);
-    bool remember = false;
+    bool remember = false, showPassword = false, showPasswordConfirm = false;
     async Task RegisterAsync() {
         error = null;
         try {

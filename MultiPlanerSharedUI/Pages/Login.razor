@@ -16,7 +16,16 @@
             
             <div class="input-group">
                 <label for="password">Password</label>
-                <input @bind="password" type="password" id="password" placeholder="Password" class="auth-input"/>
+                <div class="password-wrapper">
+                    <input @bind="password" @bind:event="oninput"
+                           type="@(showPassword ? "text" : "password")"
+                           id="password" placeholder="Password" class="auth-input-pass"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => showPassword = !showPassword"
+                            aria-label="@(showPassword ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
+                    </button>
+                </div>
                 <div class="input-error"></div>
                 <div class="password-reset-direction">
                     <a href="/reset-password">Forgot your password?</a>
@@ -44,6 +53,7 @@
     string email = "", password = "", error;
     bool remember = false;
     bool CanSubmit => !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password) && System.Net.Mail.MailAddress.TryCreate(email, out _);
+    bool showPassword;
     async Task LoginAsync() {
         error = null;
         try {
