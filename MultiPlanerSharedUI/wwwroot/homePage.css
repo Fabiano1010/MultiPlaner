@@ -1,0 +1,83 @@
+﻿.about-box{
+    width: 40vw;
+    height: 65vh;
+    min-height: 400px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 15px;
+    background-color: var(--color-primary-dim);
+    padding: 0  2rem 2rem 2rem;
+}
+.home-box-notloggedin{
+    width: 30vw;
+    height: 65vh;
+    min-height: 400px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    border-radius: 15px;
+    background-color: var(--color-primary-dim);
+    padding: 0  2rem 2rem 2rem;
+}
+.home-btn-group{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+.home-btns{
+    width: 50%;
+    height: 40px;
+    border-radius: 15px;
+    border: none;
+    background-color: white;
+    color: var(--color-text);
+    font-size: var(--font-size-medium);
+    cursor: pointer;
+    user-select: none;
+    transition: ease-in 0.15s;
+    
+}
+
+.home-btns:hover{
+    background-color: var(--color-text);
+    color: var(--color-text-reversed);
+}
+.welcome-msg{
+    font-size: var(--font-size-large);
+    font-weight: bold;
+    text-align: center;
+    color: var(--color-text);
+}
+.title-text{
+    font-size: 3rem;
+    font-weight: bold;
+    text-align: center;
+    color: var(--color-text);
+    text-transform: uppercase;
+}
+.credits{
+    font-size: var(--font-size-small);
+    font-weight: bold;
+    text-align: center;
+    color: var(--color-primary);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    transition: 0.2s ease-in-out;
+}
+.credits span{
+    transition: 0.2s ease-in-out;
+}
+.credits span:hover{
+    color: var(--color-text);
+    transform: scale(1.2);
+}
