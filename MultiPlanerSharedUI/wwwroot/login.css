@@ -150,6 +150,10 @@
     position: relative;
     display: flex;
     align-items: center;
+    transition: 0.25s all;
+}
+.password-wrapper:hover{
+    filter: drop-shadow(0 10px 10px var(--color-primary));
 }
 
 .password-wrapper .auth-input {
