@@ -1,7 +1,7 @@
 ﻿.main-content-box-auth{
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     height: 100%;
     width: 100%;
@@ -73,6 +73,14 @@
 .error-input{
     border: 1px solid red;
 }
+.error{
+    color: red;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding-left: 0.5rem;
+    user-select: none;
+}
 .password-reset-direction{
     display: flex;
     justify-content: right;
@@ -143,7 +151,7 @@
 }
 .auth-register{
     height: 50vh;
-    min-height: 460px;
+    min-height: 500px;
 }
 
 .password-wrapper {

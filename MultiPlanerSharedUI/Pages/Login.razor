@@ -10,16 +10,16 @@
         <div class="auth-form">
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="email" id="email" placeholder="Email" class="auth-input"/>
+                <input @bind="email" id="email" placeholder="Email" class="auth-input @(hasError ? "error-input" : "")" />
                 <div class="input-error"></div>
             </div>
             
             <div class="input-group">
                 <label for="password">Password</label>
-                <div class="password-wrapper">
+                <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
                     <input @bind="password" @bind:event="oninput"
                            type="@(showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="auth-input-pass"/>
+                           id="password" placeholder="Password" class="auth-input-pass @(hasError ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => showPassword = !showPassword"
                             aria-label="@(showPassword ? "Hide password" : "Show password")">
@@ -38,10 +38,10 @@
             <button @onclick="LoginAsync" class="auth-btn" disabled="@(!CanSubmit)">Login</button>
 
             @if (error is not null) {
-                <p class="error">@error</p>
+                <span class="error">@error</span>
             }
             <div class="register-direction">
-                <p>Don't have an account? <a href="/register">Register here</a></p>
+                <span>Don't have an account? <a href="/register">Register here</a></span>
             </div>
         </div>
     </div>
@@ -53,14 +53,26 @@
     string email = "", password = "", error;
     bool remember = false;
     bool CanSubmit => !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password) && System.Net.Mail.MailAddress.TryCreate(email, out _);
-    bool showPassword;
-    async Task LoginAsync() {
+    bool showPassword = false;
+    bool hasError;
+
+    async Task LoginAsync()
+    {
         error = null;
-        try {
+        hasError = false;
+        try
+        {
             await Auth.LoginAsync(email, password, remember);
             Nav.NavigateTo("/");
-        } catch (Exception ex) {
-            error = ex.Message;
+        }
+        catch (ApiException ex)
+        {
+            error = ex.Status == 401 ? "Invalid email or password." : ex.Message;
+            hasError = true;
+        }
+        catch (HttpRequestException)
+        {
+            error = "Cannot connect to the server.";
         }
     }
 }

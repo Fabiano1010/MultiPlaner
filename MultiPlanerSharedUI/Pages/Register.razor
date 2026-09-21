@@ -11,21 +11,21 @@
         <div class="auth-form">
             <div class="input-group">
                 <label for="name">Name</label>
-                <input @bind="name" id="name" placeholder="Name" class="auth-input"/>
+                <input @bind="name" id="name" placeholder="Name" class="auth-input @(hasErrorName ? "error-input" : "")"/>
                 <div class="input-error"></div>
             </div>
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="email" id="email" placeholder="Email" class="auth-input"/>
+                <input @bind="email" id="email" placeholder="Email" class="auth-input @(hasError ? "error-input" : "")"  />
                 <div class="input-error"></div>
             </div>
 
             <div class="input-group">
                 <label for="password">Password</label>
-                <div class="password-wrapper">
+                <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
                     <input @bind="password" @bind:event="oninput"
                            type="@(showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="auth-input-pass"/>
+                           id="password" placeholder="Password" class="auth-input-pass @(hasErrorPassword ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => showPassword = !showPassword"
                             aria-label="@(showPassword ? "Hide password" : "Show password")">
@@ -36,10 +36,10 @@
 
             <div class="input-group">
                 <label for="passwordConfirm">Confirm Password</label>
-                <div class="password-wrapper">
+                <div class="password-wrapper " >
                     <input @bind="passwordConfirm" @bind:event="oninput"
                            type="@(showPasswordConfirm ? "text" : "password")"
-                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass"/>
+                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass @(hasErrorPassword ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => showPasswordConfirm = !showPasswordConfirm"
                             aria-label="@(showPasswordConfirm ? "Hide password" : "Show password")">
@@ -52,7 +52,7 @@
             <button @onclick="RegisterAsync" class="auth-btn" disabled="@(!CanSubmit)">Register</button>
 
             @if (error is not null) {
-                <p class="error">@error</p>
+                <span class="error">@error</span>
             }
             <div class="register-direction">
                 <p>Already have an account? <a href="/login">Log in</a></p>
@@ -67,14 +67,36 @@
     string email = "", password = "", passwordConfirm = "" , name = "", error, countryCode = "PL", timeZoneId = "Europe/Warsaw";
     
     bool CanSubmit => !string.IsNullOrWhiteSpace(email) && System.Net.Mail.MailAddress.TryCreate(email, out _) && !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && !string.IsNullOrWhiteSpace(name);
-    bool remember = false, showPassword = false, showPasswordConfirm = false;
-    async Task RegisterAsync() {
+    bool showPassword = false, showPasswordConfirm = false , hasError, hasErrorPassword, hasErrorName;
+    async Task RegisterAsync()
+    {
         error = null;
-        try {
+        hasError = false;
+        hasErrorPassword = false;
+        hasErrorName = false;
+        try
+        {
             await Auth.RegisterAsync(name, email, password, countryCode, timeZoneId);
-            Nav.NavigateTo("/");
-        } catch (Exception ex) {
-            error = ex.Message;
+            Nav.NavigateTo("/login");   
+        }
+        catch (ApiException ex)
+        {
+            error = ex.Status == 409 ? "This account already exists." : ex.Message;
+            if (ex.Status == 400 && ex.Message.Contains("Password")) {
+                hasErrorPassword = true;
+            }
+            
+            if (ex.Status == 409) {
+                hasError = true;
+            }
+            if(ex.Status == 400 && ex.Message.Contains("DisplayName")) {
+                hasErrorName = true;
+            }
+            
+        }
+        catch (HttpRequestException)
+        {
+            error = "Cannot connect to server.";
         }
     }
 }

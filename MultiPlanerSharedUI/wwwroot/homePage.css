@@ -10,6 +10,7 @@
     border-radius: 15px;
     background-color: var(--color-primary-dim);
     padding: 0  2rem 2rem 2rem;
+    margin-top: 10vh;
 }
 .home-box-notloggedin{
     width: 30vw;
@@ -23,6 +24,7 @@
     border-radius: 15px;
     background-color: var(--color-primary-dim);
     padding: 0  2rem 2rem 2rem;
+    margin-top: 10vh;
 }
 .home-btn-group{
     display: flex;
