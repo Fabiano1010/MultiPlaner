@@ -5,27 +5,45 @@
 @attribute [AllowAnonymous]
 
 <div class="main-content-box-auth">
+    <h2>Login</h2>
     <div class="form-box">
-        <h2>Login</h2>
-
         <div class="auth-form">
-            <input @bind="email" placeholder="Email"/>
-            <input @bind="password" type="password" placeholder="Password"/>
-            <input type="checkbox" @bind="remember"/> Remember Me
-            <button @onclick="LoginAsync">Login</button>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input @bind="email" id="email" placeholder="Email" class="auth-input"/>
+                <div class="input-error"></div>
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input @bind="password" type="password" id="password" placeholder="Password" class="auth-input"/>
+                <div class="input-error"></div>
+                <div class="password-reset-direction">
+                    <a href="/reset-password">Forgot your password?</a>
+                </div>
+            </div>
+  
+            <div class="remember-group">
+                <div class="rememberMe-box"><input type="checkbox" @bind="remember" id="remember"> <label for="remember">Remember Me</label></div>
+            </div>
+            <button @onclick="LoginAsync" class="auth-btn" disabled="@(!CanSubmit)">Login</button>
 
             @if (error is not null) {
                 <p class="error">@error</p>
             }
-
+            <div class="register-direction">
+                <p>Don't have an account? <a href="/register">Register here</a></p>
+            </div>
         </div>
     </div>
 </div>
 
 
 @code {
+    
     string email = "", password = "", error;
     bool remember = false;
+    bool CanSubmit => !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password);
     async Task LoginAsync() {
         error = null;
         try {

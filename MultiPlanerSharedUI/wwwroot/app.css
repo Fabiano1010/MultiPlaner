@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Red+Hat+Display:wght@600&display=swap');
 :root {
     --color-primary: #999999;
+    --color-primary-dim: #cccccc;
     --color-secondary: #000000;
     --color-background: #FFFFFF;
     --color-text: #000000;
