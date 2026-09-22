@@ -1,10 +1,11 @@
 ﻿using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Logging;
 
 namespace MultiPlanerSharedUI.Services;
 
-public class ApiAuthStateProvider(HttpClient http) : AuthenticationStateProvider
+public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider> logger) : AuthenticationStateProvider
 {
     private static readonly AuthenticationState Anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -14,9 +15,9 @@ public class ApiAuthStateProvider(HttpClient http) : AuthenticationStateProvider
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            Console.WriteLine("ApiAuth: GET api/me...");
+            logger.LogDebug($"ApiAuth: checking authentication state (GET api/me)");
             var response = await http.GetAsync("api/me", cts.Token);
-            Console.WriteLine($"ApiAuth: status {(int)response.StatusCode}");
+            logger.LogDebug($"ApiAuth: status {(int)response.StatusCode}");
             if (!response.IsSuccessStatusCode) return Anonymous;
 
             var me = await response.Content.ReadFromJsonAsync<MeResponse>(cancellationToken: cts.Token);
@@ -32,7 +33,7 @@ public class ApiAuthStateProvider(HttpClient http) : AuthenticationStateProvider
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ApiAuth: błąd {ex.GetType().Name}: {ex.Message}");
+            logger.LogError(ex, "ApiAuth: error {0}: {1}", ex.GetType().Name, ex.Message);
             return Anonymous;
         }
     }

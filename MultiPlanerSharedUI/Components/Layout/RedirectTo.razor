@@ -1,5 +1,6 @@
 ﻿@inject NavigationManager Nav
 @code {
-    [Parameter] public string Url { get; set; } = "/";
+    [Parameter] 
+    public string Url { get; set; } = "/";
     protected override void OnInitialized() => Nav.NavigateTo(Url, replace: true);
 }

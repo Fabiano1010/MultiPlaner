@@ -49,8 +49,10 @@
 
 
 @code {
-    
-    string email = "", password = "", error;
+
+    string email = "";
+    string password = "";
+    string? error;
     bool remember = false;
     bool CanSubmit => !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password) && System.Net.Mail.MailAddress.TryCreate(email, out _);
     bool showPassword = false;
@@ -70,9 +72,9 @@
             error = ex.Status == 401 ? "Invalid email or password." : ex.Message;
             hasError = true;
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException e)
         {
-            error = "Cannot connect to the server.";
+            error = "Cannot connect to the server." + e.Message;
         }
     }
 }

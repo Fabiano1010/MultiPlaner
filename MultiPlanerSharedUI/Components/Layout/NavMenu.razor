@@ -33,7 +33,8 @@
 </div>
 
 @code {
-    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    [CascadingParameter] 
+    private Task<AuthenticationState>? AuthState { get; set; }
 
     private string displayName = "User";
 

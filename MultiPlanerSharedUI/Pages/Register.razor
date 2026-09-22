@@ -64,10 +64,25 @@
 
 
 @code {
-    string email = "", password = "", passwordConfirm = "" , name = "", error, countryCode = "PL", timeZoneId = "Europe/Warsaw";
+    string email = "";
+    string password = "";
+    string passwordConfirm = "";
+    string name = "";
+    string countryCode = "PL";
+    string timeZoneId = "Europe/Warsaw";
+    string? error;
     
-    bool CanSubmit => !string.IsNullOrWhiteSpace(email) && System.Net.Mail.MailAddress.TryCreate(email, out _) && !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && !string.IsNullOrWhiteSpace(name);
-    bool showPassword = false, showPasswordConfirm = false , hasError, hasErrorPassword, hasErrorName;
+    bool CanSubmit => 
+        !string.IsNullOrWhiteSpace(email) && 
+        System.Net.Mail.MailAddress.TryCreate(email, out _) && 
+        !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && 
+        !string.IsNullOrWhiteSpace(name);
+    
+    bool showPassword = false;
+    bool showPasswordConfirm = false; 
+    bool hasError;
+    bool hasErrorPassword;
+    bool hasErrorName;
     async Task RegisterAsync()
     {
         error = null;
@@ -92,9 +107,10 @@
                 hasErrorName = true;
             }
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException e)
         {
-            error = "Cannot connect to server.";
+            
+            error = "Cannot connect to server. " + e.Message;
         }
     }
 }

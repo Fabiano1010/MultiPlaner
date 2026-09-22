@@ -8,23 +8,26 @@ using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+// Main Components
 builder.RootComponents.Add<Routes>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+// HttpClient to API (with cookies)
 builder.Services.AddScoped<BrowserCredentialsHandler>();
 builder.Services.AddHttpClient("api", c =>
         c.BaseAddress = new Uri("https://localhost:7157/"))
     .AddHttpMessageHandler<BrowserCredentialsHandler>();
-
-builder.Services.AddScoped(sp => 
+builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("api"));
 
+// Authorization
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<ApiAuthStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>(sp => 
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<ApiAuthStateProvider>());
 builder.Services.AddScoped<AuthService>();
 
+// Domain Services
 builder.Services.AddScoped<EventService>();
 
 await builder.Build().RunAsync();
