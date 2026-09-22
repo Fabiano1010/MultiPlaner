@@ -1,7 +1,10 @@
 ﻿@page "/register"
+@using Microsoft.JSInterop
 @layout AuthLayout
 @inject AuthService Auth
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+
 @attribute [AllowAnonymous]
 
 
@@ -83,6 +86,33 @@
     bool hasError;
     bool hasErrorPassword;
     bool hasErrorName;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/locale.js");
+
+            var detectedTimeZone = await module.InvokeAsync<string?>("getTimeZone");
+            var detectedCountry = await module.InvokeAsync<string?>("getCountryCode");
+
+            if (!string.IsNullOrWhiteSpace(detectedTimeZone))
+                timeZoneId = detectedTimeZone;
+
+            if (!string.IsNullOrWhiteSpace(detectedCountry))
+                countryCode = detectedCountry;
+
+            StateHasChanged();
+        }
+        catch
+        {
+            // default values will be used if detection fails
+        }
+    }
+    
+    
     async Task RegisterAsync()
     {
         error = null;
