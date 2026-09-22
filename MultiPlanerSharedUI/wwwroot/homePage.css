@@ -85,3 +85,6 @@
     color: var(--color-text);
     transform: scale(1.2);
 }
+.credits-promotor{
+    font-size: 10px;
+}
