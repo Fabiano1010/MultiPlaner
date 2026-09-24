@@ -1,27 +1,54 @@
-using MultiPlanerWeb.Components;
+using System.Globalization;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
+using MultiPlanerWeb;
+using MultiPlanerSharedModels.Services;
+using MultiPlanerSharedModels.Models;
+using MultiPlanerSharedUI.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+// Main Components
+builder.RootComponents.Add<Routes>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
 
-var app = builder.Build();
+// HttpClient to API (with cookies)
+builder.Services.AddScoped<BrowserCredentialsHandler>();
+builder.Services.AddHttpClient("api", c =>
+        c.BaseAddress = new Uri("https://localhost:7157/"))
+    .AddHttpMessageHandler<BrowserCredentialsHandler>();
+builder.Services.AddScoped(sp =>
+    sp.GetRequiredService<IHttpClientFactory>().CreateClient("api"));
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+// Authorization
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<ApiAuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
+    sp.GetRequiredService<ApiAuthStateProvider>());
+builder.Services.AddScoped<AuthService>();
+
+// Domain Services
+builder.Services.AddScoped<EventService>();
+
+var host = builder.Build();
+
+// Set culture based on browser settings
+try
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    var js = host.Services.GetRequiredService<IJSInProcessRuntime>();
+    var browserCulture = js.Invoke<string>("eval", "navigator.language");
+    if (!string.IsNullOrWhiteSpace(browserCulture))
+    {
+        var culture = new CultureInfo(browserCulture);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+    }
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+catch
+{
+    // default culture will be used
+}
 
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();
+await host.RunAsync();

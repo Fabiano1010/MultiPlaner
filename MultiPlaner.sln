@@ -8,11 +8,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerSharedUI", "Mult
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerSharedModels", "MultiPlanerSharedModels\MultiPlanerSharedModels.csproj", "{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerWeb", "MultiPlanerWeb\MultiPlanerWeb.csproj", "{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerWeb", "MultiPlanerWeb\MultiPlanerWeb.csproj", "{8456FE9F-A398-4341-9CC5-9184CEE12802}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerAPI.UnitTests", "MultiPlanerAPI.UnitTests\MultiPlanerAPI.UnitTests.csproj", "{62238644-1F8D-4225-810D-F3845227B8E9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerAPI.IntegrationTests", "MultiPlanerAPI.IntegrationTests\MultiPlanerAPI.IntegrationTests.csproj", "{74CB323F-0FF3-4AC1-BD99-FB0D31A91184}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerAPI.IntegrationTests", "MultiPlanerAPI.IntegrationTests\MultiPlanerAPI.IntegrationTests.csproj", "{14421448-0034-4361-BF31-BE8E4C7B4CCE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MultiPlanerAPI.UnitTests", "MultiPlanerAPI.UnitTests\MultiPlanerAPI.UnitTests.csproj", "{39723CE3-9CA9-428E-BDD7-548013CB891F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,17 +36,17 @@ Global
 		{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA9DB6F9-9891-4C3A-B0AD-FAD89AB1979E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9BED4DFF-F7B3-41B0-A77A-74F9F8096B87}.Release|Any CPU.Build.0 = Release|Any CPU
-		{62238644-1F8D-4225-810D-F3845227B8E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{62238644-1F8D-4225-810D-F3845227B8E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{62238644-1F8D-4225-810D-F3845227B8E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{62238644-1F8D-4225-810D-F3845227B8E9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{14421448-0034-4361-BF31-BE8E4C7B4CCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{14421448-0034-4361-BF31-BE8E4C7B4CCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{14421448-0034-4361-BF31-BE8E4C7B4CCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{14421448-0034-4361-BF31-BE8E4C7B4CCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8456FE9F-A398-4341-9CC5-9184CEE12802}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74CB323F-0FF3-4AC1-BD99-FB0D31A91184}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74CB323F-0FF3-4AC1-BD99-FB0D31A91184}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74CB323F-0FF3-4AC1-BD99-FB0D31A91184}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74CB323F-0FF3-4AC1-BD99-FB0D31A91184}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39723CE3-9CA9-428E-BDD7-548013CB891F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39723CE3-9CA9-428E-BDD7-548013CB891F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39723CE3-9CA9-428E-BDD7-548013CB891F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39723CE3-9CA9-428E-BDD7-548013CB891F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

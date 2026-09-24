@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param (
     [Parameter(Position = 0)]
     [ValidateSet("help", "db-up", "db-down", "db-reset", "db-migrate", "db-add-migration", "api", "web", "android", "windows")]
@@ -50,7 +50,7 @@ function Test-DockerAvailable {
 function Show-DatabaseFailure {
     $status = (& docker inspect --format '{{.State.Status}}' MultiPlanerSQLDb 2>$null | Out-String).Trim()
     if ($status -eq "exited" -or $status -eq "dead") {
-        Write-Host "❌ Kontener SQL Server zakończył pracę. Ostatnie logi:" -ForegroundColor Red
+        Write-Host "Kontener SQL Server zakończył pracę. Ostatnie logi:" -ForegroundColor Red
         & docker logs --tail 80 MultiPlanerSQLDb 2>&1 | Write-Host
         throw "Kontener MultiPlanerSQLDb nie działa."
     }
@@ -67,14 +67,14 @@ function Start-Database {
         Show-DatabaseFailure
         $running = (& docker inspect --format '{{.State.Running}}' MultiPlanerSQLDb 2>$null | Out-String).Trim()
         if ($running -eq "true" -and (Test-DatabasePort -Port $port)) {
-            Write-Host "✅ SQL Server przyjmuje połączenia na porcie $port." -ForegroundColor Green
+            Write-Host "SQL Server przyjmuje połączenia na porcie $port." -ForegroundColor Green
             Invoke-Compose -Arguments @("ps")
             return
         }
         Start-Sleep -Seconds 1
     }
 
-    Write-Host "❌ SQL Server nie zaczął przyjmować połączeń na porcie $port w ciągu 60 sekund." -ForegroundColor Red
+    Write-Host "SQL Server nie zaczął przyjmować połączeń na porcie $port w ciągu 60 sekund." -ForegroundColor Red
     Invoke-Compose -Arguments @("ps")
     Show-DatabaseFailure
     throw "Nie udało się uruchomić SQL Servera."
@@ -155,7 +155,7 @@ switch ($Command) {
         Test-DockerAvailable
         Write-Host "▶ Usuwanie developerskiego kontenera i całego wolumenu SQL Server..." -ForegroundColor Yellow
         Invoke-Compose -Arguments @("down", "--volumes", "--remove-orphans")
-        Write-Host "✅ Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte." -ForegroundColor Green
+        Write-Host "Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte." -ForegroundColor Green
     }
     "db-migrate" {
         Start-Database
@@ -173,7 +173,7 @@ switch ($Command) {
     "web" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie Blazor Web..." -ForegroundColor Green
-        Invoke-Checked -FilePath "dotnet" -Arguments @("run", "--project", $WebProject, "--launch-profile", "https")
+        Invoke-Checked -FilePath "dotnet" -Arguments @("watch", "--project", $WebProject, "--launch-profile", "https")
     }
     "android" {
         Start-ApiBackground
@@ -183,7 +183,15 @@ switch ($Command) {
     "windows" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie MAUI Windows..." -ForegroundColor Green
-        Invoke-Checked -FilePath "dotnet" -Arguments @("build", $AppProject, "-t:Run", "-f", "net10.0-windows10.0.19041.0")
+        $tfm = "net10.0-windows10.0.19041.0"
+        Invoke-Checked -FilePath "dotnet" -Arguments @("build", $AppProject, "-f", $tfm)
+
+        $exe = Get-ChildItem -Path (Join-Path $ScriptDirectory "MultiPlanerApp\bin\Debug\$tfm") -Filter "MultiPlanerApp.exe" -Recurse |
+            Select-Object -First 1
+        if (-not $exe) {
+            throw "Nie znaleziono MultiPlanerApp.exe po kompilacji."
+        }
+        Start-Process -FilePath $exe.FullName -WorkingDirectory $exe.DirectoryName
     }
     default {
         Write-Host "Użycie: .\dev.ps1 [opcja]"
