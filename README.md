@@ -1,9 +1,9 @@
 # MultiPlaner - Dev Guide
 
-## API — wdrożone kroki 1–3
+## API — wdrożone kroki 1–5
 
 Serwer ma nowy schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,
-profil, cookies z CSRF i wewnętrzną obsługę sesji gości.
+profil, cookies z CSRF, pokoje, archiwizację, zaproszenia i dołączanie gości.
 Instrukcja przygotowania **pustej bazy**, kontrakty i uruchamianie testów:
 [Fundament API](docs/api-foundation.md).
 
@@ -64,8 +64,9 @@ Windows (PowerShell)
 Parametry połączeń i porty
 
   - SQL Server: localhost:1433 (Użytkownik: sa, Hasło: YourStrong@Password123,
-    Baza: MultiPlanerDb)
+    Baza: MultiPlanerSQLDb)
   - Web API: https://localhost:7157 (HTTP na 5147 przekierowuje na HTTPS)
+  - Blazor Web: https://localhost:7132
   - Emulator Androida: http://10.0.2.2:5147 (mapowane automatycznie w kodzie)
 
 Git Workflow

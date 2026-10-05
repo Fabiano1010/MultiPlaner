@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
+using MultiPlanerAPI.Modules.Rooms;
 using MultiPlanerAPI.Modules.Users;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +61,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5)));
 builder.Services.AddUserSessions();
+builder.Services.AddScoped<RoomService>();
+builder.Services.AddScoped<RoomAccessService>();
+builder.Services.AddScoped<InvitationService>();
+builder.Services.AddSingleton<InvitationLinkBuilder>();
 builder.Services.AddCors(options => options.AddPolicy("BrowserClient", policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
     .AllowAnyMethod()

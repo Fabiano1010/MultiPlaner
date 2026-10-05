@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
@@ -7,8 +8,8 @@ using MultiPlanerAPI.Models;
 
 namespace MultiPlanerAPI.Modules.Users;
 
-// Intentionally has no HTTP creation endpoint. The invitation module will call this
-// only after validating an invitation, with membership saved in the same transaction.
+// Guest identity has no standalone HTTP creation endpoint. InvitationService
+// creates it with room membership in one transaction, then signs the guest in here.
 public sealed class GuestSessionService(AppDbContext db, TimeProvider clock, IHttpContextAccessor accessor)
 {
     public async Task<GuestSession> CreateAsync(string displayName, CancellationToken cancellationToken = default)
@@ -36,6 +37,7 @@ public sealed class GuestSessionService(AppDbContext db, TimeProvider clock, IHt
             new Claim(SessionAuthentication.GuestIdClaim, session.Id.ToString())
         ], SessionAuthentication.GuestScheme));
         var context = accessor.HttpContext ?? throw new InvalidOperationException("An HTTP context is required.");
+        await context.SignOutAsync(IdentityConstants.ApplicationScheme);
         await context.SignInAsync(SessionAuthentication.GuestScheme, principal, new AuthenticationProperties
         {
             IsPersistent = true,

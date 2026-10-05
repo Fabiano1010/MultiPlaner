@@ -9,12 +9,13 @@ namespace MultiPlanerAPI.IntegrationTests;
 public sealed class SchemaTests(ApiFixture fixture)
 {
     [Fact]
-    public async Task InitialMigrationIsAppliedAndMatchesTheModel()
+    public async Task AllMigrationsAreAppliedAndMatchTheModel()
     {
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var applied = await db.Database.GetAppliedMigrationsAsync();
-        Assert.EndsWith("_InitialApiSchema", Assert.Single(applied));
+        Assert.Contains(applied, migration => migration.EndsWith("_InitialApiSchema", StringComparison.Ordinal));
+        Assert.Equal(db.Database.GetMigrations(), applied);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
         Assert.False(db.Database.HasPendingModelChanges());
         // A second migration pass must be harmless.
