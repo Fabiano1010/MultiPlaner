@@ -1,0 +1,43 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@layout AuthLayout
+@inject NavigationManager Nav
+@attribute [AllowAnonymous]
+
+<AuthorizeView>
+    <Authorized><RedirectTo Url="/dashboard" /></Authorized>
+    <NotAuthorized>
+
+        <div class="main-content-box-auth">
+            <div class="home-box-notloggedin">
+                <div>
+                    <div class="welcome-msg">Welcome to </div>
+                    <div class="title-text">MultiPlaner</div>
+                </div>
+                <div class="logo-large">
+                    <img src="_content/MultiPlanerSharedUI/images/logo.svg" alt="MultiPlaner Logo" class="logo-img-large">
+                    
+                </div>
+                <div class="home-btn-group">
+                    <button @onclick="Register" class="home-btns">Register</button>
+                    <button @onclick="Login" class="home-btns">Login</button>
+                    <button @onclick="About" class="home-btns">About</button>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private void Register() {
+        Nav.NavigateTo("/register");
+    }
+
+    private void Login() {
+        Nav.NavigateTo("/login");
+    }
+
+    private void About() {
+        Nav.NavigateTo("/about");
+    }
+}

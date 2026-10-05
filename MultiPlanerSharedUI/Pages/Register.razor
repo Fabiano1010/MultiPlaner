@@ -1,0 +1,146 @@
+﻿@page "/register"
+@using Microsoft.JSInterop
+@layout AuthLayout
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@attribute [AllowAnonymous]
+
+
+<div class="main-content-box-auth ">
+    <h2>Register</h2>
+    <div class="form-box auth-register">
+        <div class="auth-form">
+            <div class="input-group">
+                <label for="name">Name</label>
+                <input @bind="name" id="name" placeholder="Name" class="auth-input @(hasErrorName ? "error-input" : "")"/>
+                <div class="input-error"></div>
+            </div>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input @bind="email" id="email" placeholder="Email" class="auth-input @(hasError ? "error-input" : "")"  />
+                <div class="input-error"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
+                    <input @bind="password" @bind:event="oninput"
+                           type="@(showPassword ? "text" : "password")"
+                           id="password" placeholder="Password" class="auth-input-pass @(hasErrorPassword ? "error-input" : "")"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => showPassword = !showPassword"
+                            aria-label="@(showPassword ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
+                    </button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="passwordConfirm">Confirm Password</label>
+                <div class="password-wrapper " >
+                    <input @bind="passwordConfirm" @bind:event="oninput"
+                           type="@(showPasswordConfirm ? "text" : "password")"
+                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass @(hasErrorPassword ? "error-input" : "")"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => showPasswordConfirm = !showPasswordConfirm"
+                            aria-label="@(showPasswordConfirm ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(showPasswordConfirm ? "eye-off.svg" : "eye.svg")" alt="" />
+                    </button>
+                </div>
+                <div class="input-error"></div>
+            </div>
+            
+            <button @onclick="RegisterAsync" class="auth-btn" disabled="@(!CanSubmit)">Register</button>
+
+            @if (error is not null) { 
+                <span class="error">@error</span>
+            }
+            <div class="register-direction">
+                <p>Already have an account? <a href="/login">Log in</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+    string email = "";
+    string password = "";
+    string passwordConfirm = "";
+    string name = "";
+    string countryCode = "PL";
+    string timeZoneId = "Europe/Warsaw";
+    string? error;
+    
+    bool CanSubmit => 
+        !string.IsNullOrWhiteSpace(email) && 
+        System.Net.Mail.MailAddress.TryCreate(email, out _) && 
+        !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && 
+        !string.IsNullOrWhiteSpace(name);
+    
+    bool showPassword = false;
+    bool showPasswordConfirm = false; 
+    bool hasError;
+    bool hasErrorPassword;
+    bool hasErrorName;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/locale.js");
+
+            var detectedTimeZone = await module.InvokeAsync<string?>("getTimeZone");
+            var detectedCountry = await module.InvokeAsync<string?>("getCountryCode");
+
+            if (!string.IsNullOrWhiteSpace(detectedTimeZone))
+                timeZoneId = detectedTimeZone;
+
+            if (!string.IsNullOrWhiteSpace(detectedCountry))
+                countryCode = detectedCountry;
+
+            StateHasChanged();
+        }
+        catch
+        {
+            // default values will be used if detection fails
+        }
+    }
+    
+    
+    async Task RegisterAsync()
+    {
+        error = null;
+        hasError = false;
+        hasErrorPassword = false;
+        hasErrorName = false;
+        try
+        {
+            await Auth.RegisterAsync(name, email, password, countryCode, timeZoneId);
+            Nav.NavigateTo("/login");   
+        }
+        catch (ApiException ex)
+        {
+            error = ex.Status == 409 ? "This account already exists." : ex.Message;
+            if (ex.Status == 400 && ex.Message.Contains("Password")) {
+                hasErrorPassword = true;
+            }
+            if (ex.Status == 409) {
+                hasError = true;
+            }
+            if(ex.Status == 400 && ex.Message.Contains("DisplayName")) {
+                hasErrorName = true;
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            
+            error = "Cannot connect to server. " + e.Message;
+        }
+    }
+}

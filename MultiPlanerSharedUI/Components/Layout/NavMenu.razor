@@ -1,0 +1,56 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<div class="nav-user">
+    <div class="user-img-div">
+        <img src="_content/MultiPlanerSharedUI/images/user.svg" alt="" class="user-img">
+    </div>
+    <div class="nav-user-name nav-text">@displayName</div>
+</div>
+<div class="nav-links">
+    <div class="nav-items">
+        <NavLink href="dashboard" class="nav-item" ActiveClass="nav-item-current">
+            <img src="_content/MultiPlanerSharedUI/images/home.svg" alt="" class="nav-item-img">
+            <div class="nav-text">Home</div>
+        </NavLink>
+        <NavLink href="rooms" class="nav-item" ActiveClass="nav-item-current">
+            <img src="_content/MultiPlanerSharedUI/images/calendar.svg" alt="" class="nav-item-img">
+            <div class="nav-text">Rooms</div>
+        </NavLink>
+        <NavLink href="events" class="nav-item" ActiveClass="nav-item-current">
+            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="" class="nav-item-img">
+            <div class="nav-text">Events</div>
+        </NavLink>
+    </div>
+    <div class="nav-items">
+        <button type="button" class="nav-item logout-btn" @onclick="LogoutAsync">
+            <img src="_content/MultiPlanerSharedUI/images/power.svg" alt="" class="nav-item-img">
+            <div class="nav-text">Logout</div>
+        </button>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] 
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string displayName = "User";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthState is not null)
+        {
+            var user = (await AuthState).User;
+            var name = user.Identity?.Name;
+            if (!string.IsNullOrWhiteSpace(name)) displayName = name;
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Auth.LogoutAsync();  
+        Nav.NavigateTo("/", replace: true);
+    }
+}
