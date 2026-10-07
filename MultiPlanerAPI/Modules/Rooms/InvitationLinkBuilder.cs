@@ -12,8 +12,10 @@ public sealed class InvitationLinkBuilder(IConfiguration configuration)
             webBase.Scheme != Uri.UriSchemeHttps ||
             webBase.UserInfo.Length != 0 ||
             webBase.Query.Length != 0 || webBase.Fragment.Length != 0)
+        {
             throw new InvalidOperationException(
                 "Configure Invitations:PublicWebBaseUrl as the HTTPS address of the web application.");
+        }
 
         var joinPath = $"/api/invitations/{token}";
         var webPath = webBase.AbsolutePath.TrimEnd('/');

@@ -1,9 +1,9 @@
 namespace MultiPlanerAPI.Models;
 
+/// <summary>Stores audit metadata independently of resources that may later be deleted or anonymized.</summary>
 public sealed class AuditEntry
 {
     public long Id { get; set; }
-    // Deliberately not FKs. Audit metadata can outlive its resource; anonymize on erasure.
     public int? UserId { get; set; }
     public Guid? GuestSessionId { get; set; }
     public string Operation { get; set; } = string.Empty;

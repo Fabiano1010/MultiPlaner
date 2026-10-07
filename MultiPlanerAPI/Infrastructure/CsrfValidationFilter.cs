@@ -4,14 +4,16 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace MultiPlanerAPI.Infrastructure;
 
-// Covers JSON mutations as well as forms, including anonymous login/register.
+/// <summary>Validates CSRF tokens for all state changing requests, including anonymous requests.</summary>
 public sealed class CsrfValidationFilter(IAntiforgery antiforgery) : IAsyncAuthorizationFilter
 {
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         var method = context.HttpContext.Request.Method;
         if (HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method))
+        {
             return;
+        }
 
         try
         {

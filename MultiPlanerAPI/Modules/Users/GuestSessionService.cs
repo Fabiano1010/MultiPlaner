@@ -8,14 +8,20 @@ using MultiPlanerAPI.Models;
 
 namespace MultiPlanerAPI.Modules.Users;
 
-// Guest identity has no standalone HTTP creation endpoint. InvitationService
-// creates it with room membership in one transaction, then signs the guest in here.
+/// <summary>
+/// Signs in guest identities created together with room membership by
+/// <see cref="MultiPlanerAPI.Modules.Rooms.InvitationService"/>.
+/// </summary>
 public sealed class GuestSessionService(AppDbContext db, TimeProvider clock, IHttpContextAccessor accessor)
 {
     public async Task<GuestSession> CreateAsync(string displayName, CancellationToken cancellationToken = default)
     {
         var errors = LocaleValidation.GetErrors(displayName, null, null);
-        if (errors.Count != 0) throw ApiException.Validation(errors);
+        if (errors.Count != 0)
+        {
+            throw ApiException.Validation(errors);
+        }
+
         var session = new GuestSession
         {
             DisplayName = displayName.Trim(),

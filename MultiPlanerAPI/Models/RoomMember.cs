@@ -9,7 +9,8 @@ public sealed class RoomMember : TrackedEntity
     public string DisplayName { get; set; } = string.Empty;
     public string Color { get; set; } = "808080";
     public bool IsFavourite { get; set; }
-    // Read cursors, not foreign keys: deleting a message must not prevent deletion.
+    /// <summary>A read cursor, not a foreign key, so messages can be deleted independently.</summary>
     public long? LastReadMessageId { get; set; }
+    /// <summary>A read cursor, not a foreign key, so activities can be deleted independently.</summary>
     public long? LastReadActivityId { get; set; }
 }

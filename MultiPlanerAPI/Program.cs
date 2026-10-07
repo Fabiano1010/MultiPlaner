@@ -81,7 +81,11 @@ if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Databas
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-if (!app.Environment.IsDevelopment()) app.UseHsts();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
 if (app.Environment.IsDevelopment())
 {
