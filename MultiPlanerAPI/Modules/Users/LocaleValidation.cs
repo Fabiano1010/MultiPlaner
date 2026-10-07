@@ -12,11 +12,20 @@ public static class LocaleValidation
     {
         var errors = new Dictionary<string, string[]>();
         if (displayName is not null && (displayName.Trim().Length < 2 || displayName.Length > 64))
+        {
             errors["displayName"] = ["Display name must contain 2 to 64 characters."];
+        }
+
         if (countryCode is not null && !Countries.Contains(countryCode))
+        {
             errors["countryCode"] = ["Use a supported ISO 3166-1 alpha-2 country code."];
+        }
+
         if (timeZoneId is not null && !IsIanaTimeZone(timeZoneId))
+        {
             errors["timeZoneId"] = ["Use an IANA time zone, for example Europe/Warsaw or UTC."];
+        }
+
         return errors;
     }
 

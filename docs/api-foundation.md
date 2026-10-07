@@ -60,7 +60,7 @@ Poza Development migracje nie uruchamiają się przy starcie; należy wykonać j
 osobno. `TrustServerCertificate=True` z przykładów dotyczy lokalnego SQL Servera.
 
 - API/Swagger: `https://localhost:7157/swagger`.
-- Blazor w development: `https://localhost:7162`.
+- Blazor w development: `https://localhost:7132`.
 - Skrypty `dev.sh` i `dev.ps1` uruchamiają API/Web z profilem HTTPS.
 - Docelowo frontend i API powinny być dostępne pod wspólnym originem.
 - `Cors:AllowedOrigins` zawiera w development tylko origin HTTPS Blazora.
@@ -76,6 +76,19 @@ osobno. `TrustServerCertificate=True` z przykładów dotyczy lokalnego SQL Serve
 | POST /api/auth/logout | sesja, z CSRF | Unieważnienie sesji; 204 |
 | GET /api/me | konto lub gość | Bieżący profil/tożsamość |
 | PATCH /api/me | tylko konto, z CSRF | Częściowa aktualizacja własnego profilu |
+| POST /api/rooms | tylko konto, z CSRF | Pokój, członkostwo właściciela i pierwsze zaproszenie |
+| GET /api/rooms?status=active/archived/all | konto lub gość | Lista własnych i udostępnionych pokoi; domyślnie aktywnych |
+| GET /api/rooms/{roomId} | członek pokoju | Szczegóły pokoju |
+| PATCH /api/rooms/{roomId} | właściciel, z CSRF | Zmiana nazwy, strefy lub terminu wygaśnięcia |
+| GET /api/rooms/{roomId}/members?page=1&pageSize=50 | członek pokoju | Stronicowana lista uczestników |
+| POST /api/rooms/{roomId}/archive | właściciel, z CSRF | Archiwizacja; zachowuje odczyt |
+| DELETE /api/rooms/{roomId} | właściciel, z CSRF | Trwałe usunięcie pokoju i danych zależnych |
+| POST /api/rooms/{roomId}/invitations | właściciel, z CSRF | Wygenerowanie nowego magicznego linku |
+| DELETE /api/rooms/{roomId}/invitations/{invitationId} | właściciel, z CSRF | Unieważnienie linku |
+| POST /api/invitations/preview | dowolny, z CSRF | Podgląd zaproszenia bez zużycia tokenu |
+| POST /api/invitations/join | dowolny, z CSRF | Dołączenie konta lub gościa |
+| GET /api/invitations/{token} | dowolny | Alias podglądu dla starszych klientów |
+| POST /api/invitations/{token}/join | dowolny, z CSRF | Alias dołączania dla starszych klientów |
 
 DTO znajdują się w `MultiPlanerSharedModels/Contracts`.
 Odpowiedzi nie zawierają encji Identity, hasha hasła ani security stamp.
@@ -121,15 +134,32 @@ Przykłady dla klienta HTTP Ridera są w `MultiPlanerAPI/MultiPlanerAPI.http`.
 `SignInAsync` wystawia oddzielne cookie; `RevokeAsync` odbiera dostęp.
 Ważność cookie oraz datę i unieważnienie w bazie sprawdzamy przy każdym żądaniu.
 
-**Nie ma publicznego endpointu tworzenia gościa.** W kroku 5 usługa zaproszeń
-wywoła ten mechanizm po walidacji linku i zapisze członkostwo w tej samej
-transakcji co wykorzystanie zaproszenia. Cookie należy wystawić po zatwierdzeniu
-transakcji. Obsługa ponowień transakcji musi uwzględniać strategię EF SQL Server.
+**Nie ma publicznego endpointu tworzenia gościa.** Po poprawnym użyciu zaproszenia
+API zapisuje sesję gościa i członkostwo w jednej transakcji, a po jej
+zatwierdzeniu wystawia cookie. Nowy gość podaje pseudonim (2–64 znaki).
 
 GET /api/me rozróżnia `kind: "user"` oraz `kind: "guest"`; gość nie ma e-maila
 ani identyfikatora konta. PATCH /api/me zwraca gościowi 403.
 Logowanie na konto z aktywnej sesji gościa unieważnia tę sesję. Przenoszenie
 gościnnych wpisów na konto nie zostało zaimplementowane.
+
+### Pokoje i zaproszenia
+
+Pokój wygasa domyślnie po 3 miesiącach kalendarzowych, najpóźniej po roku.
+Właściciel może zmienić nazwę, strefę czasową i datę wygaśnięcia. Archiwum
+pozostaje dostępne do odczytu członkom; `DELETE` usuwa pokój wraz z zależnymi
+rekordami. Niezarchiwizowany pokój po wygaśnięciu nie jest dostępny do odczytu.
+
+Utworzenie pokoju zapisuje także właściciela jako uczestnika oraz pierwsze
+zaproszenie; odpowiedź zawiera je w `initialInvitation`. Nowy link unieważnia
+poprzednie linki pokoju. Domyślnie jest ważny 7 dni i może być używany wiele
+razy; `maxUses: 1` tworzy link jednorazowy. Serwer przechowuje wyłącznie skrót
+losowego tokenu. Dołączenie zużywa token atomowo, podgląd go nie zużywa.
+
+Pełny `joinUrl` prowadzi w development do `https://localhost:7132/join/{token}`.
+Adres konfiguruje `Invitations:PublicWebBaseUrl`. Strona Web wywołuje API
+z cookies i tokenem CSRF. Właściwy token jest dostępny tylko w odpowiedzi
+na utworzenie pokoju lub zaproszenia; `{token}` to symbol w dokumentacji.
 
 ### Błędy
 

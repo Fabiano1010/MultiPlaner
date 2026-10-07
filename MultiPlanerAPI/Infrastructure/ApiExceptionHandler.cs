@@ -10,13 +10,17 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
     {
         if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
+        {
             return false;
+        }
 
         var apiError = exception as ApiException;
         var status = apiError?.StatusCode ??
             (exception is DbUpdateConcurrencyException ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError);
         if (status == StatusCodes.Status500InternalServerError)
+        {
             logger.LogError(exception, "Unhandled API error. TraceId: {TraceId}", context.TraceIdentifier);
+        }
 
         ProblemDetails detail = apiError?.Errors is { } errors
             ? new ValidationProblemDetails(errors)

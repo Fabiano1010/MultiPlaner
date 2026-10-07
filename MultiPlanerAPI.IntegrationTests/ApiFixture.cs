@@ -160,7 +160,8 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
             {
                 ["ConnectionStrings:DefaultConnection"] = connectionString,
                 ["Database:MigrateOnStartup"] = "false",
-                ["Cors:AllowedOrigins:0"] = "https://client.example"
+                ["Cors:AllowedOrigins:0"] = "https://client.example",
+                ["Invitations:PublicWebBaseUrl"] = "https://client.example"
             }));
         // Program captures its connection string before deferred configuration callbacks.
         // Replace all EF options explicitly so tests cannot use the development database.

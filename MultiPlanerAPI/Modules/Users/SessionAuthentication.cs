@@ -18,6 +18,19 @@ public static class SessionAuthentication
 
     public static IServiceCollection AddUserSessions(this IServiceCollection services)
     {
+        ConfigureIdentity(services);
+        ConfigureAuthentication(services);
+        ConfigureAuthorization(services);
+
+        services.AddScoped<GuestCookieEvents>();
+        services.AddScoped<GuestSessionService>();
+        services.AddScoped<CurrentActor>();
+        services.AddScoped<UserService>();
+        return services;
+    }
+
+    private static void ConfigureIdentity(IServiceCollection services)
+    {
         services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
         {
             options.User.RequireUniqueEmail = true;
@@ -35,9 +48,11 @@ public static class SessionAuthentication
             ConfigureCookie(options, UserCookie);
             options.ExpireTimeSpan = TimeSpan.FromDays(14);
         });
-        // Logout rotates the stamp; validating on every request rejects copied old cookies.
-        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
+        ConfigureSecurityStampValidation(services);
+    }
 
+    private static void ConfigureAuthentication(IServiceCollection services)
+    {
         services.AddAuthentication(options =>
         {
             options.DefaultScheme = Scheme;
@@ -59,18 +74,16 @@ public static class SessionAuthentication
             .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);
         services.AddOptions<CookieAuthenticationOptions>(GuestScheme)
             .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);
+    }
+
+    private static void ConfigureAuthorization(IServiceCollection services)
+    {
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser().Build())
             .AddPolicy(RegisteredUserPolicy, policy => policy
                 .RequireAuthenticatedUser()
                 .RequireAssertion(context => !context.User.HasClaim(c => c.Type == GuestIdClaim)));
-
-        services.AddScoped<GuestCookieEvents>();
-        services.AddScoped<GuestSessionService>();
-        services.AddScoped<CurrentActor>();
-        services.AddScoped<UserService>();
-        return services;
     }
 
     private static void ConfigureCookie(CookieAuthenticationOptions options, string name)
@@ -92,6 +105,12 @@ public static class SessionAuthentication
             return Task.CompletedTask;
         };
     }
+
+    /// <summary>Checks the security stamp on every request so logout invalidates copied cookies.</summary>
+    private static void ConfigureSecurityStampValidation(IServiceCollection services)
+    {
+        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
+    }
 }
 
 public sealed class GuestCookieEvents(AppDbContext db, TimeProvider clock) : CookieAuthenticationEvents
@@ -103,7 +122,9 @@ public sealed class GuestCookieEvents(AppDbContext db, TimeProvider clock) : Coo
             await db.GuestSessions.AsNoTracking().AnyAsync(
                 s => s.Id == id && s.RevokedAtUtc == null && s.ExpiresAtUtc > clock.GetUtcNow(),
                 context.HttpContext.RequestAborted))
+        {
             return;
+        }
 
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(SessionAuthentication.GuestScheme);

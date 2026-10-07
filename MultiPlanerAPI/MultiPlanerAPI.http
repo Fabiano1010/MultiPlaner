@@ -56,6 +56,77 @@ X-CSRF-TOKEN: {{csrfToken}}
   "contactDetails": "Kontakt opcjonalny"
 }
 
-### 7. Wyloguj wszystkie sesje tego konta (204).
+### 7. Utwórz pokój. Odpowiedź zawiera pierwsze zaproszenie i pełny joinUrl.
+POST {{MultiPlanerAPI_HostAddress}}/api/rooms
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "name": "Pokój testowy",
+  "timeZoneId": "Europe/Warsaw"
+}
+
+> {%
+    client.global.set("roomId", response.body.id);
+    client.global.set("initialToken", response.body.initialInvitation.joinPath.split("/").pop());
+%}
+
+### 8. Wygeneruj nowy link; unieważni poprzedni.
+POST {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/invitations
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "maxUses": 1
+}
+
+> {%
+    client.global.set("invitationToken", response.body.joinPath.split("/").pop());
+%}
+
+### 9. Podgląd bez zużycia linku.
+POST {{MultiPlanerAPI_HostAddress}}/api/invitations/preview
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "token": "{{invitationToken}}"
+}
+
+### 10. Dołączenie; jako gość użyj osobnych cookies i nowego CSRF.
+POST {{MultiPlanerAPI_HostAddress}}/api/invitations/join
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "token": "{{invitationToken}}",
+  "displayName": "Gość testowy"
+}
+
+### Lista i uczestnicy.
+GET {{MultiPlanerAPI_HostAddress}}/api/rooms?status=active
+
+###
+GET {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/members?page=1&pageSize=50
+
+### Zmiana ustawień pokoju.
+PATCH {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "name": "Nowa nazwa pokoju",
+  "timeZoneId": "Europe/Warsaw"
+}
+
+### Archiwizacja. Pokój pozostaje do odczytu.
+POST {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/archive
+X-CSRF-TOKEN: {{csrfToken}}
+
+### Trwałe usunięcie pokoju.
+DELETE {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+### 11. Wyloguj wszystkie sesje tego konta (204).
 POST {{MultiPlanerAPI_HostAddress}}/api/auth/logout
 X-CSRF-TOKEN: {{csrfToken}}

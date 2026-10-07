@@ -29,7 +29,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
 
         foreach (var entity in builder.Model.GetEntityTypes()
                      .Where(e => typeof(TrackedEntity).IsAssignableFrom(e.ClrType)))
+        {
             builder.Entity(entity.ClrType).Property(nameof(TrackedEntity.RowVersion)).IsRowVersion();
+        }
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -50,7 +52,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
         foreach (var entry in ChangeTracker.Entries<ITimestamped>())
         {
             if (entry.State == EntityState.Added)
+            {
                 entry.Entity.CreatedAtUtc = entry.Entity.UpdatedAtUtc = now;
+            }
             else if (entry.State == EntityState.Modified)
             {
                 entry.Property(nameof(ITimestamped.CreatedAtUtc)).IsModified = false;

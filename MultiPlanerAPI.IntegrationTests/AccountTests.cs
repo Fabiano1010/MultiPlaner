@@ -212,12 +212,20 @@ public sealed class AccountTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task SwaggerContainsOnlyImplementedAccountEndpoints()
+    public async Task SwaggerContainsImplementedEndpoints()
     {
         using var client = fixture.Client();
         var json = await client.GetFromJsonAsync<JsonElement>("/swagger/v1/swagger.json");
         var paths = json.GetProperty("paths").EnumerateObject().Select(p => p.Name).Order().ToArray();
-        Assert.Equal(new[] { "/api/auth/csrf", "/api/auth/login", "/api/auth/logout", "/api/auth/register", "/api/me" }, paths);
+        Assert.Equal(new[]
+        {
+            "/api/auth/csrf", "/api/auth/login", "/api/auth/logout", "/api/auth/register",
+            "/api/invitations/join", "/api/invitations/preview",
+            "/api/invitations/{token}", "/api/invitations/{token}/join", "/api/me",
+            "/api/rooms", "/api/rooms/{roomId}", "/api/rooms/{roomId}/archive",
+            "/api/rooms/{roomId}/invitations", "/api/rooms/{roomId}/invitations/{invitationId}",
+            "/api/rooms/{roomId}/members"
+        }.Order(), paths);
     }
 
     internal static async Task AssertProblem(HttpResponseMessage response, HttpStatusCode status, string code)
