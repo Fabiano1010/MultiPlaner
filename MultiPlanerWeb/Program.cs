@@ -27,6 +27,7 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<ApiAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<ApiAuthStateProvider>());
+builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<AuthService>();
 
 // Domain Services

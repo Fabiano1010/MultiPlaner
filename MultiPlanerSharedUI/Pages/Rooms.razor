@@ -1,4 +1,5 @@
 ﻿@page "/Rooms"
+@using MultiPlanerSharedUI.Components.Rooms
 @layout MainLayout
 @attribute [Authorize]
 
@@ -7,14 +8,21 @@
     <div class="rooms-folders-container">
         
     </div>
-    <div class="add-room-button">
+    <div class="add-room-button" @onclick="() => showPopup = true">
         <img src="_content/MultiPlanerSharedUI/images/plus.svg"/>
     </div>
-    <Popup></Popup>
+    <AddCalendarForm
+        IsVisible="showPopup"
+        OnClose="HandleClose">
+    </AddCalendarForm>
 </div>
 
 @code {
+    [Parameter] public EventCallback OnClose { get; set; }
     
-    
-    
+    bool showPopup = false;
+    string ErrorMessage;
+    private async Task HandleClose() {
+        showPopup = false;
+    }
 }

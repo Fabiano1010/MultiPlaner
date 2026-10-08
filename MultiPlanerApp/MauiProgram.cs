@@ -43,6 +43,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ApiAuthStateProvider>();
         builder.Services.AddSingleton<AuthenticationStateProvider>(sp =>
             sp.GetRequiredService<ApiAuthStateProvider>());
+        builder.Services.AddSingleton<ApiClient>();
         builder.Services.AddSingleton<AuthService>();
 
         // Serwisy domenowe

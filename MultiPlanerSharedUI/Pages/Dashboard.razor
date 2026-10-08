@@ -15,10 +15,8 @@
     
     private string? _username;
     
-    protected override async Task OnInitializedAsync()
-    {
-        if (AuthenticationState != null)
-        {
+    protected override async Task OnInitializedAsync() {
+        if (AuthenticationState != null) {
             var authState = await AuthenticationState;
             var user = authState.User;
             _username = user.Identity?.Name;

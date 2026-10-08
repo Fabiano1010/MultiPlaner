@@ -47,6 +47,10 @@
     padding: 0.5rem;
     font-size: var(--font-size-medium);
     transition: 0.25s all;
+    
+}
+input[type="password"]::-ms-reveal {
+    display: none;
 }
 .auth-input:hover{
     box-shadow: 0 5px 5px var(--color-primary);
