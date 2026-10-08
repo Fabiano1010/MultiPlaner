@@ -1,11 +1,28 @@
 ﻿@page "/Dashboard"
+@using Microsoft.AspNetCore.Components.Authorization
+
 @layout MainLayout
 @attribute [Authorize]
 
 <div class="main-content-dashboard">
-    
+    <h2>Hello @_username </h2>
 </div>
 
 @code {
+    
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+    
+    private string? _username;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState != null)
+        {
+            var authState = await AuthenticationState;
+            var user = authState.User;
+            _username = user.Identity?.Name;
+        }
+    }
     
 }

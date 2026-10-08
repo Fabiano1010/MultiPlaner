@@ -1,0 +1,37 @@
+﻿
+
+
+.add-room-button{
+    width: 4rem;
+    height: 4rem;
+    position: fixed;
+    background-color: var(--color-secondary);
+    color: var(--color-text-reversed);
+    bottom: 4vw;
+    right: 4vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 100%;
+    user-select: none;
+    transition: 0.2s ease-in-out;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 999;
+}
+.add-room-button:hover{
+    transform: translateY(-3px);
+    filter: drop-shadow(0px 2px 6px var(--color-secondary));
+}
+
+.add-room-button:active{
+    background-color: var(--color-primary);
+    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    scale: 0.9;
+    transition-duration: 0.08s;
+}
+.add-room-button img{
+    filter: invert(1);
+}
+
+

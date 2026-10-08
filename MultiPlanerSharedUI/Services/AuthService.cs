@@ -57,8 +57,8 @@ public class AuthService(HttpClient http, ApiAuthStateProvider state)
 
     public async Task LoginAsync(string email, string password, bool rememberMe)
     {
-        var res = await PostAsync("api/auth/login", new { email, password });
-        await EnsureSuccessAsync(res);
+        var res = await PostAsync("api/auth/login", new { email, password  });
+        await EnsureSuccessAsync(res); 
         state.NotifyAuthChanged();
     }
 
