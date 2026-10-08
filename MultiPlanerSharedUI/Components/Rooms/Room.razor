@@ -1,0 +1,24 @@
+﻿<div class="room">
+    <div class="room-header">
+        Room Name
+    </div>
+    <div class="room-body">
+        <div class="room-content">
+            <img src="" alt="room image" class="room-image">
+        </div>
+    </div>
+    <div class="room-footer">
+        <span>Owner</span>
+        <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon">
+        <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
+             alt="favourite"
+             class="favourite-icon"
+             @onclick="ToggleFavourite">
+    </div>
+</div>
+@code {
+    
+    private bool _isFavourite;
+    private void ToggleFavourite() => _isFavourite = !_isFavourite;
+    
+}

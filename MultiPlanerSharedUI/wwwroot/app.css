@@ -2,6 +2,8 @@
 :root {
     --color-primary: #999999;
     --color-primary-dim: #cccccc;
+    --color-primary-dim-light: #dddddd;
+    --color-primary-dim-50-opacity: #cccccc80;
     --color-secondary: #000000;
     --color-background: #FFFFFF;
     --color-text: #000000;
@@ -58,7 +60,7 @@ html, body{
     flex: 1;
     min-width: 0;                      
     height: 100%;
-    margin-left: var(--sidebar-width); 
+    /*padding-left: var(--sidebar-width); */
 }
 
 .sidebar {
@@ -188,6 +190,5 @@ html, body{
     height: 20px;
     transition: 0.2s ease-in;
 }
-
 
 

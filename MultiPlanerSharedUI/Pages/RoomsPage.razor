@@ -1,0 +1,56 @@
+﻿@page "/Rooms"
+@using MultiPlanerSharedUI.Components.Rooms
+
+@layout MainLayout
+@attribute [Authorize]
+
+<div class="main-content main-content-rooms">
+    
+    <div class="rooms-folders-container">
+        <Folders />
+        <Rooms />
+    </div>
+    
+    <div class="fab-menu @(_isOpen ? "open" : "")">
+        <div class="fab-item fab-item-2" title="Add Folder"
+             @onclick="OpenFloderPopup">
+            <img src="_content/MultiPlanerSharedUI/images/folder-plus.svg" alt="Add Folder"/>
+        </div>
+        <div class="fab-item fab-item-1" title="Add Calendar"
+             @onclick="OpenCalendarPopup">
+            <img src="_content/MultiPlanerSharedUI/images/calendar-plus.svg" alt="Add Calendar"/>
+        </div>
+        <div class="add-room-button fab-main" aria-expanded="@_isOpen"
+                @onclick="() => _isOpen = !_isOpen">
+            <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="Add" />
+        </div>
+    </div>
+    
+
+    <AddCalendarForm IsVisible="_showCalendarPopup" OnClose="() => _showCalendarPopup = false"  />
+    <AddFolderForm IsVisible="_showFolderPopup" OnClose="() => _showFolderPopup = false"  />
+    </div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool _isOpen;
+    private bool _showCalendarPopup;
+    private bool _showFolderPopup;
+    private bool _showPopup;
+    private string _ErrorMessage;
+
+    private void OpenCalendarPopup() {
+        _isOpen = false;
+        _showCalendarPopup = true;
+    }
+
+    private void OpenFloderPopup() {
+        _isOpen = false;
+        _showFolderPopup = true;
+    }
+    
+    private async Task HandleClose() {
+        _showPopup = false;
+    }
+}
