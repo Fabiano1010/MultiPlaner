@@ -1,10 +1,5 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="app-layout">
-    <nav class="sidebar">
-        <NavMenuNotLoggedIn />
-    </nav>
-    <main class="main-content">
-        @Body
-    </main>
-</div>
+<ResponsiveShell IsAuthenticated="false">
+    @Body
+</ResponsiveShell>

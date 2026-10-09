@@ -1,0 +1,68 @@
+<div class="app-layout">
+    <header class="mobile-nav-bar">
+        <button type="button" class="mobile-nav-toggle" aria-label="Open navigation"
+                aria-controls="primary-navigation" aria-expanded="@_menuOpen"
+                @ref="_menuToggle" @onclick="OpenMenu">
+            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="" />
+        </button>
+        <span class="mobile-nav-title">MultiPlaner</span>
+    </header>
+
+    <button type="button" class="nav-backdrop @(_menuOpen ? "is-visible" : "")"
+            aria-label="Close navigation" tabindex="-1" @onclick="CloseMenu"></button>
+
+    <nav id="primary-navigation" class="sidebar @(_menuOpen ? "is-open" : "")" aria-label="Main navigation"
+         @onkeydown="HandleMenuKeyDown">
+        <button type="button" class="mobile-nav-close" aria-label="Close navigation"
+                @ref="_closeButton" @onclick="CloseMenu">×</button>
+        @if (IsAuthenticated)
+        {
+            <NavMenu OnNavigate="CloseMenu" />
+        }
+        else
+        {
+            <NavMenuNotLoggedIn OnNavigate="CloseMenu" />
+        }
+    </nav>
+
+    <main class="main-content" inert="@(_menuOpen ? string.Empty : null)">
+        @ChildContent
+    </main>
+</div>
+
+@code {
+    [Parameter] public bool IsAuthenticated { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _menuOpen;
+    private bool _focusCloseButton;
+    private ElementReference _menuToggle;
+    private ElementReference _closeButton;
+
+    private void OpenMenu()
+    {
+        _menuOpen = true;
+        _focusCloseButton = true;
+    }
+
+    private async Task CloseMenu()
+    {
+        if (!_menuOpen) return;
+        _menuOpen = false;
+        await _menuToggle.FocusAsync();
+    }
+
+    private async Task HandleMenuKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape") await CloseMenu();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusCloseButton && _menuOpen)
+        {
+            _focusCloseButton = false;
+            await _closeButton.FocusAsync();
+        }
+    }
+}
