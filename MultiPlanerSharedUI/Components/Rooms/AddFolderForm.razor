@@ -1,0 +1,62 @@
+﻿@using MultiPlanerSharedModels.Contracts.Rooms
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ApiClient Api
+
+<Popup IsVisible="IsVisible" Title="Add new folder" OnClose="HandleClose">
+    
+    <div class="add-room-form-box">
+        <div class="add-room-form">`
+            <div class="form-group">
+                <label>Folder name</label>
+                <input type="text" @bind="FolderName" placeholder="Calendar name" />
+            </div>
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="form-error">@ErrorMessage</div>
+            }
+            <div class="form-actions">
+                <button class="btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
+                <button class="btn-save" @onclick="HandleSave" disabled="@_isSaving">Save</button>
+            </div>
+
+        </div>
+    </div>
+    
+    
+</Popup>
+
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    [Parameter] public EventCallback<RoomResponse> OnCreate { get; set; }
+
+    string FolderName = "MyFolder";
+
+    string ErrorMessage = "";
+    private bool _isSaving;
+
+
+    private async Task HandleClose() {
+        ErrorMessage = "";
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleSave() {
+        var name = FolderName?.Trim() ?? string.Empty;
+
+        if (name.Length < 2 || name.Length > 128) {
+            ErrorMessage = "Folder name must be between 2 and 128 characters.";
+            return;
+        }
+
+        _isSaving = true;
+        ErrorMessage = "";
+
+
+    }
+
+}

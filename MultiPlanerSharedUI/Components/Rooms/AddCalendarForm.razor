@@ -1,0 +1,82 @@
+﻿@using MultiPlanerSharedModels.Contracts.Rooms
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ApiClient Api
+
+<Popup IsVisible="IsVisible" Title="Add new calendar" OnClose="HandleClose">
+    
+    <div class="add-room-form-box">
+        <div class="add-room-form">`
+            <div class="form-group">
+                <label>Calendar name</label>
+                <input type="text" @bind="CalendarName" placeholder="Calendar name" />
+            </div>
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="form-error">@ErrorMessage</div>
+            }
+            <div class="form-actions">
+                <button class="btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
+                <button class="btn-save" @onclick="HandleSave" disabled="@_isSaving">Save</button>
+            </div>
+
+        </div>
+    </div>
+    
+    
+</Popup>
+
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    
+    [Parameter] public EventCallback OnClose { get; set; }
+    
+    [Parameter] public EventCallback<RoomResponse> OnCreate { get; set; }
+
+    string CalendarName = "MyCalendar";
+
+    string ErrorMessage = "";
+    private bool _isSaving;
+    
+    
+    private async Task HandleClose() {
+        ErrorMessage = "";
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleSave() {
+        var name = CalendarName?.Trim() ?? string.Empty;
+        
+        if (name.Length < 2 || name.Length > 128) {
+            ErrorMessage = "Calendar name must be between 2 and 128 characters.";
+            return;
+        }
+
+        _isSaving = true;
+        ErrorMessage = "";
+
+        try {
+            var request = new CreateRoomRequest() { Name = name };
+            var response = await Api.PostAsync("api/rooms", request);
+            await ApiClient.EnsureSuccessAsync(response);
+            if (!response.IsSuccessStatusCode) {
+                var body = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Error creating room: {response.StatusCode} - {body}";
+                return;
+            }
+            var room = await response.Content.ReadFromJsonAsync<RoomResponse>();
+            await OnCreate.InvokeAsync(room!);
+            await HandleClose();
+        }
+        catch (ApiException e) {
+            ErrorMessage = e.Message;
+        }
+        catch (HttpRequestException e) {
+            ErrorMessage = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _isSaving = false;
+        }
+    }
+}

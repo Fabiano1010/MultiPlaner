@@ -1,0 +1,43 @@
+﻿<div class="hide-folders-box">
+    <div class="action-button hide-folders">
+        <div class="toggle-btn"
+             aria-expanded="@(!_areFoldersHidden)"
+             title="@(_areFoldersHidden ? "Show folders" : "Hide folders")"
+             @onclick="HideFolders">
+            <img src="_content/MultiPlanerSharedUI/images/@(_areFoldersHidden ? "arrow-down-right.svg" : "arrow-up-left.svg")"
+                 alt="" />
+        </div>
+        
+    </div>
+    <span>@(_areFoldersHidden ? "Show folders" : "Hide folders")</span>
+</div>
+    
+
+<div class="folders-collapse @(_areFoldersHidden ? "collapsed" : "")">
+    <div class="folders-collapse-inner">
+        <div class="folders-container">
+            <Folder />
+            <Folder />
+            <Folder />
+            <Folder />            
+            <Folder />            
+            <Folder />
+            <Folder />
+            <Folder />            
+            <Folder />            
+            <Folder />
+            <Folder />
+            <Folder />            
+            <Folder />            
+            <Folder />
+            <Folder />            
+            <Folder />
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _areFoldersHidden;
+
+    private void HideFolders() => _areFoldersHidden = !_areFoldersHidden;
+}

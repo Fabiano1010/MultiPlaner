@@ -1,0 +1,24 @@
+﻿
+<div class="folder">
+    <div class="folder-header">
+            
+    </div>
+    <div class="folder-body">
+        <div class="folder-content">
+            Folder Name
+        </div>
+    </div>
+    <div class="folder-footer">
+        <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon">
+        <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")" 
+             alt="favourite" 
+             class="favourite-icon"
+             @onclick="ToggleFavourite">
+    </div>
+</div>
+@code {
+    
+    private bool _isFavourite;
+    private void ToggleFavourite() => _isFavourite = !_isFavourite;
+    
+}
