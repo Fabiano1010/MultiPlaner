@@ -127,7 +127,7 @@ case "$COMMAND" in
     "android")
         run_api_background
         echo "▶ Uruchamianie MAUI Android ($ANDROID_RUNTIME_IDENTIFIER)..."
-        dotnet build "$APP_PROJECT" -t:Run -f net10.0-android "-p:RuntimeIdentifiers=$ANDROID_RUNTIME_IDENTIFIER"
+        dotnet build "$APP_PROJECT" -t:Run -f net10.0-android "-p:RuntimeIdentifier=$ANDROID_RUNTIME_IDENTIFIER"
         ;;
     "windows")
         echo "❌ Błąd: Kompilacja Windows nie jest wspierana na środowisku Linux/macOS."

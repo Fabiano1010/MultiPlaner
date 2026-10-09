@@ -11,15 +11,15 @@
 </div>
 <div class="nav-links">
     <div class="nav-items">
-        <NavLink href="dashboard" class="nav-item" ActiveClass="nav-item-current">
+        <NavLink href="dashboard" class="nav-item" ActiveClass="nav-item-current" @onclick="OnNavigate">
             <img src="_content/MultiPlanerSharedUI/images/home.svg" alt="" class="nav-item-img">
             <div class="nav-text">Home</div>
         </NavLink>
-        <NavLink href="rooms" class="nav-item" ActiveClass="nav-item-current">
+        <NavLink href="rooms" class="nav-item" ActiveClass="nav-item-current" @onclick="OnNavigate">
             <img src="_content/MultiPlanerSharedUI/images/calendar.svg" alt="" class="nav-item-img">
             <div class="nav-text">Rooms</div>
         </NavLink>
-        <NavLink href="events" class="nav-item" ActiveClass="nav-item-current">
+        <NavLink href="events" class="nav-item" ActiveClass="nav-item-current" @onclick="OnNavigate">
             <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="" class="nav-item-img">
             <div class="nav-text">Events</div>
         </NavLink>
@@ -33,6 +33,8 @@
 </div>
 
 @code {
+    [Parameter] public EventCallback OnNavigate { get; set; }
+
     [CascadingParameter] 
     private Task<AuthenticationState>? AuthState { get; set; }
 
@@ -50,6 +52,7 @@
 
     private async Task LogoutAsync()
     {
+        await OnNavigate.InvokeAsync();
         await Auth.LogoutAsync();  
         Nav.NavigateTo("/", replace: true);
     }

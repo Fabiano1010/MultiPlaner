@@ -31,14 +31,13 @@ html, body{
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 #app {
-    height: 100%;
+    min-height: 100dvh;
     width: 100%;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    align-items: stretch;
 }
 
 .loading{
@@ -52,15 +51,21 @@ html, body{
     flex-direction: row;
     
     width: 100%;
-    height: 100%;
+    min-height: 100dvh;
+    height: 100dvh;
 }
 .main-content {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-width: 0;                      
+    min-height: 0;
     height: 100%;
-    /*padding-left: var(--sidebar-width); */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.app-layout > .main-content {
+    padding-left: var(--sidebar-width);
 }
 
 .sidebar {
@@ -73,11 +78,17 @@ html, body{
     color: var(--color-text-reversed);
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100dvh;
     padding: 0.5vw;
     flex-shrink: 0;
     overflow: hidden;
     transition: width 0.35s ease-in-out;
+}
+
+.mobile-nav-bar,
+.mobile-nav-close,
+.nav-backdrop {
+    display: none;
 }
 
 .sidebar:hover {
@@ -190,5 +201,4 @@ html, body{
     height: 20px;
     transition: 0.2s ease-in;
 }
-
 

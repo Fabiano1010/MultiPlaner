@@ -1,0 +1,552 @@
+@media (max-width: 1024px) {
+    .form-box,
+    .home-box-notloggedin,
+    .about-box {
+        width: min(100% - 3rem, 34rem);
+    }
+
+    .rooms-folders-container {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+
+    .folder,
+    .room {
+        width: clamp(9rem, 22vw, 13rem);
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --mobile-page-padding: 1rem;
+    }
+
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .app-layout > .main-content {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        padding-left: 0;
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-nav-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: none;
+        min-height: calc(3.5rem + env(safe-area-inset-top));
+        padding: calc(0.4rem + env(safe-area-inset-top)) 1rem 0.4rem;
+        background: var(--color-secondary);
+        color: var(--color-text-reversed);
+    }
+
+    .mobile-nav-toggle,
+    .mobile-nav-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0.55rem;
+        border: 0;
+        border-radius: var(--border-radius);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .mobile-nav-toggle img {
+        width: 100%;
+        height: 100%;
+        filter: invert(1);
+    }
+
+    .mobile-nav-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+
+    .nav-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 99;
+        width: 100%;
+        height: 100dvh;
+        border: 0;
+        background: rgb(0 0 0 / 50%);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .nav-backdrop.is-visible {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .sidebar,
+    .sidebar:hover {
+        width: min(82vw, 20rem);
+    }
+
+    .sidebar {
+        height: 100dvh;
+        padding: calc(0.5rem + env(safe-area-inset-top)) 0.75rem
+                 calc(0.75rem + env(safe-area-inset-bottom));
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease, visibility 0.25s ease;
+    }
+
+    .sidebar.is-open {
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateX(0);
+    }
+
+    .mobile-nav-close {
+        align-self: flex-end;
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .sidebar .nav-text {
+        opacity: 1;
+    }
+
+    .sidebar .nav-user {
+        height: auto;
+        min-height: 6.5rem;
+    }
+
+    .sidebar .user-img-div {
+        width: 3.5rem;
+    }
+
+    .sidebar .nav-links {
+        height: auto;
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .sidebar .nav-items {
+        align-items: stretch;
+        padding-top: 1rem;
+    }
+
+    .sidebar .nav-item {
+        min-height: 2.75rem;
+        height: auto;
+    }
+
+    .main-content-box-auth {
+        min-height: 100%;
+        height: auto;
+        padding: 1.25rem var(--mobile-page-padding)
+                 calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .main-content-box-auth h2 {
+        font-size: clamp(1.5rem, 7vw, 2.25rem);
+        letter-spacing: 0.12em;
+        overflow-wrap: anywhere;
+    }
+
+    .form-box,
+    .form-box.auth-register,
+    .home-box-notloggedin,
+    .about-box {
+        width: min(100%, 32rem);
+        min-width: 0;
+        min-height: 0;
+        height: auto;
+        margin-top: 0;
+    }
+
+    .form-box {
+        padding: 0.25rem 0;
+    }
+
+    .auth-form {
+        padding: 1.25rem;
+    }
+
+    .auth-btn {
+        min-width: 8rem;
+        min-height: 2.75rem;
+    }
+
+    .home-box-notloggedin {
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .title-text {
+        font-size: clamp(1.8rem, 8vw, 3rem);
+        overflow-wrap: anywhere;
+    }
+
+    .logo-img-large {
+        display: block;
+        max-width: min(100%, 11rem);
+        max-height: 10rem;
+        margin-inline: auto;
+    }
+
+    .home-btn-group {
+        gap: 0.75rem;
+    }
+
+    .home-btns {
+        width: min(100%, 14rem);
+        min-height: 2.75rem;
+    }
+
+    .about-box {
+        justify-content: flex-start;
+        align-items: stretch;
+        padding: 1.5rem;
+    }
+
+    .about-box p {
+        overflow-wrap: anywhere;
+    }
+
+    .credits {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem 1rem;
+    }
+
+    .main-content-dashboard {
+        min-height: 100%;
+        height: auto;
+        padding: 1.5rem var(--mobile-page-padding);
+    }
+
+    .main-content-rooms {
+        min-height: 100%;
+        height: auto;
+        overflow: visible;
+    }
+
+    .rooms-folders-container {
+        width: 100%;
+        height: auto;
+        padding: var(--mobile-page-padding) var(--mobile-page-padding)
+                 calc(6rem + env(safe-area-inset-bottom));
+        overflow: visible;
+    }
+
+    .rooms-container,
+    .folders-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+        align-items: stretch;
+        width: 100%;
+        gap: 1.25rem 0.75rem;
+    }
+
+    .folder,
+    .room {
+        width: 100%;
+        min-width: 0;
+        margin-top: 0;
+    }
+
+    .folder {
+        margin-top: 1.4rem;
+    }
+
+    .folder-content,
+    .room-header,
+    .room-footer {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .folders-collapse-inner {
+        width: 100%;
+        padding: 1.5rem 0 0;
+        margin: 0;
+    }
+
+    .folders-collapse {
+        width: 100%;
+    }
+
+    .hide-folders-box {
+        top: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    .fab-menu {
+        right: calc(1rem + env(safe-area-inset-right));
+        bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+
+    .header {
+        width: 100%;
+        min-height: 0;
+        height: auto;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        padding: 0.85rem var(--mobile-page-padding);
+    }
+
+    .calendar-data {
+        order: 1;
+        min-width: 0;
+    }
+
+    .calendar-data-name {
+        font-size: 1.2rem;
+        overflow-wrap: anywhere;
+    }
+
+    .calendar-data-owner {
+        font-size: 0.9rem;
+    }
+
+    .action-buttons {
+        order: 2;
+        justify-content: center;
+    }
+
+    .date-controls-div {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .date-controls {
+        width: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .date-controls-date {
+        font-size: 0.95rem;
+    }
+
+    .date-move {
+        align-items: center;
+    }
+
+    .calendar-grid-wrapper {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        width: 100%;
+        max-width: none;
+        height: auto;
+        overflow: visible;
+        gap: 0.25rem;
+        padding: 0.5rem 0.5rem 1rem;
+    }
+
+    .calendar-day-name {
+        min-width: 0;
+        padding: 0.25rem 0;
+        font-size: 0.68rem;
+    }
+
+    .calendar-cell {
+        min-width: 0;
+        max-width: none;
+        aspect-ratio: 1;
+        border-radius: 0.5rem;
+    }
+
+    .day-number-div {
+        width: 100%;
+        align-items: center;
+        padding-top: 0.1rem;
+        font-size: 0.8rem;
+    }
+
+    .dots {
+        align-content: flex-start;
+        gap: 1px;
+        width: 100%;
+        padding: 0.1rem;
+    }
+
+    .event-dot {
+        width: 0.32rem;
+        height: 0.32rem;
+    }
+
+    .events-container {
+        width: 100%;
+        max-height: none;
+        height: auto;
+        padding: 1rem var(--mobile-page-padding)
+                 calc(1.5rem + env(safe-area-inset-bottom));
+        overflow: visible;
+        align-items: stretch;
+    }
+
+    .events-controls {
+        align-items: flex-start;
+        padding-right: 0;
+        gap: 0.5rem;
+    }
+
+    .events-controls-div {
+        min-width: 0;
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .events-control-date {
+        width: 100%;
+        font-size: 1.25rem;
+        overflow-wrap: anywhere;
+    }
+
+    .events-buttons-container {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 0.5rem;
+    }
+
+    .events-button {
+        min-width: 0;
+        width: auto;
+        min-height: 2.75rem;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .plus-icon {
+        width: 1.25rem;
+    }
+
+    .events-list {
+        height: auto;
+        overflow: visible;
+        padding: 0;
+    }
+
+    .events-item {
+        width: 100%;
+        max-height: none;
+        min-height: 3.5rem;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.5rem;
+        padding: 0.75rem;
+        font-size: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    .events-item-data {
+        width: 100%;
+        font-size: 0.85rem;
+    }
+
+    .popup-overlay {
+        inset: 0;
+        width: 100%;
+        height: 100dvh;
+        align-items: flex-start;
+        overflow-y: auto;
+        padding: calc(0.75rem + env(safe-area-inset-top))
+                 calc(0.75rem + env(safe-area-inset-right))
+                 calc(0.75rem + env(safe-area-inset-bottom))
+                 calc(0.75rem + env(safe-area-inset-left));
+    }
+
+    .popup-container {
+        width: min(100%, 30rem);
+        max-width: none;
+        max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        margin: auto;
+        padding: 1rem;
+    }
+
+    .popup-title {
+        font-size: 1.25rem;
+    }
+
+    .popup-close {
+        flex: none;
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-group,
+    .form-row .form-group,
+    .form-group input,
+    .form-group textarea,
+    .add-room-form-box,
+    .add-room-form {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .event-details-row {
+        gap: 0.5rem;
+    }
+
+    .event-details-value {
+        min-width: 0;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .event-details-row-column .event-details-value {
+        text-align: left;
+    }
+}
+
+@media (max-width: 360px) {
+    .date-controls-div {
+        flex-wrap: wrap;
+    }
+
+    .date-move {
+        margin-left: auto;
+    }
+
+    .events-controls {
+        flex-wrap: wrap;
+    }
+
+    .form-actions {
+        flex-wrap: wrap;
+    }
+
+    .form-actions > button {
+        flex: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .nav-backdrop {
+        transition: none;
+    }
+}
