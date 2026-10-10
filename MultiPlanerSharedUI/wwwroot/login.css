@@ -163,6 +163,7 @@ input[type="password"]::-ms-reveal {
     display: flex;
     align-items: center;
     transition: 0.25s all;
+    border-radius: 15px;
 }
 .password-wrapper:hover{
     filter: drop-shadow(0 10px 10px var(--color-primary));
@@ -205,10 +206,10 @@ input[type="password"]::-ms-reveal {
 
 .auth-input:focus, .password-wrapper:focus-within{
     filter: drop-shadow(0 10px 10px var(--color-primary));
-    animation: bounce 0.5s;
+    animation: bounce-auth 0.5s;
 }
 
-@keyframes bounce{
+@keyframes bounce-auth{
     0% { transform: translateY(0) scale(1); box-shadow: 0 5px 5px var(--color-primary); }
     50% { transform: translateY(-5px) scale(1.05); box-shadow: 0 10px 10px var(--color-primary); }
     100% { transform: translateY(0) scale(1); box-shadow: 0 5px 5px var(--color-primary); }

@@ -19,7 +19,7 @@
                 <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
                     <input @bind="password" @bind:event="oninput"
                            type="@(showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="input-main auth-input-pass @(hasError ? "error-input" : "")"/>
+                           id="password" placeholder="Password" class="auth-input-pass @(hasError ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => showPassword = !showPassword"
                             aria-label="@(showPassword ? "Hide password" : "Show password")">
