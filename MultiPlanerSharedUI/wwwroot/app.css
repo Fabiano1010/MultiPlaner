@@ -218,3 +218,39 @@ html, body{
     right: 0.75rem;
     top: 0.5rem;
 }
+
+.action-buttons{
+    display: flex;
+    gap: 0.5rem
+}
+.action-button-img{
+    width: 25px;
+    height: 25px;
+    transition: 0.25s ease-in-out;
+}
+.action-button{
+    width:35px;
+    height:35px;
+    border-radius: 10px;
+    transition: 0.25s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+}
+.action-button:hover{
+    background-color: var(--color-secondary);
+    transform: translateY(-2px);
+    filter: drop-shadow(0px 5px 5px var(--color-primary));
+    color: var(--color-text-reversed);
+}
+.action-button:hover .action-button-img {
+    filter: invert(1);
+}
+
+.action-button:active{
+    background-color: var(--color-primary);
+    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    scale: 0.9;
+    transition-duration: 0.08s;
+}

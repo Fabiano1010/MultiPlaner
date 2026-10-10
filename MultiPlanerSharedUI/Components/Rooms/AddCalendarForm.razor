@@ -6,10 +6,10 @@
 <Popup IsVisible="IsVisible" Title="Add new calendar" OnClose="HandleClose">
     
     <div class="add-room-form-box">
-        <div class="add-room-form">`
+        <div class="add-room-form">
             <div class="form-group">
                 <label>Calendar name</label>
-                <input type="text" @bind="CalendarName" placeholder="Calendar name" />
+                <input type="text" @bind="CalendarName" placeholder="Calendar name" class="input-main @(hasError ? "error-input" : "")"/>
             </div>
             @if (!string.IsNullOrEmpty(ErrorMessage))
             {
@@ -38,6 +38,7 @@
 
     string ErrorMessage = "";
     private bool _isSaving;
+    private bool hasError => !string.IsNullOrEmpty(ErrorMessage);
     
     
     private async Task HandleClose() {
@@ -77,6 +78,7 @@
         }
         finally {
             _isSaving = false;
+            CalendarName = "MyCalendar";
         }
     }
 }

@@ -53,6 +53,13 @@
     transform: translateY(-2px);
 
 }
+.popup-close:active {
+    background: #d90000;
+    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    scale: 0.9;
+    transform: translateY(-2px);
+    transition-duration: 0.08s;
+}
 
 .add-event-form {
     display: flex;
@@ -74,7 +81,7 @@
     color: var(--color-primary);
 }
 
-.form-group input,
+.input-main,
 .form-group textarea {
     padding: 0.5rem;
     border: 1px solid var(--color-primary);
@@ -83,6 +90,14 @@
     color: var(--color-text);
     font-family: var(--font-sans);
     font-size: var(--font-size-medium);
+    transition: 0.25s ease-in;
+}
+.input-main:hover{
+    box-shadow: 0 5px 5px var(--color-primary);
+    
+}
+.input-main:focus{
+    animation: bounce 0.5s;
 }
 
 .form-row {
@@ -152,4 +167,11 @@
     transform: translateY(-2px);
     background: var(--color-secondary);
     color: var(--color-text-reversed);
+}
+.btn-save:active,.btn-cancel:active{
+    background-color: var(--color-primary);
+    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    scale: 0.9;
+    transform: translateY(-2px);
+    transition-duration: 0.08s;
 }
