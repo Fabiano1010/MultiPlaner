@@ -137,6 +137,7 @@
 .room{
     border-radius: var(--border-radius);
     margin-top: 0;
+    gap: 0;
 }
 
 .folder::before {
@@ -243,4 +244,27 @@
     min-height: 0;
     padding: 1rem 1.5rem 0;
     margin: 0rem -1.5rem 0;
+}
+.room-header {
+    text-align: center;
+    width: 100%;
+    padding-top: 0.2rem;
+    box-sizing: border-box;
+}
+.room-body{
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.room-content{
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

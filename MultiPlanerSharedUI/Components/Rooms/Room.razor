@@ -4,7 +4,9 @@
     </div>
     <div class="room-body">
         <div class="room-content">
-            <img src="" alt="room image" class="room-image">
+            <img src="@(imagePath ?? "_content/MultiPlanerSharedUI/images/calendar.svg")"
+                 alt="room image"
+                 class="room-image" />
         </div>
     </div>
     <div class="room-footer">
@@ -21,5 +23,6 @@
     
     private bool _isFavourite;
     private void ToggleFavourite() => _isFavourite = !_isFavourite;
+    private string? imagePath = null;
     
 }
