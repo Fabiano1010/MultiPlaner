@@ -51,7 +51,7 @@
                 <div class="input-error"></div>
             </div>
             
-            <button @onclick="RegisterAsync" class="auth-btn" disabled="@(!CanSubmit)">Register</button>
+            <button @onclick="RegisterAsync" class="auth-btn @(CanSubmit ? "btn-main" : "")" disabled="@(!CanSubmit)">Register</button>
 
             @if (error is not null) { 
                 <span class="error">@error</span>

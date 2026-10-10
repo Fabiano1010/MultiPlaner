@@ -10,7 +10,7 @@
         <div class="auth-form">
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="email" id="email" placeholder="Email" class="auth-input @(hasError ? "error-input" : "")" />
+                <input @bind="email" id="email" placeholder="Email" class="input-main auth-input @(hasError ? "error-input" : "")" />
                 <div class="input-error"></div>
             </div>
             
@@ -19,7 +19,7 @@
                 <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
                     <input @bind="password" @bind:event="oninput"
                            type="@(showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="auth-input-pass @(hasError ? "error-input" : "")"/>
+                           id="password" placeholder="Password" class="input-main auth-input-pass @(hasError ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => showPassword = !showPassword"
                             aria-label="@(showPassword ? "Hide password" : "Show password")">
@@ -35,7 +35,7 @@
             <div class="remember-group">
                 <div class="rememberMe-box"><input type="checkbox" @bind="remember" id="remember"> <label for="remember">Remember Me</label></div>
             </div>
-            <button @onclick="LoginAsync" class="auth-btn" disabled="@(!CanSubmit)">Login</button>
+            <button @onclick="LoginAsync" class="auth-btn @(CanSubmit ? "btn-main" : "")" disabled="@(!CanSubmit)">Login</button>
 
             @if (error is not null) {
                 <span class="error">@error</span>
