@@ -172,7 +172,7 @@
     align-items: center;
 }
 
-.folder-footer {
+.folder-footer, .room-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -181,16 +181,15 @@
     box-sizing: border-box;
 }
 
-.folder-footer img {
+.folder-footer img, .room-footer img {
     width: 1.4rem;
-    height: 1.4rem;
     cursor: pointer;
     user-select: none;
     padding: 0.2rem;
     transition: 0.2s ease-in-out;
 }
 
-.folder-footer img:hover {
+.folder-footer img:hover, .room-footer img:hover {
     filter: drop-shadow(0px 2px 5px var(--color-secondary));
     transform: translateY(-1px) scale(1.05);
 }
