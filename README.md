@@ -16,58 +16,78 @@ dotnet test MultiPlaner.Server.slnf
 
 Testy integracyjne wymagają Dockera/Podmana albo testowego SQL Servera.
 API i Swagger uruchamiaj przez HTTPS: `https://localhost:7157/swagger`.
-Stara migracja deweloperska została zastąpiona; szczegóły przejścia są w instrukcji powyżej.
+Migracje są wersjonowane w repo; aktualizacja nie wymaga kasowania lokalnej bazy.
 
-## Wymagania
-- .NET SDK (z zainstalowanym workloadem: `dotnet workload install maui`)
-- Docker & Docker Compose
-- Emulator Androida lub fizyczne urządzenie z włączonym debugowaniem USB (dla Androida)
-- Windows 10/11 w trybie dewelopera (dla wersji Desktop na Windowsie)
+## Pierwsze uruchomienie po pobraniu repo
 
----
+Dla API/Web potrzebujesz .NET SDK 10 i działającego Dockera z Compose.
+MAUI i emulator są potrzebne tylko dla aplikacji mobilnej/desktopowej.
 
-## Pierwsze uruchomienie
+Linux / macOS:
 
-1. Nadanie uprawnień do skryptu (tylko Linux/macOS):
-   ```bash
-   chmod +x dev.sh
+```bash
+./dev.sh db-migrate
+./dev.sh web
+```
 
-2.  Uruchomienie bazy SQL Server w Dockerze:
+Windows (PowerShell):
 
-      - Linux/macOS: ./dev.sh db-up
-      - Windows: .\dev.ps1 db-up
+```powershell
+.\dev.ps1 db-migrate
+.\dev.ps1 web
+```
 
-3.  Aplikowanie migracji EF Core:
+`db-migrate` odtwarza lokalne narzędzie EF w wersji zapisanej w repo,
+uruchamia SQL Server i stosuje istniejące migracje. Na pustej bazie tworzy
+schemat; przy kolejnym wywołaniu, jeśli nic się nie zmieniło, zgłasza brak
+migracji do zastosowania. Nie trzeba generować migracji po pobraniu repo.
+Pierwsze uruchomienie wymaga internetu do pobrania narzędzi, pakietów i obrazu SQL Server.
+Przeglądarka wymaga zaufanego certyfikatu developerskiego:
+`dotnet dev-certs https --trust` (szczegóły dla systemu w dokumentacji .NET).
 
-      - Linux/macOS: ./dev.sh db-migrate
-      - Windows: .\dev.ps1 db-migrate
+Domyślna konfiguracja developerska działa bez pliku `.env`:
+SQL Server `localhost:1433`, baza `MultiPlanerSQLDb`, konto `sa`, hasło
+`YourStrong@Password123`. To lokalne dane developerskie, nie konfiguracja produkcyjna.
+Jeżeli zmieniasz `SA_PASSWORD` lub `DB_PORT` w `.env`, ustaw również pasujący
+`ConnectionStrings__DefaultConnection` dla API i narzędzi EF. Zmiana hasła
+w Compose nie zmienia hasła konta w istniejącym wolumenie SQL Server.
 
-Codzienny development (Komendy startowe)
+## Migracje i Git
 
-Skrypty startowe uruchamiają Web API w tle i podnoszą wybrany interfejs.
+W repo przechowujemy **pliki migracji i snapshot modelu**, a nie zawartość bazy.
+Lokalne dane SQL Server pozostają w wolumenie Dockera; `.env`, wyniki testów
+oraz katalogi kompilacji są ignorowane przez Git.
 
-Linux / macOS
+- Po pobraniu repo lub nowych zmian: `./dev.sh db-migrate`.
+- Podgląd migracji i ich zastosowania: `./dev.sh db-status` (baza musi działać).
+- Po własnej zmianie modelu: `./dev.sh db-add-migration NazwaZmiany`, następnie `./dev.sh db-migrate`.
+- Bez zmiany modelu `db-add-migration` niczego nie tworzy.
+- Nową migrację, jej plik `.Designer.cs` i snapshot dodaj do tego samego commita co zmianę modelu.
+- Nie usuwaj ani nie generuj od nowa zastosowanych migracji. Ich identyfikatory są zapisane w bazie.
 
-  - Samo Web API: ./dev.sh api
-  - Blazor Web + API: ./dev.sh web
-  - MAUI Android + API: ./dev.sh android
-  - Zatrzymanie bazy: ./dev.sh db-down
+Te same komendy są dostępne w `dev.ps1`. `db-down` zatrzymuje kontener i zachowuje dane.
+`db-reset` usuwa **cały lokalny wolumen SQL Server i wszystkie jego bazy**;
+nie jest elementem pierwszego uruchomienia ani aktualizacji.
 
-Windows (PowerShell)
+Zachowana historia to `InitialApiSchema`, historyczna pusta migracja
+`AutoMigration_20260915140619` oraz `AddAutomaticRoomArchival`.
+Pusta migracja pozostaje w repo, ponieważ jest już zapisana w istniejących
+bazach; na świeżej bazie jest nieszkodliwa. Przywrócenie tej historii naprawia
+błąd ponownego tworzenia `AspNetRoles` bez resetowania danych.
 
-  - Samo Web API: .\dev.ps1 api
-  - Blazor Web + API: .\dev.ps1 web
-  - MAUI Android + API: .\dev.ps1 android
-  - MAUI Windows + API: .\dev.ps1 windows
-  - Zatrzymanie bazy: .\dev.ps1 db-down
+## Codzienny development
 
-Parametry połączeń i porty
+- `./dev.sh api` — samo API, HTTPS na `https://localhost:7157/swagger`.
+- `./dev.sh web` — API i Blazor, interfejs na `https://localhost:7132`.
+- `./dev.sh android` — API i aplikacja Android (wymaga MAUI).
+- `./dev.sh db-up` / `./dev.sh db-down` — uruchomienie / zatrzymanie bazy.
+- Na Windows użyj `dev.ps1`; dostępne jest również `windows`.
 
-  - SQL Server: localhost:1433 (Użytkownik: sa, Hasło: YourStrong@Password123,
-    Baza: MultiPlanerSQLDb)
-  - Web API: https://localhost:7157 (HTTP na 5147 przekierowuje na HTTPS)
-  - Blazor Web: https://localhost:7132
-  - Emulator Androida: http://10.0.2.2:5147 (mapowane automatycznie w kodzie)
+Na Linuksie `dev.sh` omija sprawdzanie magazynów certyfikatów przeglądarek
+podczas startu API/Web przez `DOTNET_DEV_CERTS_NSSDB_PATHS=/dev/null`, aby
+uniknąć blokady `certutil`. Jawnie ustawiona wartość ma pierwszeństwo.
+Nie ustawiaj tego obejścia globalnie ani przy `dotnet dev-certs https --trust`/`--clean`.
+HTTPS i weryfikacja certyfikatu przez przeglądarkę pozostają aktywne.
 
 Git Workflow
 
