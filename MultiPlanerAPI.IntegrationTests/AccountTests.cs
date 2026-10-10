@@ -224,7 +224,7 @@ public sealed class AccountTests(ApiFixture fixture)
             "/api/invitations/{token}", "/api/invitations/{token}/join", "/api/me",
             "/api/rooms", "/api/rooms/{roomId}", "/api/rooms/{roomId}/archive",
             "/api/rooms/{roomId}/invitations", "/api/rooms/{roomId}/invitations/{invitationId}",
-            "/api/rooms/{roomId}/members"
+            "/api/rooms/{roomId}/members", "/api/rooms/{roomId}/members/me"
         }.Order(), paths);
     }
 

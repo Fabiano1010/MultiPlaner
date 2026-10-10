@@ -51,7 +51,8 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
 
     public void RequireReadable(Room room)
     {
-        if (room.ArchivedAtUtc is null && room.ExpiresAtUtc <= clock.GetUtcNow())
+        var now = clock.GetUtcNow();
+        if (room.GetArchivedAtUtc(now) is null && room.ExpiresAtUtc <= now)
         {
             throw new ApiException(410, "room_expired", "The room has expired.");
         }

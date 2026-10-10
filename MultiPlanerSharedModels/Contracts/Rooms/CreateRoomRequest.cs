@@ -11,4 +11,6 @@ public sealed class CreateRoomRequest
     public string? TimeZoneId { get; init; }
 
     public DateTimeOffset? ExpiresAtUtc { get; init; }
+
+    public bool ArchiveOnExpiry { get; init; }
 }

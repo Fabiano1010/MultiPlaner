@@ -44,6 +44,18 @@ public sealed class RoomsController(RoomService rooms) : ControllerBase
         int roomId, [FromQuery] PageRequest pagination, CancellationToken cancellationToken) =>
         Ok(await rooms.ListMembersAsync(roomId, pagination, cancellationToken));
 
+    [HttpGet("{roomId:int}/members/me")]
+    [ProducesResponseType<RoomMembershipResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RoomMembershipResponse>> Membership(
+        int roomId, CancellationToken cancellationToken) =>
+        Ok(await rooms.GetMembershipAsync(roomId, cancellationToken));
+
+    [HttpPatch("{roomId:int}/members/me")]
+    [ProducesResponseType<RoomMembershipResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RoomMembershipResponse>> UpdateMembership(
+        int roomId, UpdateRoomMembershipRequest request, CancellationToken cancellationToken) =>
+        Ok(await rooms.UpdateMembershipAsync(roomId, request, cancellationToken));
+
     [HttpPost("{roomId:int}/archive"), Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Archive(int roomId, CancellationToken cancellationToken)

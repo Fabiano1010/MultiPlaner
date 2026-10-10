@@ -1,14 +1,14 @@
-# Fundament API — kroki 1–3
+# Fundament API — kroki 1–5
 
 ## Zakres
 
-Wdrożone są podstawy API, nowy model SQL Server i konta/sesje. Publiczne
-endpointy dotyczą wyłącznie uwierzytelniania oraz profilu.
+Wdrożone są podstawy API, nowy model SQL Server, konta/sesje, pokoje,
+ustawienia uczestnika oraz zaproszenia i dołączanie gości.
 
-Modele pokoi, członkostwa, zaproszeń, wydarzeń, uczestników, załączników,
-wiadomości, dostępności, aktywności, audytu i outbox są przygotowaniem schematu.
-Nie ma jeszcze ich endpointów, procesów retencji ani publikacji SignalR.
-W szczególności samo istnienie tabeli zaproszeń nie pozwala dołączyć do pokoju.
+Modele wydarzeń, uczestników wydarzeń, załączników, wiadomości, dostępności,
+aktywności, audytu i outbox są przygotowaniem schematu. Nie ma jeszcze ich
+endpointów, automatycznego usuwania wygasłych pokoi ani publikacji SignalR.
+Automatyczna archiwizacja pokoi jest już obsługiwana.
 
 ## Uruchomienie
 
@@ -16,16 +16,37 @@ Wymagane: .NET SDK 10, SQL Server i narzędzie dotnet-ef 10.0.11.
 Backend i testy nie wymagają MAUI.
 
 ```bash
-dotnet tool install --global dotnet-ef --version 10.0.11
+dotnet tool restore
 dotnet restore MultiPlaner.Server.slnf
 dotnet dev-certs https --trust
 ```
 
-Jeśli dotnet-ef jest już zainstalowany, użyj `dotnet tool update`.
+Wersję EF CLI określa `.config/dotnet-tools.json`; nie jest potrzebna instalacja globalna.
+Skrypty `dev.sh` i `dev.ps1` odtwarzają i wywołują tę samą wersję narzędzia.
 Na Linuxie konfiguracja zaufania certyfikatu zależy od przeglądarki.
 Cookies uwierzytelniające zawsze wymagają HTTPS, również w development.
 
 ### Baza po przebudowie schematu
+
+Na świeżym pobraniu repo uruchom `./dev.sh db-migrate` (Windows: `./dev.ps1 db-migrate`).
+Polecenie tworzy schemat na pustej bazie i stosuje tylko brakujące migracje na istniejącej.
+Nie używaj `db-add-migration` po samym pobraniu repo. To polecenie jest przeznaczone
+wyłącznie do zapisania własnej zmiany modelu; bez zmian kończy się bez tworzenia plików.
+
+Nie usuwaj plików migracji ani snapshotu przy zachowaniu bazy. Historia musi być
+wersjonowana razem z kodem. Aktualny łańcuch zachowuje identyfikatory:
+
+- `20260913213459_InitialApiSchema`
+- `20260915120625_AutoMigration_20260915140619` (historyczna pusta migracja)
+- `20261010153500_AddAutomaticRoomArchival`
+
+`./dev.sh db-status` pokazuje ich zastosowanie w działającej bazie. Pusta migracja
+pozostaje w repo dla zgodności z istniejącymi bazami; nie zawiera danych użytkowników.
+Wszystkie trzy migracje i snapshot należy przechowywać w Git. Pliki `.env`, `bin`,
+`obj` i wyniki testów są lokalne. Dane SQL Server pozostają w wolumenie Dockera.
+
+Poniższe uwagi dotyczą wyłącznie bardzo starego schematu sprzed `InitialApiSchema`;
+nie oznaczają konieczności resetowania obecnej bazy przy aktualizacji.
 
 Migracja `InitialApiSchema` zastępuje dawną migrację
 `20260825144737_InitialSqlServerCreate`. Nie przenosi jej danych.
@@ -81,6 +102,8 @@ osobno. `TrustServerCertificate=True` z przykładów dotyczy lokalnego SQL Serve
 | GET /api/rooms/{roomId} | członek pokoju | Szczegóły pokoju |
 | PATCH /api/rooms/{roomId} | właściciel, z CSRF | Zmiana nazwy, strefy lub terminu wygaśnięcia |
 | GET /api/rooms/{roomId}/members?page=1&pageSize=50 | członek pokoju | Stronicowana lista uczestników |
+| GET /api/rooms/{roomId}/members/me | członek pokoju | Własna nazwa, kolor, ulubiony i wersja ustawień |
+| PATCH /api/rooms/{roomId}/members/me | członek pokoju, z CSRF | Aktualizacja własnych ustawień uczestnika |
 | POST /api/rooms/{roomId}/archive | właściciel, z CSRF | Archiwizacja; zachowuje odczyt |
 | DELETE /api/rooms/{roomId} | właściciel, z CSRF | Trwałe usunięcie pokoju i danych zależnych |
 | POST /api/rooms/{roomId}/invitations | właściciel, z CSRF | Wygenerowanie nowego magicznego linku |
@@ -149,6 +172,45 @@ Pokój wygasa domyślnie po 3 miesiącach kalendarzowych, najpóźniej po roku.
 Właściciel może zmienić nazwę, strefę czasową i datę wygaśnięcia. Archiwum
 pozostaje dostępne do odczytu członkom; `DELETE` usuwa pokój wraz z zależnymi
 rekordami. Niezarchiwizowany pokój po wygaśnięciu nie jest dostępny do odczytu.
+
+Przy tworzeniu można zaznaczyć `archiveOnExpiry: true` (domyślnie `false`).
+Pokój pozostaje aktywny do `expiresAtUtc`, a dokładnie od tego momentu jest
+archiwum dostępnym do odczytu dotychczasowym uczestnikom. Dotyczy to także
+niestandardowego terminu, np. sześciu miesięcy; późniejsza zmiana terminu
+aktywnego pokoju przesuwa moment automatycznej archiwizacji. Sam wybór opcji
+nie blokuje bieżącej edycji. Formularz tworzenia kalendarza ma odpowiedni checkbox.
+
+Proces w tle zapisuje należne archiwizacje przy starcie i co minutę. Odczyt,
+filtrowanie i blokada zmian uwzględniają termin niezależnie od tego procesu,
+także po restarcie. `archivedAtUtc` dla automatycznego archiwum odpowiada
+terminowi wygaśnięcia, a nie opóźnionej dacie uruchomienia procesu. Zapis jest
+warunkowy i bezpieczny przy ponowieniach oraz wielu instancjach serwera.
+`RoomArchival:Enabled=false` wyłącza proces zapisujący (używane w testach);
+nie wyłącza reguł odczytu i dostępu. Przyszła retencja musi wykluczać pokoje
+z `archiveOnExpiry=true`, nawet jeśli `archivedAtUtc` jeszcze nie zapisano.
+
+Ręczna archiwizacja aktywnego pokoju pozostaje dostępna. Nie można nią
+przywrócić dostępu do wygasłego pokoju bez wybranej automatycznej archiwizacji.
+Automatyczne usuwanie pozostałych wygasłych pokoi nadal należy do kroku 12.
+Migracja `AddAutomaticRoomArchival` dodaje opcję bez zmiany dotychczasowych
+pokoi (otrzymują `false`); nie usuwa ani nie archiwizuje istniejących danych.
+
+Lista i szczegóły pokoju oraz odpowiedzi tworzenia/dołączenia zawierają
+`membership`: ustawienia bieżącego uczestnika. `isFavourite` jest prywatne;
+publiczna lista uczestników nie ujawnia tego pola ani wersji ich ustawień.
+
+Konto i gość mogą zmienić własne `displayName` (maksymalnie 64 znaki,
+minimum 2 po przycięciu), `color` (6 cyfr szesnastkowych bez `#`) i `isFavourite`.
+Nazwa jest przycinana, kolor normalizowany do wielkich liter. Zmiany dotyczą
+wyłącznie danego pokoju; nie modyfikują profilu konta ani innych członkostw.
+Pominięte pola i `null` pozostają bez zmian; `false` usuwa oznaczenie ulubionego.
+W archiwum można zmienić tylko prywatne oznaczenie ulubionego.
+
+PATCH wymaga `rowVersion` pobranego z aktualnego `membership` lub
+GET `/api/rooms/{roomId}/members/me`. Jest to 8 bajtów zakodowanych w JSON
+jako base64. Stara wersja zwraca 409 `concurrency_conflict`; klient powinien
+pobrać aktualne ustawienia przed ponowieniem zapisu. Nie przekazuje się
+identyfikatora uczestnika — serwer ustala go na podstawie sesji.
 
 Utworzenie pokoju zapisuje także właściciela jako uczestnika oraz pierwsze
 zaproszenie; odpowiedź zawiera je w `initialInvitation`. Nowy link unieważnia

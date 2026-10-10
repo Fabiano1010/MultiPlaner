@@ -63,6 +63,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddUserSessions();
 builder.Services.AddScoped<RoomService>();
 builder.Services.AddScoped<RoomAccessService>();
+builder.Services.AddScoped<RoomArchivalService>();
+builder.Services.AddHostedService<RoomArchivalWorker>();
 builder.Services.AddScoped<InvitationService>();
 builder.Services.AddSingleton<InvitationLinkBuilder>();
 builder.Services.AddCors(options => options.AddPolicy("BrowserClient", policy => policy

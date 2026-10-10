@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param (
     [Parameter(Position = 0)]
-    [ValidateSet("help", "db-up", "db-down", "db-reset", "db-migrate", "db-add-migration", "api", "web", "android", "windows")]
+    [ValidateSet("help", "db-up", "db-down", "db-reset", "db-migrate", "db-status", "db-add-migration", "api", "web", "android", "windows")]
     [string]$Command = "help",
 
     [Parameter(Position = 1)]
@@ -10,6 +10,7 @@ param (
 
 $ErrorActionPreference = "Stop"
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $ScriptDirectory
 $ComposeFile = Join-Path $ScriptDirectory "docker-compose.db.yml"
 $ApiProject = Join-Path (Join-Path $ScriptDirectory "MultiPlanerAPI") "MultiPlanerAPI.csproj"
 $WebProject = Join-Path (Join-Path $ScriptDirectory "MultiPlanerWeb") "MultiPlanerWeb.csproj"
@@ -100,33 +101,14 @@ function Test-DatabasePort {
     }
 }
 
+function Initialize-DotNetEf {
+    $toolManifest = Join-Path $ScriptDirectory ".config\dotnet-tools.json"
+    Invoke-Checked -FilePath "dotnet" -Arguments @("tool", "restore", "--tool-manifest", $toolManifest)
+}
+
 function Invoke-DotNetEf {
     param ([string[]]$Arguments = @())
-
-    $dotnetEf = Get-Command "dotnet-ef" -ErrorAction SilentlyContinue
-    if ($dotnetEf) {
-        Invoke-Checked -FilePath $dotnetEf.Source -Arguments $Arguments
-        return
-    }
-
-    $userProfile = [Environment]::GetFolderPath("UserProfile")
-    $globalToolCandidates = @(
-        (Join-Path $userProfile ".dotnet\tools\dotnet-ef.exe"),
-        (Join-Path $userProfile ".dotnet\tools\dotnet-ef")
-    )
-    $globalTool = $globalToolCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if ($globalTool) {
-        Invoke-Checked -FilePath $globalTool -Arguments $Arguments
-        return
-    }
-
-    $toolManifest = Join-Path $ScriptDirectory ".config\dotnet-tools.json"
-    if (Test-Path $toolManifest) {
-        Invoke-Checked -FilePath "dotnet" -Arguments (@("tool", "run", "dotnet-ef", "--") + $Arguments)
-        return
-    }
-
-    throw "Nie znaleziono narzędzia dotnet-ef. Zainstaluj je poleceniem: dotnet tool install --global dotnet-ef --version 10.*"
+    Invoke-Checked -FilePath "dotnet" -Arguments (@("tool", "run", "dotnet-ef", "--") + $Arguments)
 }
 
 function Start-ApiBackground {
@@ -158,14 +140,26 @@ switch ($Command) {
         Write-Host "Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte." -ForegroundColor Green
     }
     "db-migrate" {
+        Initialize-DotNetEf
         Start-Database
         Write-Host "▶ Wykonywanie migracji EF Core..." -ForegroundColor Green
         Invoke-DotNetEf -Arguments @("database", "update", "--project", $ApiProject, "--startup-project", $ApiProject)
     }
+    "db-status" {
+        Initialize-DotNetEf
+        Invoke-DotNetEf -Arguments @("migrations", "list", "--project", $ApiProject, "--startup-project", $ApiProject)
+    }
     "db-add-migration" {
-        $name = if ($MigrationName) { $MigrationName } else { "AutoMigration_$(Get-Date -Format yyyyMMddHHmmss)" }
-        Write-Host "▶ Tworzenie migracji: $name..." -ForegroundColor Green
-        Invoke-DotNetEf -Arguments @("migrations", "add", $name, "--project", $ApiProject, "--startup-project", $ApiProject)
+        Initialize-DotNetEf
+        & dotnet tool run dotnet-ef -- migrations has-pending-model-changes --project $ApiProject --startup-project $ApiProject
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Model nie zmienił się. Nie ma potrzeby tworzenia nowej migracji." -ForegroundColor Green
+        }
+        else {
+            $name = if ($MigrationName) { $MigrationName } else { "AutoMigration_$(Get-Date -Format yyyyMMddHHmmss)" }
+            Write-Host "▶ Tworzenie migracji: $name..." -ForegroundColor Green
+            Invoke-DotNetEf -Arguments @("migrations", "add", $name, "--project", $ApiProject, "--startup-project", $ApiProject)
+        }
     }
     "api" {
         Invoke-Checked -FilePath "dotnet" -Arguments @("run", "--project", $ApiProject, "--launch-profile", "https")
@@ -200,7 +194,8 @@ switch ($Command) {
         Write-Host "  db-down             - Zatrzymuje bazę SQL Server"
         Write-Host "  db-reset            - Usuwa kontener i cały developerski wolumen SQL Server"
         Write-Host "  db-migrate          - Aplikuje migracje EF Core"
-        Write-Host "  db-add-migration    - Dodaje migrację EF Core"
+        Write-Host "  db-status           - Pokazuje migracje i stan ich zastosowania"
+        Write-Host "  db-add-migration [nazwa] - Tworzy migrację tylko gdy zmienił się model"
         Write-Host "  api                 - Uruchamia samo Web API"
         Write-Host "  web                 - Uruchamia API w tle + Blazor Web"
         Write-Host "  android             - Uruchamia API w tle + MAUI Android (domyślnie emulator x64)"
