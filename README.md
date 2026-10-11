@@ -1,9 +1,10 @@
 # MultiPlaner - Dev Guide
 
-## API — wdrożone kroki 1–5
+## API — fundament i etapy 1–3
 
-Serwer ma nowy schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,
-profil, cookies z CSRF, pokoje, archiwizację, zaproszenia i dołączanie gości.
+Serwer ma schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,
+reset hasła przez SMTP, profil, cookies z CSRF, pokoje, prywatne foldery,
+okładki, archiwizację, zaproszenia i dołączanie gości.
 Instrukcja przygotowania **pustej bazy**, kontrakty i uruchamianie testów:
 [Fundament API](docs/api-foundation.md).
 
@@ -69,11 +70,24 @@ Te same komendy są dostępne w `dev.ps1`. `db-down` zatrzymuje kontener i zacho
 `db-reset` usuwa **cały lokalny wolumen SQL Server i wszystkie jego bazy**;
 nie jest elementem pierwszego uruchomienia ani aktualizacji.
 
-Zachowana historia to `InitialApiSchema`, historyczna pusta migracja
-`AutoMigration_20260915140619` oraz `AddAutomaticRoomArchival`.
-Pusta migracja pozostaje w repo, ponieważ jest już zapisana w istniejących
-bazach; na świeżej bazie jest nieszkodliwa. Przywrócenie tej historii naprawia
-błąd ponownego tworzenia `AspNetRoles` bez resetowania danych.
+Aktualna historia zaczyna się od `20261011134010_InitialApiSchema`. Zastępuje
+nieśledzoną migrację deweloperską `20261011080723_test`. Baza z poprzednią
+historią wymaga jawnego odtworzenia deweloperskiej bazy (`db-reset` usuwa cały
+lokalny wolumen) lub wskazania nowej pustej bazy. API nie resetuje jej samo.
+
+Klucze Data Protection używane przez cookies i odtwarzanie linków zaproszeń
+są w development zapisywane w `MultiPlanerAPI/.data-protection-keys`.
+Na produkcji ustaw `DataProtection__KeysPath` na trwały, współdzielony katalog.
+Okładki pokoi zapisują się w `MultiPlanerAPI/data/room-covers`; produkcyjny
+trwały katalog wskazuje `Storage__CoverRoot`.
+
+Reset hasła wymaga `PasswordReset__PublicWebBaseUrl`, `Email__Smtp__Host`,
+`Email__Smtp__Port` i `Email__Smtp__From`. Opcjonalne są `Email__Smtp__User`,
+`Email__Smtp__Password` oraz `Email__Smtp__EnableSsl`. Development Compose
+uruchamia [Mailpit](https://mailpit.axllent.org/docs/install/docker/) na SMTP
+`localhost:1025` i podglądzie `http://localhost:8025`. Bez działającego SMTP
+odpowiedź żądania resetu nadal ma status 202, ale wiadomość nie dotrze;
+błąd dostawy jest zapisywany w logach serwera.
 
 ## Codzienny development
 

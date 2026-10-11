@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using Microsoft.AspNetCore.WebUtilities;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
@@ -12,7 +14,9 @@ namespace MultiPlanerAPI.Modules.Users;
 
 public sealed class UserService(
     AppDbContext db, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
-    CurrentActor actor, GuestSessionService guests, IHttpContextAccessor accessor)
+    CurrentActor actor, GuestSessionService guests, IHttpContextAccessor accessor,
+    IPasswordResetEmailSender emailSender, IConfiguration configuration, TimeProvider clock,
+    ILogger<UserService> logger)
 {
     public async Task<SessionResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
@@ -54,8 +58,54 @@ public sealed class UserService(
         }
 
         await ClearGuestIdentityAsync(cancellationToken);
-        await signIn.SignInAsync(user, new AuthenticationProperties { IsPersistent = true, AllowRefresh = false });
+        await signIn.SignInAsync(user, new AuthenticationProperties
+        {
+            IsPersistent = request.RememberMe,
+            AllowRefresh = false,
+            ExpiresUtc = clock.GetUtcNow().AddDays(14)
+        });
         return ToResponse(user);
+    }
+
+    public async Task RequestPasswordResetAsync(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var normalizedEmail = users.NormalizeEmail(request.Email.Trim());
+        var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
+        if (user is null) return;
+
+        try
+        {
+            var token = await users.GeneratePasswordResetTokenAsync(user);
+            var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+            var publicBase = configuration["PasswordReset:PublicWebBaseUrl"];
+            if (!Uri.TryCreate(publicBase, UriKind.Absolute, out var baseUri) ||
+                baseUri.Scheme != Uri.UriSchemeHttps || baseUri.UserInfo.Length != 0 ||
+                baseUri.Query.Length != 0 || baseUri.Fragment.Length != 0)
+                throw new InvalidOperationException("Configure PasswordReset:PublicWebBaseUrl as the HTTPS web application address.");
+            var link = $"{baseUri.GetLeftPart(UriPartial.Authority)}{baseUri.AbsolutePath.TrimEnd('/')}/reset-password" +
+                       $"?email={Uri.EscapeDataString(user.Email!)}&token={encoded}";
+            await emailSender.SendAsync(user.Email!, link, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Password reset delivery failed.");
+        }
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var normalizedEmail = users.NormalizeEmail(request.Email.Trim());
+        var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
+        string token;
+        try { token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token)); }
+        catch (Exception ex) when (ex is FormatException or ArgumentException)
+        { throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired."); }
+        if (user is null) throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+        var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
+        if (result.Succeeded) return;
+        if (result.Errors.Any(e => e.Code == "InvalidToken"))
+            throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+        EnsureSuccess(result);
     }
 
     /// <summary>Removes a browser's guest identity without transferring guest contributions to the account.</summary>

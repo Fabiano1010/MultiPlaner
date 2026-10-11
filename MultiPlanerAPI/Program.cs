@@ -2,6 +2,9 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Modules.Rooms;
@@ -10,6 +13,18 @@ using MultiPlanerAPI.Modules.Users;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(TimeProvider.System);
+var keyPath = builder.Configuration["DataProtection:KeysPath"] ??
+    Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys");
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("PasswordReset", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+        }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers(options => options.Filters.Add<CsrfValidationFilter>())
     .AddJsonOptions(options => options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
@@ -67,6 +82,10 @@ builder.Services.AddScoped<RoomArchivalService>();
 builder.Services.AddHostedService<RoomArchivalWorker>();
 builder.Services.AddScoped<InvitationService>();
 builder.Services.AddSingleton<InvitationLinkBuilder>();
+builder.Services.AddSingleton<InvitationTokenProtector>();
+builder.Services.AddScoped<UserFolderService>();
+builder.Services.AddSingleton<IRoomCoverStorage, LocalRoomCoverStorage>();
+builder.Services.AddScoped<RoomCoverService>();
 builder.Services.AddCors(options => options.AddPolicy("BrowserClient", policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
     .AllowAnyMethod()
@@ -95,6 +114,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors("BrowserClient");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

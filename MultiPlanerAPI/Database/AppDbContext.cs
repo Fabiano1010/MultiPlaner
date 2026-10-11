@@ -12,6 +12,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<RoomMember> RoomMembers => Set<RoomMember>();
     public DbSet<RoomInvitation> RoomInvitations => Set<RoomInvitation>();
+    public DbSet<UserFolder> UserFolders => Set<UserFolder>();
+    public DbSet<UserFolderRoom> UserFolderRooms => Set<UserFolderRoom>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
     public DbSet<EventAttachment> EventAttachments => Set<EventAttachment>();

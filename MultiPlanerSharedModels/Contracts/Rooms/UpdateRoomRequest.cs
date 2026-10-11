@@ -11,4 +11,7 @@ public sealed class UpdateRoomRequest
     public string? TimeZoneId { get; init; }
 
     public DateTimeOffset? ExpiresAtUtc { get; init; }
+
+    [Required, MinLength(8), MaxLength(8)]
+    public byte[] RowVersion { get; init; } = [];
 }

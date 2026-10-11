@@ -9,4 +9,5 @@ public sealed class LoginRequest
 
     [Required, StringLength(128)]
     public string Password { get; init; } = string.Empty;
+    public bool RememberMe { get; init; }
 }
