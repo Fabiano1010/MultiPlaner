@@ -12,7 +12,7 @@ public class ApiException(string message, int status, string? code = null) : Exc
     public string? Code { get; } = code;
 }
 
-public record ApiProblem(string? Title, int? Status, string? Code, Dictionary<string, string[]>? Errors);
+public record ApiProblem(string? Title, int? Status, string? Code, Dictionary<string, string[]>? Errors, string? Detail);
 
 public record CsrfResponse(string Token);
 

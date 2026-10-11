@@ -33,6 +33,8 @@ public class ApiClient(HttpClient http) {
                 code = problem.Code;
                 if (problem.Errors is { Count: > 0 })
                     message = string.Join("; ", problem.Errors.SelectMany(e => e.Value));
+                else if (!string.IsNullOrWhiteSpace(problem.Detail))
+                    message = problem.Detail;
                 else if (!string.IsNullOrWhiteSpace(problem.Title))
                     message = problem.Title;
             }
