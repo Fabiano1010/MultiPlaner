@@ -10,7 +10,7 @@
         <div class="auth-form">
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="email" id="email" placeholder="Email" class="auth-input @(hasError ? "error-input" : "")" />
+                <input @bind="email" id="email" placeholder="Email" class="input-main auth-input @(hasError ? "error-input" : "")" />
                 <div class="input-error"></div>
             </div>
             
@@ -35,7 +35,7 @@
             <div class="remember-group">
                 <div class="rememberMe-box"><input type="checkbox" @bind="remember" id="remember"> <label for="remember">Remember Me</label></div>
             </div>
-            <button @onclick="LoginAsync" class="auth-btn" disabled="@(!CanSubmit)">Login</button>
+            <button @onclick="LoginAsync" class="auth-btn @(CanSubmit ? "btn-main" : "")" disabled="@(!CanSubmit)">Login</button>
 
             @if (error is not null) {
                 <span class="error">@error</span>

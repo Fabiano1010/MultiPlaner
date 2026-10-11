@@ -1,27 +1,50 @@
-﻿@using MultiPlanerSharedModels.Services
-@using MultiPlanerSharedModels.Models
+﻿@using System.Net.Http.Json
+@using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Layout
+@inject HttpClient Http
 
 <div class="rooms-container">
+    @if (_isLoading) {
+        <LoadingSpinner />
+    } else if (!string.IsNullOrEmpty(_errorMessage)) {
+        <div class="error-message">@_errorMessage</div>
+    } else if (_rooms is not null && _rooms.Count > 0) {
+        foreach (var room in _rooms.OrderByDescending(r => r.Membership?.IsFavourite ?? false)) {
+            <Room @key="room.Id" RoomData="room"
+                  OnConflict="() => LoadRoomsAsync()"
+                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)" />
+        }
+        
+    } else {
+        <div class="no-rooms-message">Hey add some calendars!</div>
+    }
     
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
-    <Room></Room>
+
 </div>
 
 
 @code {
-    
-    
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private List<RoomResponse>? _rooms = new();
+    private string _status="active";
+    protected override async Task OnInitializedAsync() => await LoadRoomsAsync();
+
+    public async Task LoadRoomsAsync(bool silent = false) {
+        if (!silent) _isLoading = true;
+        _errorMessage = null;
+
+        try {
+            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status);
+            _rooms = result ?? new();
+        }
+        catch (HttpRequestException e) {
+            _errorMessage = "Cannot load calendars. " + e.Message;
+        }
+        finally {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
     
 }

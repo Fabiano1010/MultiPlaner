@@ -12,7 +12,7 @@ public class ApiException(string message, int status, string? code = null) : Exc
     public string? Code { get; } = code;
 }
 
-public record ApiProblem(string? Title, int? Status, string? Code, Dictionary<string, string[]>? Errors);
+public record ApiProblem(string? Title, int? Status, string? Code, Dictionary<string, string[]>? Errors, string? Detail);
 
 public record CsrfResponse(string Token);
 
@@ -22,7 +22,7 @@ public class AuthService(ApiAuthStateProvider state, ApiClient client)
     
     public async Task LoginAsync(string email, string password, bool rememberMe)
     {
-        var res = await client.PostAsync("api/auth/login", new { email, password  });
+        var res = await client.PostAsync("api/auth/login", new { email, password, rememberMe });
         await ApiClient.EnsureSuccessAsync(res); 
         state.NotifyAuthChanged();
     }
