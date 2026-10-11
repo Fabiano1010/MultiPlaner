@@ -250,6 +250,8 @@
     width: 100%;
     padding-top: 0.2rem;
     box-sizing: border-box;
+    font-weight: bolder;
+    font-size: var(--font-size-medium);
 }
 .room-body{
     flex: 1;
@@ -267,4 +269,17 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+.favourite-btn{
+    outline: none;
+    border: none;
+    background: none;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.favourite-icon{
+    width: 100%;
+    padding: 0;
 }

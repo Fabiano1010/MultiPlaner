@@ -7,7 +7,7 @@ public sealed class RoomMember : TrackedEntity
     public int? UserId { get; set; }
     public Guid? GuestSessionId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
-    public string Color { get; set; } = "808080";
+    public string Color { get; set; } = "dddddd";
     public bool IsFavourite { get; set; }
     public bool NotificationsMuted { get; set; }
     /// <summary>A read cursor, not a foreign key, so messages can be deleted independently.</summary>

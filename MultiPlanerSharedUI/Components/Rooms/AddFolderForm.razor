@@ -34,7 +34,7 @@
 
     [Parameter] public EventCallback<RoomResponse> OnCreate { get; set; }
 
-    string FolderName = "MyFolder";
+    string FolderName = "New Folder";
 
     string ErrorMessage = "";
     private bool _isSaving;
@@ -56,7 +56,30 @@
         _isSaving = true;
         ErrorMessage = "";
 
-
+        try {
+            var request = new CreateUserFolderRequest() { Name = name };
+            var response = await Api.PostAsync("api/me/folders", request);
+            await ApiClient.EnsureSuccessAsync(response);
+            if (!response.IsSuccessStatusCode) {
+                var body = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"Error creating room: {response.StatusCode} - {body}";
+                return;
+            }
+            var room = await response.Content.ReadFromJsonAsync<RoomResponse>();
+            await OnCreate.InvokeAsync(room!);
+            await HandleClose();
+        }
+        catch (ApiException e) {
+            ErrorMessage = e.Message;
+        }
+        catch (HttpRequestException e) {
+            ErrorMessage = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _isSaving = false;
+            FolderName = "New Folder";
+        }
+        
     }
 
 }

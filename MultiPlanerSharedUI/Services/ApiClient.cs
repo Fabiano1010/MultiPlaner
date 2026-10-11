@@ -9,8 +9,14 @@ public class ApiClient(HttpClient http) {
         var r = await http.GetFromJsonAsync<CsrfResponse>("api/auth/csrf");
         return r!.Token;
     }
-    public async Task<HttpResponseMessage> PostAsync(string url, object? body = null) {
-        var req = new HttpRequestMessage(HttpMethod.Post, url);
+    public Task<HttpResponseMessage> PostAsync(string url, object? body = null)
+        => SendAsync(HttpMethod.Post, url, body);
+
+    public Task<HttpResponseMessage> PatchAsync(string url, object? body = null)
+        => SendAsync(HttpMethod.Patch, url, body);
+    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? body = null)
+    {
+        var req = new HttpRequestMessage(method, url);
         if (body is not null) req.Content = JsonContent.Create(body);
         req.Headers.Add("X-CSRF-TOKEN", await GetCsrfAsync());
         return await http.SendAsync(req);
@@ -27,6 +33,8 @@ public class ApiClient(HttpClient http) {
                 code = problem.Code;
                 if (problem.Errors is { Count: > 0 })
                     message = string.Join("; ", problem.Errors.SelectMany(e => e.Value));
+                else if (!string.IsNullOrWhiteSpace(problem.Detail))
+                    message = problem.Detail;
                 else if (!string.IsNullOrWhiteSpace(problem.Title))
                     message = problem.Title;
             }

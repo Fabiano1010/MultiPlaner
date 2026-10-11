@@ -1,10 +1,16 @@
-﻿<div class="room">
+﻿@using System.Net.Http.Json
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Layout
+@inject HttpClient Http
+@inject ApiClient Api
+
+<div class="room" style="background-color: @_background">
     <div class="room-header">
-        Room Name
+        @(RoomData?.Name ?? "Room Name")
     </div>
     <div class="room-body">
         <div class="room-content">
-            <img src="@(imagePath ?? "_content/MultiPlanerSharedUI/images/calendar.svg")"
+            <img src="@(_imagePath ?? "_content/MultiPlanerSharedUI/images/calendar.svg")"
                  alt="room image"
                  class="room-image" />
         </div>
@@ -12,17 +18,71 @@
     <div class="room-footer">
        
         <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon">
-        <span>Owner</span>
-        <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
-             alt="favourite"
-             class="favourite-icon"
-             @onclick="ToggleFavourite">
+        <span>@RoomData?.OwnerDisplayName</span>
+        <button type="button" class="favourite-btn"
+                aria-pressed="@_isFavourite"
+                disabled="@_isSaving"
+                title="@(_isFavourite ? "Remove from favourites" : "Add to favourites")"
+                @onclick="ToggleFavouriteAsync">
+            <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
+                 alt="" class="favourite-icon" />
+        </button>
     </div>
 </div>
 @code {
+    [Parameter] 
+    public  RoomResponse? RoomData { get; set; }
+    [Parameter] 
+    public EventCallback OnConflict { get; set; }
+    [Parameter] 
+    public EventCallback OnFavouriteChanged { get; set; }
     
     private bool _isFavourite;
-    private void ToggleFavourite() => _isFavourite = !_isFavourite;
-    private string? imagePath = null;
+    private bool _isSaving;
+    private byte[]? _rowVersion;
+    public string? _imagePath;
+    
+    private string _background => 
+        string.IsNullOrWhiteSpace(RoomData?.Membership?.Color)
+            ? "var(--color-primary-dim-light)"
+            :"#" + RoomData!.Membership!.Color;
+  
+    
+    protected override void OnParametersSet() {
+        _isFavourite = RoomData?.Membership?.IsFavourite ?? false;
+        _rowVersion = RoomData?.Membership?.RowVersion;
+    }
+
+    private async Task ToggleFavouriteAsync() {
+        if(RoomData is null || _isSaving) return;
+        var newValue = !_isFavourite;
+        _isFavourite = newValue;
+        _isSaving = true;
+        try {
+            var res = await Api.PatchAsync($"api/rooms/{RoomData.Id}/members/me", new {isFavourite = newValue, rowVersion = _rowVersion });
+            if (res.StatusCode == System.Net.HttpStatusCode.Conflict) {
+                _isFavourite = !newValue;
+                await OnConflict.InvokeAsync();
+                return;
+            }
+            
+            await ApiClient.EnsureSuccessAsync(res);
+            var updated = await res.Content.ReadFromJsonAsync<RoomResponse>();
+            if (updated is not null) {
+                _rowVersion = updated.Membership?.RowVersion;   
+            }
+            await OnFavouriteChanged.InvokeAsync();
+            
+        }
+        catch(Exception ex) {
+            _isFavourite = !newValue; 
+            Console.WriteLine($"Error toggling favourite: {ex.Message}");
+        }
+        finally {
+            _isSaving = false;
+        }
+            
+    }
+    
     
 }
