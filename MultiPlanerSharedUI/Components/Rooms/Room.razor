@@ -46,7 +46,8 @@
         string.IsNullOrWhiteSpace(RoomData?.Membership?.Color)
             ? "var(--color-primary-dim-light)"
             :"#" + RoomData!.Membership!.Color;
-
+  
+    
     protected override void OnParametersSet() {
         _isFavourite = RoomData?.Membership?.IsFavourite ?? false;
         _rowVersion = RoomData?.Membership?.RowVersion;
