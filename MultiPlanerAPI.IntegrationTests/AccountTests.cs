@@ -219,11 +219,15 @@ public sealed class AccountTests(ApiFixture fixture)
         var paths = json.GetProperty("paths").EnumerateObject().Select(p => p.Name).Order().ToArray();
         Assert.Equal(new[]
         {
-            "/api/auth/csrf", "/api/auth/login", "/api/auth/logout", "/api/auth/register",
+            "/api/auth/csrf", "/api/auth/forgot-password", "/api/auth/login", "/api/auth/logout",
+            "/api/auth/register", "/api/auth/reset-password",
             "/api/invitations/join", "/api/invitations/preview",
             "/api/invitations/{token}", "/api/invitations/{token}/join", "/api/me",
+            "/api/me/folders", "/api/me/folders/{folderId}",
+            "/api/me/folders/{folderId}/rooms/{roomId}",
             "/api/rooms", "/api/rooms/{roomId}", "/api/rooms/{roomId}/archive",
-            "/api/rooms/{roomId}/invitations", "/api/rooms/{roomId}/invitations/{invitationId}",
+            "/api/rooms/{roomId}/cover", "/api/rooms/{roomId}/invitations",
+            "/api/rooms/{roomId}/invitations/current", "/api/rooms/{roomId}/invitations/{invitationId}",
             "/api/rooms/{roomId}/members", "/api/rooms/{roomId}/members/me"
         }.Order(), paths);
     }

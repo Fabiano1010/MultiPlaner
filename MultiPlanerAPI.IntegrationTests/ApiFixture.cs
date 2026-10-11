@@ -152,6 +152,8 @@ internal sealed class TestCookieHandler : DelegatingHandler
 
 public sealed class ApiFactory(string connectionString) : WebApplicationFactory<Program>
 {
+    public RecordingResetEmailSender ResetEmails { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -162,17 +164,31 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
                 ["Database:MigrateOnStartup"] = "false",
                 ["RoomArchival:Enabled"] = "false",
                 ["Cors:AllowedOrigins:0"] = "https://client.example",
-                ["Invitations:PublicWebBaseUrl"] = "https://client.example"
+                ["Invitations:PublicWebBaseUrl"] = "https://client.example",
+                ["PasswordReset:PublicWebBaseUrl"] = "https://client.example"
             }));
         // Program captures its connection string before deferred configuration callbacks.
         // Replace all EF options explicitly so tests cannot use the development database.
         builder.ConfigureServices(services =>
         {
+            services.RemoveAll<IPasswordResetEmailSender>();
+            services.AddSingleton<IPasswordResetEmailSender>(ResetEmails);
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5)));
         });
         builder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
+    }
+}
+
+public sealed class RecordingResetEmailSender : IPasswordResetEmailSender
+{
+    private readonly System.Collections.Concurrent.ConcurrentQueue<(string Recipient, string Link)> messages = new();
+    public (string Recipient, string Link)[] Messages => messages.ToArray();
+    public Task SendAsync(string recipient, string resetUrl, CancellationToken cancellationToken)
+    {
+        messages.Enqueue((recipient, resetUrl));
+        return Task.CompletedTask;
     }
 }

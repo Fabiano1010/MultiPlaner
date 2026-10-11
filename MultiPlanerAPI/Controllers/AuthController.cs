@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MultiPlanerAPI.Modules.Users;
 using MultiPlanerSharedModels.Contracts.Auth;
 
@@ -34,6 +35,24 @@ public sealed class AuthController(UserService users, IAntiforgery antiforgery) 
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<SessionResponse>> Login(LoginRequest request, CancellationToken cancellationToken) =>
         Ok(await users.LoginAsync(request, cancellationToken));
+
+    [HttpPost("forgot-password"), AllowAnonymous]
+    [EnableRateLimiting("PasswordReset")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await users.RequestPasswordResetAsync(request, cancellationToken);
+        return Accepted();
+    }
+
+    [HttpPost("reset-password"), AllowAnonymous]
+    [EnableRateLimiting("PasswordReset")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await users.ResetPasswordAsync(request, cancellationToken);
+        return NoContent();
+    }
 
     [HttpPost("logout"), Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

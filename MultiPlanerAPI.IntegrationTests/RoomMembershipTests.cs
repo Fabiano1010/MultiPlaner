@@ -101,9 +101,11 @@ public sealed class RoomMembershipTests(ApiFixture fixture)
                 (await owner.PostAsync($"/api/rooms/{room.Id}/archive", null)).StatusCode);
             var initial = await GetAsync(owner, room.Id);
             var response = await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}/members/me",
-                new UpdateRoomMembershipRequest { IsFavourite = true, RowVersion = initial.RowVersion });
+                new UpdateRoomMembershipRequest
+                    { IsFavourite = true, NotificationsMuted = true, RowVersion = initial.RowVersion });
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var updated = (await response.Content.ReadFromJsonAsync<RoomMembershipResponse>())!;
+            Assert.True(updated.NotificationsMuted);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}/members/me",
                 new UpdateRoomMembershipRequest { Color = "123456", RowVersion = updated.RowVersion }),
                 HttpStatusCode.Conflict, "room_inactive");

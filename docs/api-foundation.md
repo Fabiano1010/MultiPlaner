@@ -1,14 +1,15 @@
-# Fundament API — kroki 1–5
+# Fundament API i etapy 1–3
 
 ## Zakres
 
-Wdrożone są podstawy API, nowy model SQL Server, konta/sesje, pokoje,
-ustawienia uczestnika oraz zaproszenia i dołączanie gości.
+Wdrożone są podstawy API, model SQL Server, konta/sesje, reset hasła,
+pokoje, prywatne foldery, okładki, ustawienia uczestnika oraz zaproszenia
+i dołączanie gości.
 
 Modele wydarzeń, uczestników wydarzeń, załączników, wiadomości, dostępności,
 aktywności, audytu i outbox są przygotowaniem schematu. Nie ma jeszcze ich
 endpointów, automatycznego usuwania wygasłych pokoi ani publikacji SignalR.
-Automatyczna archiwizacja pokoi jest już obsługiwana.
+Automatyczna archiwizacja pokoi jest obsługiwana.
 
 ## Uruchomienie
 
@@ -33,23 +34,15 @@ Polecenie tworzy schemat na pustej bazie i stosuje tylko brakujące migracje na 
 Nie używaj `db-add-migration` po samym pobraniu repo. To polecenie jest przeznaczone
 wyłącznie do zapisania własnej zmiany modelu; bez zmian kończy się bez tworzenia plików.
 
-Nie usuwaj plików migracji ani snapshotu przy zachowaniu bazy. Historia musi być
-wersjonowana razem z kodem. Aktualny łańcuch zachowuje identyfikatory:
+Migracja bazowa to `20261011134010_InitialApiSchema`. Jej pliki i snapshot
+muszą pozostać w Git. `./dev.sh db-status` pokazuje jej zastosowanie w działającej
+bazie. Pliki `.env`, `bin`, `obj` i wyniki testów są lokalne; dane SQL Server
+pozostają w wolumenie Dockera.
 
-- `20260913213459_InitialApiSchema`
-- `20260915120625_AutoMigration_20260915140619` (historyczna pusta migracja)
-- `20261010153500_AddAutomaticRoomArchival`
-
-`./dev.sh db-status` pokazuje ich zastosowanie w działającej bazie. Pusta migracja
-pozostaje w repo dla zgodności z istniejącymi bazami; nie zawiera danych użytkowników.
-Wszystkie trzy migracje i snapshot należy przechowywać w Git. Pliki `.env`, `bin`,
-`obj` i wyniki testów są lokalne. Dane SQL Server pozostają w wolumenie Dockera.
-
-Poniższe uwagi dotyczą wyłącznie bardzo starego schematu sprzed `InitialApiSchema`;
-nie oznaczają konieczności resetowania obecnej bazy przy aktualizacji.
-
-Migracja `InitialApiSchema` zastępuje dawną migrację
-`20260825144737_InitialSqlServerCreate`. Nie przenosi jej danych.
+`InitialApiSchema` zastępuje także nieśledzoną migrację developerską
+`20261011080723_test`. Nie przenosi danych ze starych schematów. Jeżeli lokalna
+baza używa starszej historii, wskaż nową pustą bazę albo jawnie wykonaj
+`./dev.sh db-reset` po zabezpieczeniu potrzebnych danych. API nie kasuje bazy.
 
 Przy pierwszym uruchomieniu wskaż nową, pustą bazę `MultiPlanerSQLDb`,
 w `ConnectionStrings:DefaultConnection`. Można użyć tego samego serwera SQL
@@ -95,15 +88,21 @@ osobno. `TrustServerCertificate=True` z przykładów dotyczy lokalnego SQL Serve
 | POST /api/auth/register | anonimowy, z CSRF | Rejestracja; 201, bez automatycznego logowania |
 | POST /api/auth/login | anonimowy, z CSRF | Logowanie; 200 i cookie konta |
 | POST /api/auth/logout | sesja, z CSRF | Unieważnienie sesji; 204 |
+| POST /api/auth/forgot-password | anonimowy, z CSRF | Jednolita odpowiedź 202, wiadomość przez SMTP dla istniejącego konta |
+| POST /api/auth/reset-password | anonimowy, z CSRF | Zmiana hasła ważnym tokenem; 204 |
 | GET /api/me | konto lub gość | Bieżący profil/tożsamość |
 | PATCH /api/me | tylko konto, z CSRF | Częściowa aktualizacja własnego profilu |
 | POST /api/rooms | tylko konto, z CSRF | Pokój, członkostwo właściciela i pierwsze zaproszenie |
 | GET /api/rooms?status=active/archived/all | konto lub gość | Lista własnych i udostępnionych pokoi; domyślnie aktywnych |
 | GET /api/rooms/{roomId} | członek pokoju | Szczegóły pokoju |
-| PATCH /api/rooms/{roomId} | właściciel, z CSRF | Zmiana nazwy, strefy lub terminu wygaśnięcia |
+| PATCH /api/rooms/{roomId} | właściciel, z CSRF | Zmiana nazwy, strefy lub terminu; wymaga `rowVersion` |
 | GET /api/rooms/{roomId}/members?page=1&pageSize=50 | członek pokoju | Stronicowana lista uczestników |
 | GET /api/rooms/{roomId}/members/me | członek pokoju | Własna nazwa, kolor, ulubiony i wersja ustawień |
 | PATCH /api/rooms/{roomId}/members/me | członek pokoju, z CSRF | Aktualizacja własnych ustawień uczestnika |
+| GET/POST/PATCH/DELETE /api/me/folders | konto, z CSRF przy zmianach | Prywatne foldery i ulubione |
+| PUT/DELETE /api/me/folders/{folderId}/rooms/{roomId} | konto, z CSRF | Prywatne przypisanie pokoju do folderu |
+| GET/PUT/DELETE /api/rooms/{roomId}/cover | członek odczytuje, właściciel zmienia | Chroniona okładka JPEG/PNG/WebP do 10 MB |
+| GET /api/rooms/{roomId}/invitations/current | właściciel | Ponowny odczyt aktywnego linku |
 | POST /api/rooms/{roomId}/archive | właściciel, z CSRF | Archiwizacja; zachowuje odczyt |
 | DELETE /api/rooms/{roomId} | właściciel, z CSRF | Trwałe usunięcie pokoju i danych zależnych |
 | POST /api/rooms/{roomId}/invitations | właściciel, z CSRF | Wygenerowanie nowego magicznego linku |
@@ -125,7 +124,10 @@ Akceptujemy rzeczywiste kody krajów ISO oraz identyfikatory stref IANA lub `UTC
 Hasło ma 12–128 znaków, przynajmniej małą i wielką literę, cyfrę oraz znak
 niealfanumeryczny. Po 5 nieudanych logowaniach konto jest blokowane na 15 minut.
 Błędy logowania nie rozróżniają nieistniejącego konta, złego hasła i blokady.
-Potwierdzanie e-maila, reset hasła i MFA nie są częścią tych trzech kroków.
+Potwierdzanie e-maila i MFA nie są częścią tych etapów. Reset hasła używa
+tokenu Identity ważnego godzinę, przesyłanego przez konfigurowalny SMTP.
+`LoginRequest.rememberMe` jest domyślnie `false`: cookie sesyjne; `true`
+zapisuje trwałe cookie. Oba wygasają najpóźniej po 14 dniach.
 
 Profil pozwala zmienić `displayName`, `countryCode`, `timeZoneId`,
 `avatarUrl` i `contactDetails`. Nie zmienia e-maila ani hasła.
@@ -192,19 +194,23 @@ z `archiveOnExpiry=true`, nawet jeśli `archivedAtUtc` jeszcze nie zapisano.
 Ręczna archiwizacja aktywnego pokoju pozostaje dostępna. Nie można nią
 przywrócić dostępu do wygasłego pokoju bez wybranej automatycznej archiwizacji.
 Automatyczne usuwanie pozostałych wygasłych pokoi nadal należy do kroku 12.
-Migracja `AddAutomaticRoomArchival` dodaje opcję bez zmiany dotychczasowych
-pokoi (otrzymują `false`); nie usuwa ani nie archiwizuje istniejących danych.
+Opcja automatycznej archiwizacji jest częścią nowej migracji bazowej.
+Pokój przechowuje także chronioną okładkę; foldery są prywatną organizacją
+kont, a nie osobnym uprawnieniem do pokoju.
 
 Lista i szczegóły pokoju oraz odpowiedzi tworzenia/dołączenia zawierają
-`membership`: ustawienia bieżącego uczestnika. `isFavourite` jest prywatne;
+`membership`: ustawienia bieżącego uczestnika. Pokój zwraca także nazwę
+właściciela, informację o okładce i `rowVersion` wymagane przy jego edycji.
+`isFavourite` jest prywatne;
 publiczna lista uczestników nie ujawnia tego pola ani wersji ich ustawień.
 
 Konto i gość mogą zmienić własne `displayName` (maksymalnie 64 znaki,
-minimum 2 po przycięciu), `color` (6 cyfr szesnastkowych bez `#`) i `isFavourite`.
+minimum 2 po przycięciu), `color` (6 cyfr szesnastkowych bez `#`), `isFavourite`
+i prywatne `notificationsMuted`.
 Nazwa jest przycinana, kolor normalizowany do wielkich liter. Zmiany dotyczą
 wyłącznie danego pokoju; nie modyfikują profilu konta ani innych członkostw.
 Pominięte pola i `null` pozostają bez zmian; `false` usuwa oznaczenie ulubionego.
-W archiwum można zmienić tylko prywatne oznaczenie ulubionego.
+W archiwum można zmienić tylko prywatne ulubione i wyciszenie.
 
 PATCH wymaga `rowVersion` pobranego z aktualnego `membership` lub
 GET `/api/rooms/{roomId}/members/me`. Jest to 8 bajtów zakodowanych w JSON
@@ -215,13 +221,16 @@ identyfikatora uczestnika — serwer ustala go na podstawie sesji.
 Utworzenie pokoju zapisuje także właściciela jako uczestnika oraz pierwsze
 zaproszenie; odpowiedź zawiera je w `initialInvitation`. Nowy link unieważnia
 poprzednie linki pokoju. Domyślnie jest ważny 7 dni i może być używany wiele
-razy; `maxUses: 1` tworzy link jednorazowy. Serwer przechowuje wyłącznie skrót
-losowego tokenu. Dołączenie zużywa token atomowo, podgląd go nie zużywa.
+razy; `maxUses: 1` tworzy link jednorazowy. Serwer przechowuje skrót tokenu
+do weryfikacji oraz jego zaszyfrowaną postać do ponownego pobrania przez
+właściciela. Dołączenie zużywa token atomowo, podgląd go nie zużywa.
 
 Pełny `joinUrl` prowadzi w development do `https://localhost:7132/join/{token}`.
 Adres konfiguruje `Invitations:PublicWebBaseUrl`. Strona Web wywołuje API
-z cookies i tokenem CSRF. Właściwy token jest dostępny tylko w odpowiedzi
-na utworzenie pokoju lub zaproszenia; `{token}` to symbol w dokumentacji.
+z cookies i tokenem CSRF. Właściciel może ponownie pobrać aktywny link przez
+`GET /api/rooms/{roomId}/invitations/current`. Dla linku zapisanego wcześniej
+bez zaszyfrowanego tokenu API wymaga wygenerowania nowego. `{token}` to symbol
+w dokumentacji.
 
 ### Błędy
 

@@ -26,6 +26,7 @@ public static class SessionAuthentication
         services.AddScoped<GuestSessionService>();
         services.AddScoped<CurrentActor>();
         services.AddScoped<UserService>();
+        services.AddScoped<IPasswordResetEmailSender, SmtpPasswordResetEmailSender>();
         return services;
     }
 
@@ -42,6 +43,9 @@ public static class SessionAuthentication
         })
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
+
+        services.Configure<DataProtectionTokenProviderOptions>(options =>
+            options.TokenLifespan = TimeSpan.FromHours(1));
 
         services.ConfigureApplicationCookie(options =>
         {

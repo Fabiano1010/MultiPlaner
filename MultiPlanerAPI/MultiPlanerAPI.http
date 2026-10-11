@@ -30,7 +30,28 @@ X-CSRF-TOKEN: {{csrfToken}}
 
 {
   "email": "{{email}}",
-  "password": "{{password}}"
+  "password": "{{password}}",
+  "rememberMe": false
+}
+
+### Reset hasła: adres otrzymuje jednakową odpowiedź niezależnie od konta.
+POST {{MultiPlanerAPI_HostAddress}}/api/auth/forgot-password
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "{{email}}"
+}
+
+### Token odczytaj z wiadomości SMTP. Po zmianie pobierz nowy CSRF.
+POST {{MultiPlanerAPI_HostAddress}}/api/auth/reset-password
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "{{email}}",
+  "token": "<token-z-linku>",
+  "newPassword": "NowePoprawne9!Haslo"
 }
 
 ### 4. Po zmianie tożsamości pobierz nowy CSRF.
@@ -68,8 +89,12 @@ X-CSRF-TOKEN: {{csrfToken}}
 
 > {%
     client.global.set("roomId", response.body.id);
+    client.global.set("roomRowVersion", response.body.rowVersion);
     client.global.set("initialToken", response.body.initialInvitation.joinPath.split("/").pop());
 %}
+
+### Ponownie pobierz aktualny link pokoju (tylko właściciel).
+GET {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/invitations/current
 
 ### 8. Wygeneruj nowy link; unieważni poprzedni.
 POST {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/invitations
@@ -116,7 +141,57 @@ X-CSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Nowa nazwa pokoju",
-  "timeZoneId": "Europe/Warsaw"
+  "timeZoneId": "Europe/Warsaw",
+  "rowVersion": "{{roomRowVersion}}"
+}
+
+### Prywatny folder użytkownika.
+POST {{MultiPlanerAPI_HostAddress}}/api/me/folders
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "name": "Zespół"
+}
+
+> {%
+    client.global.set("folderId", response.body.id);
+%}
+
+### Przypisz dostępny pokój do własnego folderu.
+PUT {{MultiPlanerAPI_HostAddress}}/api/me/folders/{{folderId}}/rooms/{{roomId}}
+X-CSRF-TOKEN: {{csrfToken}}
+
+### Lista prywatnych folderów i przypisań.
+GET {{MultiPlanerAPI_HostAddress}}/api/me/folders
+
+### Okładka pokoju: umieść cover.png obok tego pliku .http.
+PUT {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/cover
+Content-Type: multipart/form-data; boundary=cover-boundary
+X-CSRF-TOKEN: {{csrfToken}}
+
+--cover-boundary
+Content-Disposition: form-data; name="file"; filename="cover.png"
+Content-Type: image/png
+
+< ./cover.png
+--cover-boundary--
+
+### Odczyt okładki przez uczestnika.
+GET {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/cover
+
+### Usunięcie okładki przez właściciela.
+DELETE {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/cover
+X-CSRF-TOKEN: {{csrfToken}}
+
+### Wycisz powiadomienia tego pokoju; użyj rowVersion z membership.
+PATCH {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/members/me
+Content-Type: application/json
+X-CSRF-TOKEN: {{csrfToken}}
+
+{
+  "notificationsMuted": true,
+  "rowVersion": "<base64-z-membership>"
 }
 
 ### Archiwizacja. Pokój pozostaje do odczytu.

@@ -6,12 +6,18 @@ services:
       - ACCEPT_EULA=Y
       # Development default only. Set SA_PASSWORD in .env or the shell for any
       # shared/non-development environment.
-      - MSSQL_SA_PASSWORD=${SA_PASSWORD:-zaq1@WSX}
+      - MSSQL_SA_PASSWORD=${SA_PASSWORD:-YourStrong@Password123}
       - MSSQL_PID=Developer
     ports:
       - "${DB_PORT:-1433}:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
 
 volumes:
   sqlserver_data:

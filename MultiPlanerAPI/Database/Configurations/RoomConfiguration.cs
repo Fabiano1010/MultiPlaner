@@ -11,6 +11,8 @@ public sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
         b.ToTable("Rooms", t => t.HasCheckConstraint("CK_Room_Expiry", "[ExpiresAtUtc] > [CreatedAtUtc]"));
         b.Property(x => x.Name).HasMaxLength(128).IsRequired();
         b.Property(x => x.TimeZoneId).HasMaxLength(128).IsRequired();
+        b.Property(x => x.CoverStorageKey).HasMaxLength(256);
+        b.Property(x => x.CoverContentType).HasMaxLength(32);
         b.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.NoAction);
         b.HasIndex(x => new { x.ExpiresAtUtc, x.Id }).HasFilter("[ArchivedAtUtc] IS NULL");
     }
@@ -47,7 +49,31 @@ public sealed class RoomInvitationConfiguration : IEntityTypeConfiguration<RoomI
             t.HasCheckConstraint("CK_RoomInvitation_Uses", "[UseCount] >= 0 AND ([MaxUses] IS NULL OR ([MaxUses] > 0 AND [UseCount] <= [MaxUses]))");
         });
         b.Property(x => x.TokenHash).HasMaxLength(64).IsUnicode(false).IsRequired();
+        b.Property(x => x.ProtectedToken).HasMaxLength(2048);
         b.HasIndex(x => x.TokenHash).IsUnique();
         b.HasOne<Room>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.NoAction);
+    }
+}
+
+public sealed class UserFolderConfiguration : IEntityTypeConfiguration<UserFolder>
+{
+    public void Configure(EntityTypeBuilder<UserFolder> b)
+    {
+        b.HasAlternateKey(x => new { x.Id, x.OwnerUserId });
+        b.Property(x => x.Name).HasMaxLength(128).IsRequired();
+        b.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.NoAction);
+        b.HasIndex(x => new { x.OwnerUserId, x.Name }).IsUnique();
+    }
+}
+
+public sealed class UserFolderRoomConfiguration : IEntityTypeConfiguration<UserFolderRoom>
+{
+    public void Configure(EntityTypeBuilder<UserFolderRoom> b)
+    {
+        b.HasKey(x => new { x.OwnerUserId, x.RoomId });
+        b.HasOne<UserFolder>().WithMany().HasForeignKey(x => new { x.FolderId, x.OwnerUserId })
+            .HasPrincipalKey(x => new { x.Id, x.OwnerUserId }).OnDelete(DeleteBehavior.NoAction);
+        b.HasOne<Room>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.NoAction);
+        b.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.NoAction);
     }
 }

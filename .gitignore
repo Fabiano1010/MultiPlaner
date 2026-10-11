@@ -24,6 +24,8 @@
 .env
 .env.local
 **/TestResults/
+MultiPlanerAPI/.data-protection-keys/
+MultiPlanerAPI/data/
 
 # OS
 .DS_Store

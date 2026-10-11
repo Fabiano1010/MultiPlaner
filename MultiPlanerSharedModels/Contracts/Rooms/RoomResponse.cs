@@ -5,4 +5,7 @@ public sealed record RoomResponse(
     bool IsOwner, DateTimeOffset ExpiresAtUtc, DateTimeOffset? ArchivedAtUtc,
     RoomInvitationResponse? InitialInvitation = null,
     RoomMembershipResponse? Membership = null,
-    bool ArchiveOnExpiry = false);
+    bool ArchiveOnExpiry = false,
+    string? OwnerDisplayName = null,
+    byte[]? RowVersion = null,
+    bool HasCover = false);
