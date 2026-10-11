@@ -8,7 +8,7 @@
     
     <div class="rooms-folders-container">
         <Folders />
-        <Rooms />
+        <Rooms @ref="_rooms"/>
     </div>
     
     <div class="fab-menu @(_isOpen ? "open" : "")">
@@ -27,8 +27,8 @@
     </div>
     
 
-    <AddCalendarForm IsVisible="_showCalendarPopup" OnClose="() => _showCalendarPopup = false"  />
-    <AddFolderForm IsVisible="_showFolderPopup" OnClose="() => _showFolderPopup = false"  />
+    <AddCalendarForm IsVisible="_showCalendarPopup" OnCreate="HandleRoomCreated" OnClose="() => _showCalendarPopup = false" />
+    <AddFolderForm IsVisible="_showFolderPopup" OnClose="() => _showFolderPopup = false"  OnCreate="HandleFolderCreated" />
     </div>
 
 @code {
@@ -39,7 +39,8 @@
     private bool _showFolderPopup;
     private bool _showPopup;
     private string _ErrorMessage;
-
+    private Rooms? _rooms;
+    
     private void OpenCalendarPopup() {
         _isOpen = false;
         _showCalendarPopup = true;
@@ -53,4 +54,14 @@
     private async Task HandleClose() {
         _showPopup = false;
     }
+
+    private async Task HandleRoomCreated() {
+        if (_rooms is not null) {
+            await _rooms.LoadRoomsAsync(silent: true);
+        }
+    }
+    private async Task HandleFolderCreated() {
+
+    }
+
 }

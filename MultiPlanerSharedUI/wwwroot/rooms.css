@@ -268,3 +268,16 @@
     justify-content: center;
     align-items: center;
 }
+.favourite-btn{
+    outline: none;
+    border: none;
+    background: none;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.favourite-icon{
+    width: 100%;
+    padding: 0;
+}

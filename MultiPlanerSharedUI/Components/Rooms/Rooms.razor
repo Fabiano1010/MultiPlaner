@@ -9,8 +9,10 @@
     } else if (!string.IsNullOrEmpty(_errorMessage)) {
         <div class="error-message">@_errorMessage</div>
     } else if (_rooms is not null && _rooms.Count > 0) {
-        foreach (var room in _rooms) {
-            <Room @key="room.Id" RoomData="room" />
+        foreach (var room in _rooms.OrderByDescending(r => r.Membership?.IsFavourite ?? false)) {
+            <Room @key="room.Id" RoomData="room"
+                  OnConflict="() => LoadRoomsAsync()"
+                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)" />
         }
         
     } else {
@@ -28,24 +30,21 @@
     private string _status="active";
     protected override async Task OnInitializedAsync() => await LoadRoomsAsync();
 
-    private async Task LoadRoomsAsync() {
-        _isLoading = true;
+    public async Task LoadRoomsAsync(bool silent = false) {
+        if (!silent) _isLoading = true;
         _errorMessage = null;
 
-        try
-        {
-            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status="+_status);
+        try {
+            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status);
             _rooms = result ?? new();
         }
-        catch (HttpRequestException e)
-        {
+        catch (HttpRequestException e) {
             _errorMessage = "Cannot load calendars. " + e.Message;
         }
-        finally
-        {
+        finally {
             _isLoading = false;
+            StateHasChanged();
         }
-        
     }
     
 }

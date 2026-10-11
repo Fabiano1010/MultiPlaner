@@ -34,7 +34,7 @@
     
     [Parameter] public EventCallback<RoomResponse> OnCreate { get; set; }
 
-    string CalendarName = "MyCalendar";
+    string CalendarName = "New Calendar";
 
     string ErrorMessage = "";
     private bool _isSaving;
@@ -78,7 +78,7 @@
         }
         finally {
             _isSaving = false;
-            CalendarName = "MyCalendar";
+            CalendarName = "New Calendar";
         }
     }
 }
