@@ -12,6 +12,12 @@ namespace MultiPlanerAPI.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class RoomInvitationsController(InvitationService invitations) : ControllerBase
 {
+    [HttpGet("current")]
+    [ProducesResponseType<RoomInvitationResponse>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<RoomInvitationResponse>> Current(
+        int roomId, CancellationToken cancellationToken) =>
+        Ok(await invitations.GetCurrentAsync(roomId, cancellationToken));
+
     [HttpPost]
     [ProducesResponseType<RoomInvitationResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<RoomInvitationResponse>> Create(

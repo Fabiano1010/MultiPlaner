@@ -58,7 +58,8 @@ public sealed class RoomTests(ApiFixture fixture)
             var expiry = DateTimeOffset.UtcNow.AddMonths(4);
             var patch = await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest
             {
-                Name = "  Updated Room  ", TimeZoneId = "UTC", ExpiresAtUtc = expiry
+                Name = "  Updated Room  ", TimeZoneId = "UTC", ExpiresAtUtc = expiry,
+                RowVersion = room.RowVersion!
             });
             Assert.Equal(HttpStatusCode.OK, patch.StatusCode);
             var updated = (await patch.Content.ReadFromJsonAsync<RoomResponse>())!;
@@ -66,10 +67,10 @@ public sealed class RoomTests(ApiFixture fixture)
             Assert.Equal("UTC", updated.TimeZoneId);
             Assert.Equal(expiry, updated.ExpiresAtUtc);
             await AccountTests.AssertProblem(
-                await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = " " }),
+                await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = " ", RowVersion = updated.RowVersion! }),
                 HttpStatusCode.BadRequest, "validation_failed");
             await AccountTests.AssertProblem(
-                await other.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = "Wrong" }),
+                await other.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = "Wrong", RowVersion = updated.RowVersion! }),
                 HttpStatusCode.Forbidden, "room_owner_required");
             Assert.Equal(HttpStatusCode.NotFound,
                 (await other.GetAsync($"/api/rooms/{room.Id}/members")).StatusCode);

@@ -11,6 +11,7 @@ public sealed class UpdateRoomMembershipRequest
     public string? Color { get; init; }
 
     public bool? IsFavourite { get; init; }
+    public bool? NotificationsMuted { get; init; }
 
     [Required, MinLength(8), MaxLength(8)]
     public byte[] RowVersion { get; init; } = [];

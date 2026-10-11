@@ -9,6 +9,8 @@ public sealed class Room : TrackedEntity
     public DateTimeOffset ExpiresAtUtc { get; set; }
     public bool ArchiveOnExpiry { get; set; }
     public DateTimeOffset? ArchivedAtUtc { get; set; }
+    public string? CoverStorageKey { get; set; }
+    public string? CoverContentType { get; set; }
 
     public DateTimeOffset? GetArchivedAtUtc(DateTimeOffset now) =>
         ArchivedAtUtc ?? (ArchiveOnExpiry && ExpiresAtUtc <= now ? ExpiresAtUtc : null);

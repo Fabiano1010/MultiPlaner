@@ -31,7 +31,7 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             Assert.Contains((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=all"))!, r => r.Id == room.Id);
             Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync($"/api/rooms/{room.Id}/members")).StatusCode);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}",
-                new UpdateRoomRequest { Name = "Must not change" }), HttpStatusCode.Conflict, "room_inactive");
+                new UpdateRoomRequest { Name = "Must not change", RowVersion = room.RowVersion! }), HttpStatusCode.Conflict, "room_inactive");
             await AccountTests.AssertProblem(await owner.GetAsync(room.InitialInvitation!.JoinPath),
                 HttpStatusCode.Gone, "invitation_unavailable");
 
@@ -77,7 +77,7 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             var room = await CreateAsync(owner, true);
             var laterExpiry = DateTimeOffset.UtcNow.AddMonths(6);
             var response = await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}",
-                new UpdateRoomRequest { ExpiresAtUtc = laterExpiry });
+                new UpdateRoomRequest { ExpiresAtUtc = laterExpiry, RowVersion = room.RowVersion! });
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
