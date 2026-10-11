@@ -1,6 +1,11 @@
-﻿<div class="room">
+﻿@using System.Net.Http.Json
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Layout
+@inject HttpClient Http
+
+<div class="room">
     <div class="room-header">
-        Room Name
+        @(RoomData.Name ?? "Room Name")
     </div>
     <div class="room-body">
         <div class="room-content">
@@ -12,7 +17,7 @@
     <div class="room-footer">
        
         <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon">
-        <span>Owner</span>
+        <span>@(RoomData.OwnerDisplayName)</span>
         <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
              alt="favourite"
              class="favourite-icon"
@@ -20,9 +25,13 @@
     </div>
 </div>
 @code {
+    [Parameter] 
+    public RoomResponse? RoomData { get; set; }
     
     private bool _isFavourite;
     private void ToggleFavourite() => _isFavourite = !_isFavourite;
     private string? imagePath = null;
+    
+    
     
 }
