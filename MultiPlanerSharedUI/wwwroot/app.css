@@ -272,6 +272,11 @@ html, body{
 .input-main:focus{
     animation: bounce 0.5s;
 }
+@keyframes bounce{
+    0% { transform: translateY(0) scale(1); box-shadow: 0 5px 5px var(--color-primary); }
+    50% { transform: translateY(-5px) scale(1.05); box-shadow: 0 10px 10px var(--color-primary); }
+    100% { transform: translateY(0) scale(1); box-shadow: 0 5px 5px var(--color-primary); }
+}
 
 .btn-main{
     padding: 0.5rem 1.5rem;
