@@ -114,7 +114,7 @@ public sealed class InvitationService(
             cancellationToken);
         if (existing is not null)
         {
-            return RoomService.ToResponse(room, existing);
+            return RoomService.ToResponse(room, existing, clock.GetUtcNow());
         }
 
         var displayName = await GetDisplayNameAsync(userId, guestId, request, cancellationToken);
@@ -175,7 +175,7 @@ public sealed class InvitationService(
              newGuestId != null && m.GuestSessionId == newGuestId), cancellationToken);
         if (existingMember is not null)
         {
-            return RoomService.ToResponse(room, existingMember);
+            return RoomService.ToResponse(room, existingMember, clock.GetUtcNow());
         }
 
         var now = clock.GetUtcNow();
@@ -183,7 +183,7 @@ public sealed class InvitationService(
         var member = AddParticipant(operationDb, room.Id, userId, guestId, newGuestId, displayName, now);
         await operationDb.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return RoomService.ToResponse(room, member);
+        return RoomService.ToResponse(room, member, clock.GetUtcNow());
     }
 
     private static RoomMember AddParticipant(AppDbContext operationDb, int roomId, int? userId,

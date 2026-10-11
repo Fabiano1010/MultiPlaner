@@ -20,6 +20,11 @@
 # Logs
 *.log
 
+# Local configuration and test output (migration source files stay in Git)
+.env
+.env.local
+**/TestResults/
+
 # OS
 .DS_Store
 Thumbs.db

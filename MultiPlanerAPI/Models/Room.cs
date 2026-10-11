@@ -7,5 +7,9 @@ public sealed class Room : TrackedEntity
     public string Name { get; set; } = string.Empty;
     public string TimeZoneId { get; set; } = "Europe/Warsaw";
     public DateTimeOffset ExpiresAtUtc { get; set; }
+    public bool ArchiveOnExpiry { get; set; }
     public DateTimeOffset? ArchivedAtUtc { get; set; }
+
+    public DateTimeOffset? GetArchivedAtUtc(DateTimeOffset now) =>
+        ArchivedAtUtc ?? (ArchiveOnExpiry && ExpiresAtUtc <= now ? ExpiresAtUtc : null);
 }

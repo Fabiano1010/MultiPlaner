@@ -58,7 +58,8 @@ public sealed class RoomService(
             OwnerUserId = user.Id,
             Name = request.Name.Trim(),
             TimeZoneId = request.TimeZoneId ?? user.TimeZoneId,
-            ExpiresAtUtc = expiry
+            ExpiresAtUtc = expiry,
+            ArchiveOnExpiry = request.ArchiveOnExpiry
         };
         operationDb.Rooms.Add(room);
         await operationDb.SaveChangesAsync(cancellationToken);
@@ -73,7 +74,7 @@ public sealed class RoomService(
         };
         operationDb.RoomInvitations.Add(invitation);
         await operationDb.SaveChangesAsync(cancellationToken);
-        var response = ToResponse(room, member) with { InitialInvitation = links.CreateResponse(invitation, token) };
+        var response = ToResponse(room, member, clock.GetUtcNow()) with { InitialInvitation = links.CreateResponse(invitation, token) };
         await transaction.CommitAsync(cancellationToken);
         return response;
     }
@@ -95,20 +96,68 @@ public sealed class RoomService(
             where (userId != null && member.UserId == userId ||
                    guestId != null && member.GuestSessionId == guestId) &&
                   (status == "active" && room.ArchivedAtUtc == null && room.ExpiresAtUtc > now ||
-                   status == "archived" && room.ArchivedAtUtc != null ||
-                   status == "all" && (room.ArchivedAtUtc != null || room.ExpiresAtUtc > now))
+                   status == "archived" && (room.ArchivedAtUtc != null || room.ArchiveOnExpiry && room.ExpiresAtUtc <= now) ||
+                   status == "all" && (room.ArchivedAtUtc != null || room.ExpiresAtUtc > now || room.ArchiveOnExpiry))
             orderby room.Id descending
-            select new RoomResponse(room.Id, room.Name, room.TimeZoneId, room.OwnerUserId,
-                member.Id, room.OwnerUserId == userId, room.ExpiresAtUtc, room.ArchivedAtUtc))
+            select new { Room = room, Member = member })
             .ToListAsync(cancellationToken);
-        return rooms;
+        return rooms.Select(item => ToResponse(item.Room, item.Member, now)).ToList();
     }
 
     public async Task<RoomResponse> GetAsync(int roomId, CancellationToken cancellationToken)
     {
         var (room, member) = await access.RequireMemberAsync(roomId, cancellationToken);
         access.RequireReadable(room);
-        return ToResponse(room, member);
+        return ToResponse(room, member, clock.GetUtcNow());
+    }
+
+    public async Task<RoomMembershipResponse> GetMembershipAsync(int roomId, CancellationToken cancellationToken)
+    {
+        var (room, member) = await access.RequireMemberAsync(roomId, cancellationToken);
+        access.RequireReadable(room);
+        return ToMembershipResponse(member);
+    }
+
+    public async Task<RoomMembershipResponse> UpdateMembershipAsync(
+        int roomId, UpdateRoomMembershipRequest request, CancellationToken cancellationToken)
+    {
+        var (room, member) = await access.RequireMemberAsync(roomId, cancellationToken);
+        access.RequireReadable(room);
+        // A private favourite can change in an archive; public author details cannot.
+        if (request.DisplayName is not null || request.Color is not null)
+        {
+            access.RequireActive(room);
+        }
+
+        var errors = LocaleValidation.GetErrors(request.DisplayName, null, null);
+        if (errors.Count != 0)
+        {
+            throw ApiException.Validation(errors);
+        }
+
+        if (!member.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
+        {
+            throw new ApiException(409, "concurrency_conflict", "Your room settings changed. Reload them and retry.");
+        }
+
+        db.RoomMembers.Attach(member);
+        if (request.DisplayName is not null)
+        {
+            member.DisplayName = request.DisplayName.Trim();
+        }
+
+        if (request.Color is not null)
+        {
+            member.Color = request.Color.ToUpperInvariant();
+        }
+
+        if (request.IsFavourite is { } favourite)
+        {
+            member.IsFavourite = favourite;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return ToMembershipResponse(member);
     }
 
     public async Task<PagedResponse<RoomMemberResponse>> ListMembersAsync(
@@ -141,7 +190,7 @@ public sealed class RoomService(
         ApplyUpdate(request, room);
         await db.SaveChangesAsync(cancellationToken);
         var (_, member) = await access.RequireMemberAsync(roomId, cancellationToken);
-        return ToResponse(room, member);
+        return ToResponse(room, member, clock.GetUtcNow());
     }
 
     private static void ValidateUpdate(UpdateRoomRequest request, Room room, DateTimeOffset now)
@@ -193,11 +242,12 @@ public sealed class RoomService(
     public async Task ArchiveAsync(int roomId, CancellationToken cancellationToken)
     {
         var room = await access.RequireOwnerAsync(roomId, cancellationToken);
-        if (room.ArchivedAtUtc is not null)
+        if (room.GetArchivedAtUtc(clock.GetUtcNow()) is not null)
         {
             return;
         }
 
+        access.RequireActive(room);
         room.ArchivedAtUtc = clock.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -253,7 +303,11 @@ public sealed class RoomService(
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    internal static RoomResponse ToResponse(Room room, RoomMember member) =>
+    internal static RoomResponse ToResponse(Room room, RoomMember member, DateTimeOffset now) =>
         new(room.Id, room.Name, room.TimeZoneId, room.OwnerUserId, member.Id,
-            room.OwnerUserId == member.UserId, room.ExpiresAtUtc, room.ArchivedAtUtc);
+            room.OwnerUserId == member.UserId, room.ExpiresAtUtc, room.GetArchivedAtUtc(now),
+            Membership: ToMembershipResponse(member), ArchiveOnExpiry: room.ArchiveOnExpiry);
+
+    private static RoomMembershipResponse ToMembershipResponse(RoomMember member) =>
+        new(member.Id, member.DisplayName, member.Color, member.IsFavourite, member.RowVersion);
 }

@@ -160,6 +160,7 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
             {
                 ["ConnectionStrings:DefaultConnection"] = connectionString,
                 ["Database:MigrateOnStartup"] = "false",
+                ["RoomArchival:Enabled"] = "false",
                 ["Cors:AllowedOrigins:0"] = "https://client.example",
                 ["Invitations:PublicWebBaseUrl"] = "https://client.example"
             }));

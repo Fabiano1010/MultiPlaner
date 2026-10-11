@@ -2,13 +2,13 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.db.yml"
 DOCKER=(docker)
 COMPOSE=("${DOCKER[@]}" compose -f "$COMPOSE_FILE")
 API_PROJECT="$SCRIPT_DIR/MultiPlanerAPI/MultiPlanerAPI.csproj"
 WEB_PROJECT="$SCRIPT_DIR/MultiPlanerWeb/MultiPlanerWeb.csproj"
 APP_PROJECT="$SCRIPT_DIR/MultiPlanerApp/MultiPlanerApp.csproj"
-DOTNET_EF_GLOBAL="$HOME/.dotnet/tools/dotnet-ef"
 ANDROID_RUNTIME_IDENTIFIER="${ANDROID_RUNTIME_IDENTIFIER:-android-x64}"
 
 require_docker() {
@@ -67,28 +67,31 @@ start_database() {
     exit 1
 }
 
+prepare_dotnet_ef() {
+    dotnet tool restore --tool-manifest "$SCRIPT_DIR/.config/dotnet-tools.json"
+}
+
 run_dotnet_ef() {
-    if command -v dotnet-ef >/dev/null 2>&1; then
-        dotnet-ef "$@"
-    elif [[ -x "$DOTNET_EF_GLOBAL" ]]; then
-        "$DOTNET_EF_GLOBAL" "$@"
-    elif [[ -f "$SCRIPT_DIR/.config/dotnet-tools.json" ]]; then
-        dotnet tool run dotnet-ef -- "$@"
-    else
-        echo "❌ Nie znaleziono narzędzia dotnet-ef." >&2
-        echo "   Zainstaluj je poleceniem: dotnet tool install --global dotnet-ef --version 10.*" >&2
-        exit 1
-    fi
+    dotnet tool run dotnet-ef -- "$@"
 }
 
 COMMAND="${1:-help}"
 
+configure_dev_https() {
+    if [[ "$(uname -s)" == "Linux" && -z "${DOTNET_DEV_CERTS_NSSDB_PATHS+x}" ]]; then
+        export DOTNET_DEV_CERTS_NSSDB_PATHS=/dev/null
+        echo "▶ HTTPS: pomijanie sprawdzania magazynów przeglądarek (obejście blokady certutil)."
+    fi
+}
+
 function run_api {
+    configure_dev_https
     echo "▶ Uruchamianie Web API..."
     dotnet run --project "$API_PROJECT" --launch-profile https
 }
 
 function run_api_background {
+    configure_dev_https
     echo "▶ Sprawdzanie / Uruchamianie Web API w tle..."
     dotnet run --project "$API_PROJECT" --launch-profile https &
     API_PID=$!
@@ -112,9 +115,14 @@ case "$COMMAND" in
         echo "✅ Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte."
         ;;
     "db-migrate")
+        prepare_dotnet_ef
         start_database
         echo "▶ Aplikowanie migracji EF Core..."
         run_dotnet_ef database update --project "$API_PROJECT" --startup-project "$API_PROJECT"
+        ;;
+    "db-status")
+        prepare_dotnet_ef
+        run_dotnet_ef migrations list --project "$API_PROJECT" --startup-project "$API_PROJECT"
         ;;
     "api")
         run_api
@@ -134,9 +142,14 @@ case "$COMMAND" in
         exit 1
         ;;
     "db-add-migration")
-        MIGRATION_NAME=${2:-"AutoMigration_$(date +%Y%m%d%H%M%S)"}
-        echo "▶ Tworzenie nowej migracji: $MIGRATION_NAME..."
-        run_dotnet_ef migrations add "$MIGRATION_NAME" --project "$API_PROJECT" --startup-project "$API_PROJECT"
+        prepare_dotnet_ef
+        if run_dotnet_ef migrations has-pending-model-changes --project "$API_PROJECT" --startup-project "$API_PROJECT"; then
+            echo "✅ Model nie zmienił się. Nie ma potrzeby tworzenia nowej migracji."
+        else
+            MIGRATION_NAME=${2:-"AutoMigration_$(date +%Y%m%d%H%M%S)"}
+            echo "▶ Tworzenie nowej migracji: $MIGRATION_NAME..."
+            run_dotnet_ef migrations add "$MIGRATION_NAME" --project "$API_PROJECT" --startup-project "$API_PROJECT"
+        fi
         ;;
     *)
         echo "Użycie: ./dev.sh [opcja]"
@@ -145,7 +158,8 @@ case "$COMMAND" in
         echo "  db-down             - Zatrzymuje bazę SQL Server"
         echo "  db-reset            - Usuwa kontener i cały developerski wolumen SQL Server"
         echo "  db-migrate          - Aplikuje migracje EF Core"
-        echo "  db-add-migration    - Dodaje nową migracje EF Core"
+        echo "  db-status           - Pokazuje migracje i stan ich zastosowania"
+        echo "  db-add-migration [nazwa] - Tworzy migrację tylko gdy zmienił się model"
         echo "  api                 - Uruchamia samo Web API"
         echo "  web                 - Uruchamia API w tle + Blazor Web"
         echo "  android             - Uruchamia API w tle + MAUI Android (domyślnie emulator x64)"
