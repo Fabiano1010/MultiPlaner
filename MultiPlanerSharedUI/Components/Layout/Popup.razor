@@ -1,10 +1,14 @@
 ﻿@if (IsVisible)
 {
     <div class="popup-overlay">
-        <div class="popup-container" @onclick:stopPropagation="true">
+        <div class="popup-container"
+             @ref="_container"
+             tabindex="-1"
+             @onclick:stopPropagation="true"
+             @onkeydown="HandleKeyDown">
             <div class="popup-header">
                 <span class="popup-title">@Title</span>
-                <img src="_content/MultiPlanerSharedUI/images/x.svg" class="popup-close" @onclick="OnClose">
+                <img src="_content/MultiPlanerSharedUI/images/x.svg" class="popup-close" alt="Close" @onclick="OnClose" />
             </div>
             <div class="popup-content">
                 @ChildContent
@@ -19,5 +23,19 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    // private async Task HandleOverlayClick() => await OnClose.InvokeAsync();
+    private ElementReference _container;
+    private bool _wasVisible;
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await OnClose.InvokeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsVisible && !_wasVisible)
+            await _container.FocusAsync();
+        _wasVisible = IsVisible;
+    }
 }
