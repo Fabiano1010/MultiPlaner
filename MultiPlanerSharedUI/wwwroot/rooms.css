@@ -132,7 +132,7 @@
     border-radius: 0 var(--border-radius) var(--border-radius) var(--border-radius);
     background: var(--color-primary-dim-light);
     transition: 0.2s ease-in-out;
-   
+    cursor: pointer;
 }
 .room{
     border-radius: var(--border-radius);

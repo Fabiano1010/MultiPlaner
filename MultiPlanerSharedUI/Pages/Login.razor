@@ -7,7 +7,7 @@
 <div class="main-content-box-auth">
     <h2>Login</h2>
     <div class="form-box">
-        <div class="auth-form">
+        <form class="auth-form" @onsubmit="LoginAsync" @onmsubit:preventDefault>
             <div class="input-group">
                 <label for="email">Email</label>
                 <input @bind="email" id="email" placeholder="Email" class="input-main auth-input @(hasError ? "error-input" : "")" />
@@ -35,7 +35,9 @@
             <div class="remember-group">
                 <div class="rememberMe-box"><input type="checkbox" @bind="remember" id="remember"> <label for="remember">Remember Me</label></div>
             </div>
-            <button @onclick="LoginAsync" class="auth-btn @(CanSubmit ? "btn-main" : "")" disabled="@(!CanSubmit)">Login</button>
+            <button type="submit"
+                    class="auth-btn @(CanSubmit ? "btn-main" : "")"
+                    disabled="@(!CanSubmit)">Login</button>
 
             @if (error is not null) {
                 <span class="error">@error</span>
@@ -43,7 +45,7 @@
             <div class="register-direction">
                 <span>Don't have an account? <a href="/register">Register here</a></span>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
