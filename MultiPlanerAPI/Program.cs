@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Identity;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Modules.Rooms;
@@ -69,6 +70,15 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.Path = "/";
+});
+
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
