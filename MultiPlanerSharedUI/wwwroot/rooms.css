@@ -88,6 +88,14 @@
     transform: translateY(-2px) scale(1.05);
 }
 
+.fab-item:active {
+    background-color: var(--color-primary);
+    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    scale: 0.9;
+    transition-duration: 0.08s;
+    
+}
+
 .main-content-rooms{
     
 }
@@ -132,7 +140,7 @@
     border-radius: 0 var(--border-radius) var(--border-radius) var(--border-radius);
     background: var(--color-primary-dim-light);
     transition: 0.2s ease-in-out;
-   
+    cursor: pointer;
 }
 .room{
     border-radius: var(--border-radius);

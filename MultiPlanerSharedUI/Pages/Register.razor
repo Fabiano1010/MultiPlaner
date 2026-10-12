@@ -10,7 +10,7 @@
 <div class="main-content-box-auth ">
     <h2>Register</h2>
     <div class="form-box auth-register">
-        <div class="auth-form">
+        <form class="auth-form" @onsubmit="RegisterAsync" @onmsubit:preventDefault>
             <div class="input-group">
                 <label for="name">Name</label>
                 <input @bind="name" id="name" placeholder="Name" class="auth-input @(hasErrorName ? "error-input" : "")"/>
@@ -51,15 +51,17 @@
                 <div class="input-error"></div>
             </div>
             
-            <button @onclick="RegisterAsync" class="auth-btn @(CanSubmit ? "btn-main" : "")" disabled="@(!CanSubmit)">Register</button>
-
+            <button type="submit"
+                    class="auth-btn @(CanSubmit ? "btn-main" : "")"
+                    disabled="@(!CanSubmit)">Register</button>
+            
             @if (error is not null) { 
                 <span class="error">@error</span>
             }
             <div class="register-direction">
                 <p>Already have an account? <a href="/login">Log in</a></p>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 

@@ -1,6 +1,6 @@
 ﻿@if (IsVisible)
 {
-    <div class="popup-overlay" @onclick="HandleOverlayClick">
+    <div class="popup-overlay">
         <div class="popup-container" @onclick:stopPropagation="true">
             <div class="popup-header">
                 <span class="popup-title">@Title</span>
@@ -19,5 +19,5 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private async Task HandleOverlayClick() => await OnClose.InvokeAsync();
+    // private async Task HandleOverlayClick() => await OnClose.InvokeAsync();
 }

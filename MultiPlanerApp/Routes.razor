@@ -10,7 +10,11 @@
                 <NotAuthorized>
                     <RedirectTo Url="/login" />
                 </NotAuthorized>
-                <Authorizing><p>Loading...</p></Authorizing>
+                <Authorizing>
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                    </div>
+                </Authorizing>
             </AuthorizeRouteView>
         </Found>
     </Router>
