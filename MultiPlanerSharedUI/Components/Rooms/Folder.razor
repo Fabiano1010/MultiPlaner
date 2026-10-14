@@ -4,7 +4,7 @@
 @inject HttpClient Http
 @inject ApiClient Api
 
-<div class="folder">
+<div class="folder" @oncontextmenu="OpenMenu" @oncontextmenu:preventDefault>
     <div class="folder-header">
             
     </div>
@@ -14,8 +14,8 @@
         </div>
     </div>
     <div class="folder-footer">
-        <button type="button" class="icon-btn" title="Menu" @onclick="OpenMenu" @onclick:stopPropagation>
-            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon" />
+        <button type="button" class="favourite-btn" title="Menu" @onclick="OpenMenu" @onclick:stopPropagation>
+            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="favourite-icon" />
         </button>
         <button type="button" class="favourite-btn"
                 aria-pressed="@_isFavourite"
