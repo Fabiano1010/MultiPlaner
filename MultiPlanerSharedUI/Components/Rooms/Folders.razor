@@ -29,7 +29,8 @@
                 foreach (var folder in _folders.OrderByDescending(f => f.IsFavourite)) {
                     <Folder @key="folder.Id" FolderData="folder"
                             OnConflict="() => LoadFoldersAsync()"
-                            OnFavouriteChanged="() => LoadFoldersAsync(silent: true)" />
+                            OnFavouriteChanged="() => LoadFoldersAsync(silent: true)" 
+                            OnChanged="() => LoadFoldersAsync(silent: true)"/>
                 }
                 
             } else {

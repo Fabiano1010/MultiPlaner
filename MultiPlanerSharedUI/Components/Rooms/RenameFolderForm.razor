@@ -1,0 +1,79 @@
+﻿@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Services
+@inject ApiClient Api
+
+<Popup IsVisible="IsVisible" Title="Rename folder" OnClose="HandleClose">
+    <div class="add-room-form-box">
+        <div class="add-room-form">
+            <div class="form-group">
+                <label>Folder name</label>
+                <input type="text" @bind="_name" @bind:event="oninput"
+                       class="input-main @(hasError ? "error-input" : "")" />
+            </div>
+            @if (hasError)
+            {
+                <div class="form-error">@_error</div>
+            }
+            <div class="form-actions">
+                <button class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
+                <button class="btn-main btn-save" @onclick="HandleSave" disabled="@_isSaving">Save</button>
+            </div>
+        </div>
+    </div>
+</Popup>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public UserFolderResponse? Folder { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnRenamed { get; set; }
+
+    private string _name = "";
+    private string _error = "";
+    private bool _isSaving;
+    private bool _wasVisible;
+    private bool hasError => !string.IsNullOrEmpty(_error);
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && !_wasVisible)
+        {
+            _name = Folder?.Name ?? "";
+            _error = "";
+        }
+        _wasVisible = IsVisible;
+    }
+
+    private async Task HandleClose()
+    {
+        _error = "";
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleSave()
+    {
+        if (Folder is null) return;
+
+        var name = _name.Trim();
+        if (name.Length < 2 || name.Length > 128)
+        {
+            _error = "Folder name must be between 2 and 128 characters.";
+            return;
+        }
+
+        _isSaving = true;
+        _error = "";
+        try
+        {
+            var res = await Api.PatchAsync($"api/me/folders/{Folder.Id}",
+                new { name, rowVersion = Folder.RowVersion });
+            await ApiClient.EnsureSuccessAsync(res);
+
+            await OnRenamed.InvokeAsync();
+            await HandleClose();
+        }
+        catch (ApiException e) { _error = e.Message; }
+        catch (HttpRequestException e) { _error = "Cannot reach the server. " + e.Message; }
+        finally { _isSaving = false; }
+    }
+}

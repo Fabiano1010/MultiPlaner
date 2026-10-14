@@ -1,0 +1,20 @@
+﻿
+@if (IsVisible) {
+    <div class="ctx-backdrop" @onclick="Close" @oncontextmenu="Close" @oncontextmenu:preventDefault></div>
+    <div class="ctx-menu" style="left:min(@(X)px, calc(100vw - 10rem)); top:min(@(Y)px, calc(100vh - 6rem));">
+        @ChildContent
+    </div>
+}
+
+
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public double X { get; set; }
+    [Parameter] public double Y { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    
+    private Task Close() => OnClose.InvokeAsync();
+    
+}

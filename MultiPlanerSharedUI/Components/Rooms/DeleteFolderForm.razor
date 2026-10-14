@@ -1,0 +1,56 @@
+﻿@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Services
+@inject ApiClient Api
+
+<Popup IsVisible="IsVisible" Title="Delete folder" OnClose="HandleClose">
+    <div class="add-room-form-box">
+        <div class="add-room-form">
+            <p>Are you sure you want to delete <strong>@Folder?.Name</strong>?
+                Calendars inside will not be deleted.</p>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="form-error">@_error</div>
+            }
+            <div class="form-actions">
+                <button class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
+                <button class="btn-main btn-save" @onclick="HandleDelete" disabled="@_isSaving">Delete</button>
+            </div>
+        </div>
+    </div>
+</Popup>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public UserFolderResponse? Folder { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnDeleted { get; set; }
+
+    private string _error = "";
+    private bool _isSaving;
+
+    private async Task HandleClose()
+    {
+        _error = "";
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleDelete()
+    {
+        if (Folder is null) return;
+
+        _isSaving = true;
+        _error = "";
+        try
+        {
+            var res = await Api.SendAsync(HttpMethod.Delete, $"api/me/folders/{Folder.Id}");
+            await ApiClient.EnsureSuccessAsync(res);
+
+            await OnDeleted.InvokeAsync();
+            await HandleClose();
+        }
+        catch (ApiException e) { _error = e.Message; }
+        catch (HttpRequestException e) { _error = "Cannot reach the server. " + e.Message; }
+        finally { _isSaving = false; }
+    }
+}

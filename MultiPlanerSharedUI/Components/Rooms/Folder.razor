@@ -14,7 +14,9 @@
         </div>
     </div>
     <div class="folder-footer">
-        <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon">
+        <button type="button" class="icon-btn" title="Menu" @onclick="OpenMenu" @onclick:stopPropagation>
+            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon" />
+        </button>
         <button type="button" class="favourite-btn"
                 aria-pressed="@_isFavourite"
                 disabled="@_isSaving"
@@ -25,9 +27,23 @@
         </button>
     </div>
 </div>
+
+<ContextMenu IsVisible="_menuOpen" X="_menuX" Y="_menuY" OnClose="CloseMenu">
+    <button class="ctx-item" @onclick="StartRename">Rename</button>
+    <button class="ctx-item danger" @onclick="StartDelete">Delete</button>
+</ContextMenu>
+
+<RenameFolderForm IsVisible="_showRename" Folder="FolderData"
+                  OnClose="() => _showRename = false"
+                  OnRenamed="HandleChanged" />
+<DeleteFolderForm IsVisible="_showDelete" Folder="FolderData"
+                  OnClose="() => _showDelete = false"
+                  OnDeleted="HandleChanged" />
+
 @code {
     [Parameter] public UserFolderResponse? FolderData { get; set; }
-    
+    [Parameter] 
+    public EventCallback OnChanged { get; set; }
     [Parameter] 
     public EventCallback OnConflict { get; set; }
     [Parameter] 
@@ -36,6 +52,8 @@
     private bool _isFavourite;
     private bool _isSaving;
     private byte[]? _rowVersion;
+    private bool _menuOpen, _showRename, _showDelete;
+    private double _menuX, _menuY;
     
     // private string _background => 
     //     string.IsNullOrWhiteSpace(FolderData?.Color)
@@ -48,6 +66,20 @@
         _rowVersion = FolderData?.RowVersion;
     }
 
+    private void OpenMenu(MouseEventArgs e)
+    {
+        _menuX = e.ClientX;
+        _menuY = e.ClientY;
+        _menuOpen = true;
+    }
+
+    private void CloseMenu() => _menuOpen = false;
+
+    private void StartRename() { _menuOpen = false; _showRename = true; }
+    private void StartDelete() { _menuOpen = false; _showDelete = true; }
+
+    private async Task HandleChanged() => await OnChanged.InvokeAsync();
+    
     private async Task ToggleFavouriteAsync() {
         if (FolderData is null || _isSaving) return;
         var newValue = !_isFavourite;
