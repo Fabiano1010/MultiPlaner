@@ -32,16 +32,18 @@
 </div>
 
 <ContextMenu @ref="_menu">
-    @if (RoomData?.IsOwner == true)
-    {
+    
+    
+    @if (RoomData?.IsOwner == true) {
         <button class="ctx-item" @onclick="StartRename">Rename</button>
+        @* <button class="ctx-item" @onclick="StartArchive">Archive</button> *@
         <button class="ctx-item danger" @onclick="StartDelete">Delete</button>
     }
-    else
-    {
+    else {
+        @* <button class="ctx-item" @onclick="StartArchive">Archive</button> *@
         <button class="ctx-item danger" @onclick="StartLeave">Leave</button>
     }
-    
+
 </ContextMenu>
 
 <RenamePopup IsVisible="_showRename" Title="Rename calendar"
@@ -88,7 +90,7 @@
     private void StartRename() { _menu?.Hide(); _showRename = true; }
     private void StartDelete() { _menu?.Hide(); _showDelete = true; }
     private void StartLeave()  { _menu?.Hide(); _showLeave = true; }
-
+    // private void StartArchive()  { _menu?.Hide(); _showArchive = true; }
 
     private async Task ToggleFavouriteAsync() {
         if (RoomData is null || _isSaving) return;

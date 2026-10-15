@@ -3,12 +3,23 @@
 @using MultiPlanerSharedUI.Components.Layout
 @inject HttpClient Http
 
+@if (!_isLoading) {
+    <div class="rooms-filter">
+        <select class="input-main" value="@_status" @onchange="OnStatusChanged">
+            <option value="active" default>Active</option>
+            <option value="all">All</option>
+            <option value="archived">Archive</option>
+        </select>
+    </div>
+}
+
 <div class="rooms-container">
     @if (_isLoading) {
         <LoadingSpinner />
     } else if (!string.IsNullOrEmpty(_errorMessage)) {
         <div class="error-message">@_errorMessage</div>
     } else if (_rooms is not null && _rooms.Count > 0) {
+
         foreach (var room in _rooms.OrderByDescending(r => r.Membership?.IsFavourite ?? false)) {
             <Room @key="room.Id" RoomData="room"
                   OnConflict="() => LoadRoomsAsync()"
@@ -46,6 +57,11 @@
             _isLoading = false;
             StateHasChanged();
         }
+    }
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        _status = e.Value?.ToString() ?? "active";
+        await LoadRoomsAsync();
     }
     
 }
