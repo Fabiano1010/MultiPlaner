@@ -1,0 +1,50 @@
+﻿<Popup IsVisible="IsVisible" Title="@Title" OnClose="HandleClose">
+    <div class="add-room-form-box">
+        <div class="add-room-form">
+            <p>@Message</p>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="form-error">@_error</div>
+            }
+            <div class="form-actions">
+                <button type="button" class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
+                <button type="button" class="btn-main btn-save @(Danger ? "btn-danger" : "")"
+                        @onclick="HandleConfirm" disabled="@_isSaving">@ConfirmText</button>
+            </div>
+        </div>
+    </div>
+</Popup>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "Confirm";
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string ConfirmText { get; set; } = "Confirm";
+    [Parameter] public bool Danger { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private string _error = "";
+    private bool _isSaving;
+
+    private async Task HandleClose()
+    {
+        _error = "";
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task HandleConfirm()
+    {
+        _isSaving = true;
+        _error = "";
+        try
+        {
+            await OnConfirm.InvokeAsync();
+            await HandleClose();
+        }
+        catch (ApiException e) { _error = e.Message; }
+        catch (HttpRequestException e) { _error = "Cannot reach the server. " + e.Message; }
+        finally { _isSaving = false; }
+    }
+}

@@ -12,7 +12,8 @@
         foreach (var room in _rooms.OrderByDescending(r => r.Membership?.IsFavourite ?? false)) {
             <Room @key="room.Id" RoomData="room"
                   OnConflict="() => LoadRoomsAsync()"
-                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)" />
+                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)" 
+                  OnChanged="() => LoadRoomsAsync(silent:true)"/>
         }
         
     } else {

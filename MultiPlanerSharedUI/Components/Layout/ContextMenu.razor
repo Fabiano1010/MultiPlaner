@@ -1,20 +1,29 @@
-﻿
-@if (IsVisible) {
-    <div class="ctx-backdrop" @onclick="Close" @oncontextmenu="Close" @oncontextmenu:preventDefault></div>
-    <div class="ctx-menu" style="left:min(@(X)px, calc(100vw - 10rem)); top:min(@(Y)px, calc(100vh - 6rem));">
+﻿@if (_visible)
+{
+    <div class="ctx-backdrop" @onclick="Hide" @oncontextmenu="Hide" @oncontextmenu:preventDefault></div>
+    <div class="ctx-menu" style="left:min(@(_x)px, calc(100vw - 10rem)); top:min(@(_y)px, calc(100vh - 6rem));">
         @ChildContent
     </div>
 }
 
-
-
 @code {
-    [Parameter] public bool IsVisible { get; set; }
-    [Parameter] public double X { get; set; }
-    [Parameter] public double Y { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool _visible;
+    private double _x, _y;
+
+    public void Show(MouseEventArgs e)
+    {
+        _x = e.ClientX;
+        _y = e.ClientY;
+        _visible = true;
+        StateHasChanged();
+    }
     
-    private Task Close() => OnClose.InvokeAsync();
-    
+
+    public void Hide()
+    {
+        _visible = false;
+        StateHasChanged();
+    }
 }
