@@ -38,7 +38,8 @@
                 aria-pressed="@_isFavourite"
                 disabled="@_isSaving"
                 title="@(_isFavourite ? "Remove from favourites" : "Add to favourites")"
-                @onclick="ToggleFavouriteAsync">
+                @onclick="ToggleFavouriteAsync"
+                @onclick:stopPropagation>
             <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
                  alt="" class="favourite-icon" />
         </button>

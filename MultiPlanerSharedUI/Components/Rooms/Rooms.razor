@@ -4,11 +4,12 @@
 @implements IDisposable
 @inject HttpClient Http
 @inject RoomSelection Selection
+@inject ApiClient Api
 
 @if (!_isLoading) {
     <div class="rooms-filter">
         <select class="input-main" value="@_status" @onchange="OnStatusChanged">
-            <option value="active" default>Active</option>
+            <option value="active">Active</option>
             <option value="all">All</option>
             <option value="archived">Archive</option>
         </select>
@@ -17,7 +18,18 @@
             <button type="button" class="btn-main btn-cancel" @onclick="Selection.Clear">
                 Deselect all (@Selection.Count)
             </button>
+
+            @if (FolderId is not null) {
+                <button type="button" class="btn-main btn-cancel" @onclick="() => _showRemove = true">
+                    Remove from folder (@Selection.Count)
+                </button>
+            }
+
+            <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">
+                Delete / leave (@Selection.Count)
+            </button>
         }
+        
     </div>
 }
 
@@ -36,24 +48,33 @@
         }
         
     } else {
-        <div class="no-rooms-message">Hey add some calendars!</div>
+        <div class="no-rooms-message">@(FolderId is null ? "Hey add some calendars!" : "This folder is empty.")</div>
     }
-    
-
 </div>
+
+<ConfirmPopup IsVisible="_showDelete" Title="Delete calendars" Danger="true" ConfirmText="Delete"
+              Message="@($"Delete or leave {Selection.Count} selected calendar(s)? Calendars you own will be deleted for everyone. This cannot be undone.")"
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false" />
+
+<ConfirmPopup IsVisible="_showRemove" Title="Remove from folder" ConfirmText="Remove"
+              Message="@($"Remove {Selection.Count} selected calendar(s) from this folder? They will not be deleted.")"
+              OnConfirm="RemoveAsync" OnClose="() => _showRemove = false" />
+
 
 
 @code {
+    [Parameter] public int? FolderId { get; set; }
+
     private bool _isLoading = true;
     private string? _errorMessage;
     private List<RoomResponse>? _rooms = new();
-    private string _status="active";
-    
-    protected override async Task OnInitializedAsync()
-    {
-        Selection.Changed += OnSelectionChanged;
-        await LoadRoomsAsync();
-    }
+    private string _status = "active";
+    private bool _showDelete = false;
+    private bool _showRemove = false;
+
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+
+    protected override async Task OnInitializedAsync() => await LoadRoomsAsync();
 
     private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
 
@@ -64,8 +85,16 @@
         _errorMessage = null;
 
         try {
-            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status);
-            _rooms = result ?? new();
+            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status) ?? new();
+
+            if (FolderId is int folderId)
+            {
+                var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders") ?? new();
+                var ids = folders.FirstOrDefault(f => f.Id == folderId)?.RoomIds;
+                result = result.Where(r => ids != null && ids.Contains(r.Id)).ToList();
+            }
+
+            _rooms = result;
             Selection.Prune(_rooms.Select(r => r.Id));
         }
         catch (HttpRequestException e) {
@@ -81,5 +110,54 @@
         _status = e.Value?.ToString() ?? "active";
         await LoadRoomsAsync();
     }
-    
+
+    private async Task DeleteAsync()
+    {
+        var failed = 0;
+        string? lastError = null;
+
+        foreach (var id in Selection.Ids.ToList())
+        {
+            var room = _rooms?.FirstOrDefault(r => r.Id == id);
+            if (room is null) continue;
+
+            var url = room.IsOwner ? $"api/rooms/{id}" : $"api/rooms/{id}/members/me";
+            try
+            {
+                var res = await Api.SendAsync(HttpMethod.Delete, url);
+                await ApiClient.EnsureSuccessAsync(res);
+            }
+            catch (ApiException e) { failed++; lastError = e.Message; }
+        }
+
+        await AfterBulkAsync(failed, lastError);
+    }
+
+    private async Task RemoveAsync()
+    {
+        if (FolderId is not int folderId) return;
+        var failed = 0;
+        string? lastError = null;
+
+        foreach (var id in Selection.Ids.ToList())
+        {
+            try
+            {
+                var res = await Api.SendAsync(HttpMethod.Delete, $"api/me/folders/{folderId}/rooms/{id}");
+                await ApiClient.EnsureSuccessAsync(res);
+            }
+            catch (ApiException e) { failed++; lastError = e.Message; }
+        }
+
+        await AfterBulkAsync(failed, lastError);
+    }
+
+    private async Task AfterBulkAsync(int failed, string? lastError)
+    {
+        await LoadRoomsAsync(silent: true);  
+
+        if (failed > 0)
+            throw new ApiException($"{failed} operation(s) failed. {lastError}", 0);
+        
+    }
 }

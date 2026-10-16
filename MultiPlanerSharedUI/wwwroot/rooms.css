@@ -325,3 +325,14 @@
 .folder-add-btn{
     
 }
+.container-inside{
+    padding-top: 1rem;
+}
+.folder-name{
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(1.2*var(--font-size-large));
+}
