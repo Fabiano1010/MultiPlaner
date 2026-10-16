@@ -32,7 +32,7 @@ builder.Services.AddScoped<AuthService>();
 
 // Domain Services
 builder.Services.AddScoped<EventService>();
-
+builder.Services.AddScoped<RoomSelection>();
 var host = builder.Build();
 
 // Set culture based on browser settings

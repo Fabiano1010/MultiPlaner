@@ -1,8 +1,13 @@
 ﻿
-@page "/calendarRoom"
+@page "/calendar/{RoomId:int}"
 @using MultiPlanerSharedUI.Components.Calendar
 @using MultiPlanerSharedUI.Components.Events
 
 <CalendarHeader /> 
 <CalendarGrid />
 <CalendarEvents />
+
+
+@code {
+    [Parameter] public int RoomId { get; set; }
+}

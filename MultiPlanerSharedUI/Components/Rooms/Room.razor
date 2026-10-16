@@ -1,10 +1,24 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Layout
+@implements IDisposable
 @inject HttpClient Http
 @inject ApiClient Api
+@inject RoomSelection Selection
+@inject NavigationManager Nav
 
-<div class="room" style="background-color: @_background" @oncontextmenu="e => _menu?.Show(e)" @oncontextmenu:preventDefault>
+<div class="room @(Selection.IsSelected(RoomData?.Id ?? -1) ? "room-selected" : "")" 
+     style="background-color: @_background" 
+     @onclick="HandleRoomClick"
+     @oncontextmenu="e => _menu?.Show(e)" 
+     @oncontextmenu:preventDefault  >
+    @if (Selection.Active && RoomData is not null)
+    {
+        <input type="checkbox" class="room-check"
+               checked="@Selection.IsSelected(RoomData.Id)"
+               @onchange="() => Selection.Toggle(RoomData.Id)"
+               @onclick:stopPropagation />
+    }
     <div class="room-header">
         @(RoomData?.Name ?? "Room Name")
     </div>
@@ -24,16 +38,20 @@
                 aria-pressed="@_isFavourite"
                 disabled="@_isSaving"
                 title="@(_isFavourite ? "Remove from favourites" : "Add to favourites")"
-                @onclick="ToggleFavouriteAsync">
+                @onclick="ToggleFavouriteAsync"
+                @onclick:stopPropagation>
             <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
-                 alt="" class="favourite-icon" />
+                 alt="" class="favourite-icon"/>
         </button>
     </div>
 </div>
 
 <ContextMenu @ref="_menu">
-    
-    
+    @if (Selection.IsSelected(RoomData?.Id ?? -1)) {
+        <button class="ctx-item" @onclick="StartDeSelect">Deselect</button>
+    } else {
+        <button class="ctx-item" @onclick="StartSelect">Select</button>
+    }
     @if (RoomData?.IsOwner == true) {
         <button class="ctx-item" @onclick="StartRename">Rename</button>
         @* <button class="ctx-item" @onclick="StartArchive">Archive</button> *@
@@ -68,14 +86,21 @@
     [Parameter] 
     public EventCallback OnChanged { get; set; } 
     
-
-    
     private bool _isFavourite;
     private bool _isSaving;
     private byte[]? _rowVersion;
     public string? _imagePath;
     private ContextMenu? _menu;
-    private bool _menuOpen, _showRename, _showDelete, _showLeave;
+    private bool _menuOpen, _showRename, _showDelete, _showLeave; 
+  
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+
+    private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
+
+    private void StartSelect()   { _menu?.Hide(); if (RoomData is not null && !Selection.IsSelected(RoomData.Id)) Selection.Toggle(RoomData.Id); }
+    private void StartDeSelect() { _menu?.Hide(); if (RoomData is not null && Selection.IsSelected(RoomData.Id)) Selection.Toggle(RoomData.Id); }
+
+    public void Dispose() => Selection.Changed -= OnSelectionChanged;
     
     private string _background => 
         string.IsNullOrWhiteSpace(RoomData?.Membership?.Color)
@@ -87,10 +112,24 @@
         _isFavourite = RoomData?.Membership?.IsFavourite ?? false;
         _rowVersion = RoomData?.Membership?.RowVersion;
     }
-    private void StartRename() { _menu?.Hide(); _showRename = true; }
-    private void StartDelete() { _menu?.Hide(); _showDelete = true; }
-    private void StartLeave()  { _menu?.Hide(); _showLeave = true; }
+
+    private void StartRename() {
+        _menu?.Hide(); 
+        _showRename = true;
+    }
+
+    private void StartDelete() {
+        _menu?.Hide(); 
+        _showDelete = true;
+    }
+
+    private void StartLeave() {
+        _menu?.Hide(); 
+        _showLeave = true;
+    }
     // private void StartArchive()  { _menu?.Hide(); _showArchive = true; }
+
+    
 
     private async Task ToggleFavouriteAsync() {
         if (RoomData is null || _isSaving) return;
@@ -127,7 +166,7 @@
         if (RoomData is null) return;
 
         var res = await Api.PatchAsync($"api/rooms/{RoomData.Id}",
-            new { name, rowVersion = RoomData.RowVersion });   // wersja POKOJU, nie członkostwa
+            new { name, rowVersion = RoomData.RowVersion });   
         await ApiClient.EnsureSuccessAsync(res);
 
         await OnChanged.InvokeAsync();
@@ -152,4 +191,16 @@
 
         await OnChanged.InvokeAsync();
     }
+    
+    private void HandleRoomClick()
+    {
+        if (RoomData is null) return;
+        if (Selection.Active) {
+            Selection.Toggle(RoomData.Id);
+            return;
+        }
+
+        Nav.NavigateTo($"/calendar/{RoomData.Id}");
+    }
+    
 }

@@ -1,7 +1,9 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Layout
+@implements IDisposable
 @inject HttpClient Http
+@inject RoomSelection Selection
 
 @if (!_isLoading) {
     <div class="rooms-filter">
@@ -10,6 +12,12 @@
             <option value="all">All</option>
             <option value="archived">Archive</option>
         </select>
+    
+        @if (Selection.Active) {
+            <button type="button" class="btn-main btn-cancel" @onclick="Selection.Clear">
+                Deselect all (@Selection.Count)
+            </button>
+        }
     </div>
 }
 
@@ -40,7 +48,16 @@
     private string? _errorMessage;
     private List<RoomResponse>? _rooms = new();
     private string _status="active";
-    protected override async Task OnInitializedAsync() => await LoadRoomsAsync();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        Selection.Changed += OnSelectionChanged;
+        await LoadRoomsAsync();
+    }
+
+    private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Selection.Changed -= OnSelectionChanged;
 
     public async Task LoadRoomsAsync(bool silent = false) {
         if (!silent) _isLoading = true;
@@ -49,6 +66,7 @@
         try {
             var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status);
             _rooms = result ?? new();
+            Selection.Prune(_rooms.Select(r => r.Id));
         }
         catch (HttpRequestException e) {
             _errorMessage = "Cannot load calendars. " + e.Message;

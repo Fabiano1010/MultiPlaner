@@ -1,10 +1,16 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Layout
+@implements IDisposable
 @inject HttpClient Http
 @inject ApiClient Api
+@inject RoomSelection Selection
+@inject NavigationManager Nav
 
-<div class="folder" @oncontextmenu="e => _menu?.Show(e)" @oncontextmenu:preventDefault>
+<div class="folder" 
+     @onclick="HandleClickFolder"
+     @oncontextmenu="e => _menu?.Show(e)" 
+     @oncontextmenu:preventDefault>
     <div class="folder-header">
             
     </div>
@@ -12,6 +18,17 @@
         <div class="folder-content">
             @FolderData?.Name
         </div>
+        @if (Selection.Active)
+        {
+            <button type="button" class="btn-main btn-save folder-add-btn"
+                    disabled="@_isAdding" @onclick="AddSelectedAsync" @onclick:stopPropagation>
+                @(_isAdding ? "Adding..." : $"Add to folder ({Selection.Count})")
+            </button>
+            @if (!string.IsNullOrEmpty(_addError))
+            {
+                <div class="form-error">@_addError</div>
+            }
+        }
     </div>
     <div class="folder-footer">
         <button type="button" class="favourite-btn" title="Menu" @onclick="e => _menu?.Show(e)" @onclick:stopPropagation>
@@ -57,12 +74,18 @@
     private byte[]? _rowVersion;
     private bool _menuOpen, _showRename, _showDelete;
     private ContextMenu? _menu;
+    private bool _isAdding;
+    private string? _addError;
     
     // private string _background => 
     //     string.IsNullOrWhiteSpace(FolderData?.Color)
     //         ? "var(--color-primary-dim-light)"
     //         :"#" + FolderData!.Color;
     //
+    
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+    private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Selection.Changed -= OnSelectionChanged;
     
     protected override void OnParametersSet() {
         _isFavourite = FolderData?.IsFavourite ?? false;
@@ -118,4 +141,46 @@
         await OnChanged.InvokeAsync();
     }
 
+    private async Task AddSelectedAsync()
+    {
+        if (FolderData is null || _isAdding || !Selection.Active) return;
+
+        _isAdding = true;
+        _addError = null;
+        var failed = 0;
+
+        try
+        {
+            foreach (var roomId in Selection.Ids.ToList())
+            {
+                try
+                {
+                    var res = await Api.SendAsync(HttpMethod.Put,
+                        $"api/me/folders/{FolderData.Id}/rooms/{roomId}");
+                    await ApiClient.EnsureSuccessAsync(res);
+                }
+                catch (ApiException e) { failed++; _addError = e.Message; }
+                catch (HttpRequestException) { failed++; _addError = "Cannot reach the server."; }
+            }
+
+            if (failed == 0)
+            {
+                Selection.Clear();
+                await OnChanged.InvokeAsync();  
+            }
+            else
+            {
+                _addError = $"{failed} of {Selection.Count} failed. {_addError}";
+            }
+        }
+        finally
+        {
+            _isAdding = false;
+        }
+    }
+
+    private void HandleClickFolder() {
+        if (FolderData is null) return;
+        Nav.NavigateTo($"/FolderInsidePage/{FolderData.Id}");
+    }
 }

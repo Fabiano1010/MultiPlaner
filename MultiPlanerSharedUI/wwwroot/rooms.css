@@ -131,7 +131,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.6rem;
     width: 12vw;
     aspect-ratio: 4 / 3;
     margin-top: 1.4rem; 
@@ -147,6 +147,17 @@
     border-radius: var(--border-radius);
     margin-top: 0;
     gap: 0;
+    position: relative;
+}
+.room-check {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    accent-color: var(--color-secondary);
+    z-index: 1;
 }
 
 .folder::before {
@@ -175,12 +186,13 @@
 .folder-body {
     flex: 1;
     width: 100%;
+    height: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    
+    gap: 1rem;
 }
 
 .folder-footer, .room-footer {
@@ -188,7 +200,7 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 0.4rem 0.6rem;
+    padding: 0 0 0.2rem 0;
     box-sizing: border-box;
 }
 
@@ -284,10 +296,12 @@
     outline: none;
     border: none;
     background: none;
-    padding: 0;
+    padding: 0.3rem;
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100%;
+    width: 20%;
 }
 .favourite-icon{
     width: 100%;
@@ -297,5 +311,17 @@
     position: relative;
     top: 0;
     left: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    
+}
+.room-selected{
+    border: 3px solid var(--selected-color);
+    filter: drop-shadow(0px 2px 6px var(--selected-color));
+}
+.folder-add-btn{
     
 }
