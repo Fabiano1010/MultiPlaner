@@ -1,10 +1,16 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Layout
+@implements IDisposable
 @inject HttpClient Http
 @inject ApiClient Api
+@inject RoomSelection Selection
+@inject NavigationManager Nav
 
-<div class="folder">
+<div class="folder" 
+     @onclick="HandleClickFolder"
+     @oncontextmenu="e => _menu?.Show(e)" 
+     @oncontextmenu:preventDefault>
     <div class="folder-header">
             
     </div>
@@ -12,22 +18,53 @@
         <div class="folder-content">
             @FolderData?.Name
         </div>
+        @if (Selection.Active)
+        {
+            <button type="button" class="btn-main btn-save folder-add-btn"
+                    disabled="@_isAdding" @onclick="AddSelectedAsync" @onclick:stopPropagation>
+                @(_isAdding ? "Adding..." : $"Add to folder ({Selection.Count})")
+            </button>
+            @if (!string.IsNullOrEmpty(_addError))
+            {
+                <div class="form-error">@_addError</div>
+            }
+        }
     </div>
     <div class="folder-footer">
-        <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="folder-menu-icon">
+        <button type="button" class="favourite-btn" title="Menu" @onclick="e => _menu?.Show(e)" @onclick:stopPropagation>
+            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="menu" class="favourite-icon" />
+        </button>
         <button type="button" class="favourite-btn"
                 aria-pressed="@_isFavourite"
                 disabled="@_isSaving"
                 title="@(_isFavourite ? "Remove from favourites" : "Add to favourites")"
-                @onclick="ToggleFavouriteAsync">
+                @onclick="ToggleFavouriteAsync"
+                @onclick:stopPropagation>
             <img src="_content/MultiPlanerSharedUI/images/@(_isFavourite ? "heart-filled.svg" : "heart-outlined.svg")"
                  alt="" class="favourite-icon" />
         </button>
     </div>
 </div>
+
+<ContextMenu @ref="_menu">
+    <button class="ctx-item" @onclick="StartRename">Rename</button>
+    <button class="ctx-item danger" @onclick="StartDelete">Delete</button>
+
+    
+</ContextMenu>
+
+<RenamePopup IsVisible="_showRename" Title="Rename folder"
+             CurrentName="@FolderData?.Name"
+             OnSave="RenameAsync" OnClose="() => _showRename = false" />
+
+<ConfirmPopup IsVisible="_showDelete" Title="Delete folder" Danger="true" ConfirmText="Delete"
+              Message="@($"Delete folder \"{FolderData?.Name}\"? Calendars inside will not be deleted.")"
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false" />
+
 @code {
     [Parameter] public UserFolderResponse? FolderData { get; set; }
-    
+    [Parameter] 
+    public EventCallback OnChanged { get; set; }
     [Parameter] 
     public EventCallback OnConflict { get; set; }
     [Parameter] 
@@ -36,6 +73,10 @@
     private bool _isFavourite;
     private bool _isSaving;
     private byte[]? _rowVersion;
+    private bool _menuOpen, _showRename, _showDelete;
+    private ContextMenu? _menu;
+    private bool _isAdding;
+    private string? _addError;
     
     // private string _background => 
     //     string.IsNullOrWhiteSpace(FolderData?.Color)
@@ -43,11 +84,18 @@
     //         :"#" + FolderData!.Color;
     //
     
+    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+    private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Selection.Changed -= OnSelectionChanged;
+    
     protected override void OnParametersSet() {
         _isFavourite = FolderData?.IsFavourite ?? false;
         _rowVersion = FolderData?.RowVersion;
     }
-
+    
+    private void StartRename() { _menuOpen = false; _showRename = true; }
+    private void StartDelete() { _menuOpen = false; _showDelete = true; }
+    
     private async Task ToggleFavouriteAsync() {
         if (FolderData is null || _isSaving) return;
         var newValue = !_isFavourite;
@@ -77,5 +125,63 @@
             _isSaving = false;
         }
     }
+    private async Task RenameAsync(string name)
+    {
+        if (FolderData is null) return;
+        var res = await Api.PatchAsync($"api/me/folders/{FolderData.Id}",
+            new { name, rowVersion = _rowVersion });
+        await ApiClient.EnsureSuccessAsync(res);
+        await OnChanged.InvokeAsync();
+    }
 
+    private async Task DeleteAsync()
+    {
+        if (FolderData is null) return;
+        var res = await Api.SendAsync(HttpMethod.Delete, $"api/me/folders/{FolderData.Id}");
+        await ApiClient.EnsureSuccessAsync(res);
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task AddSelectedAsync()
+    {
+        if (FolderData is null || _isAdding || !Selection.Active) return;
+
+        _isAdding = true;
+        _addError = null;
+        var failed = 0;
+
+        try
+        {
+            foreach (var roomId in Selection.Ids.ToList())
+            {
+                try
+                {
+                    var res = await Api.SendAsync(HttpMethod.Put,
+                        $"api/me/folders/{FolderData.Id}/rooms/{roomId}");
+                    await ApiClient.EnsureSuccessAsync(res);
+                }
+                catch (ApiException e) { failed++; _addError = e.Message; }
+                catch (HttpRequestException) { failed++; _addError = "Cannot reach the server."; }
+            }
+
+            if (failed == 0)
+            {
+                Selection.Clear();
+                await OnChanged.InvokeAsync();  
+            }
+            else
+            {
+                _addError = $"{failed} of {Selection.Count} failed. {_addError}";
+            }
+        }
+        finally
+        {
+            _isAdding = false;
+        }
+    }
+
+    private void HandleClickFolder() {
+        if (FolderData is null) return;
+        Nav.NavigateTo($"/FolderInsidePage/{FolderData.Id}");
+    }
 }

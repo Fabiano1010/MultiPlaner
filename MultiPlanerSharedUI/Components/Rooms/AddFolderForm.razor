@@ -6,7 +6,7 @@
 <Popup IsVisible="IsVisible" Title="Add new folder" OnClose="HandleClose">
     
     <div class="add-room-form-box">
-        <div class="add-room-form">
+        <form class="add-room-form" @onsubmit="HandleSave" @onsubmit:preventDefault> 
             <div class="form-group">
                 <label>Folder name</label>
                 <input type="text" @bind="FolderName" placeholder="Folder name" class="input-main @(hasError ? "error-input" : "")"/>
@@ -17,10 +17,10 @@
             }
             <div class="form-actions">
                 <button class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
-                <button class="btn-main btn-save" @onclick="HandleSave" disabled="@_isSaving">Save</button>
+                <button class="btn-main btn-save" disabled="@_isSaving">Save</button>
             </div>
 
-        </div>
+        </form >
     </div>
     
     
