@@ -1,26 +1,25 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Rooms
 @using System.Net.Http.Json
-@inject HttpClient Http
 @inject ApiClient Api
 
-<Popup IsVisible="IsVisible" Title="Add new calendar" OnClose="HandleClose">
+<Popup IsVisible="IsVisible" Title="Add new calendar" OnClose="@HandleCloseAsync">
     
     <div class="add-room-form-box">
-        <div class="add-room-form">
+        <form class="add-room-form" @onsubmit="HandleSaveAsync" @onsubmit:preventDefault> 
             <div class="form-group">
                 <label>Calendar name</label>
-                <input type="text" @bind="CalendarName" placeholder="Calendar name" class="input-main @(hasError ? "error-input" : "")"/>
+                <input type="text" @bind="_calendarName" placeholder="Calendar name" class="input-main @(HasError ? "error-input" : "")"/>
             </div>
-            @if (!string.IsNullOrEmpty(ErrorMessage))
+            @if (!string.IsNullOrEmpty(_errorMessage))
             {
-                <div class="form-error">@ErrorMessage</div>
+                <div class="form-error">@_errorMessage</div>
             }
             <div class="form-actions">
-                <button class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
-                <button class="btn-main btn-save" @onclick="HandleSave" disabled="@_isSaving">Save</button>
+                <button class="btn-main btn-cancel" @onclick="HandleCloseAsync" disabled="@_isSaving">Cancel</button>
+                <button class="btn-main btn-save" type="submit" disabled="@_isSaving">Save</button>
             </div>
 
-        </div>
+        </form>
     </div>
     
     
@@ -34,28 +33,27 @@
     
     [Parameter] public EventCallback<RoomResponse> OnCreate { get; set; }
 
-    string CalendarName = "New Calendar";
+    private string _calendarName = "New Calendar";
 
-    string ErrorMessage = "";
+    private string _errorMessage = "";
     private bool _isSaving;
-    private bool hasError => !string.IsNullOrEmpty(ErrorMessage);
+    private bool HasError => !string.IsNullOrEmpty(_errorMessage);
     
     
-    private async Task HandleClose() {
-        ErrorMessage = "";
+    private async Task HandleCloseAsync() {
+        _errorMessage = "";
         await OnClose.InvokeAsync();
     }
 
-    private async Task HandleSave() {
-        var name = CalendarName?.Trim() ?? string.Empty;
-        
-        if (name.Length < 2 || name.Length > 128) {
-            ErrorMessage = "Calendar name must be between 2 and 128 characters.";
+    private async Task HandleSaveAsync() {
+        var name = _calendarName?.Trim() ?? string.Empty;
+        if (name.Length is < 2 or > 128) {
+            _errorMessage = "Calendar name must be between 2 and 128 characters.";
             return;
         }
 
         _isSaving = true;
-        ErrorMessage = "";
+        _errorMessage = "";
 
         try {
             var request = new CreateRoomRequest() { Name = name };
@@ -63,22 +61,22 @@
             await ApiClient.EnsureSuccessAsync(response);
             if (!response.IsSuccessStatusCode) {
                 var body = await response.Content.ReadAsStringAsync();
-                ErrorMessage = $"Error creating room: {response.StatusCode} - {body}";
+                _errorMessage = $"Error creating room: {response.StatusCode} - {body}";
                 return;
             }
             var room = await response.Content.ReadFromJsonAsync<RoomResponse>();
             await OnCreate.InvokeAsync(room!);
-            await HandleClose();
+            await HandleCloseAsync();
         }
         catch (ApiException e) {
-            ErrorMessage = e.Message;
+            _errorMessage = e.Message;
         }
         catch (HttpRequestException e) {
-            ErrorMessage = "Cannot reach the server. " + e.Message;
+            _errorMessage = "Cannot reach the server. " + e.Message;
         }
         finally {
             _isSaving = false;
-            CalendarName = "New Calendar";
+            _calendarName = "New Calendar";
         }
     }
 }

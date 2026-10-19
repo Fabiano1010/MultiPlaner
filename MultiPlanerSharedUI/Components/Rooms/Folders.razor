@@ -1,6 +1,5 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
-@using MultiPlanerSharedUI.Components.Layout
 @inject HttpClient Http
 
 <div class="hide-folders-box">
@@ -8,7 +7,7 @@
         <div class="toggle-btn"
              aria-expanded="@(!_areFoldersHidden)"
              title="@(_areFoldersHidden ? "Show folders" : "Hide folders")"
-             @onclick="HideFolders">
+             @onclick="HideFoldersAsync">
             <img src="_content/MultiPlanerSharedUI/images/@(_areFoldersHidden ? "arrow-down-right.svg" : "arrow-up-left.svg")"
                  alt="" />
         </div>
@@ -29,7 +28,8 @@
                 foreach (var folder in _folders.OrderByDescending(f => f.IsFavourite)) {
                     <Folder @key="folder.Id" FolderData="folder"
                             OnConflict="() => LoadFoldersAsync()"
-                            OnFavouriteChanged="() => LoadFoldersAsync(silent: true)" />
+                            OnFavouriteChanged="() => LoadFoldersAsync(silent: true)" 
+                            OnChanged="() => LoadFoldersAsync(silent: true)"/>
                 }
                 
             } else {
@@ -45,7 +45,7 @@
     private List<UserFolderResponse>? _folders = new();
     
     private bool _areFoldersHidden;
-    private void HideFolders() => _areFoldersHidden = !_areFoldersHidden;
+    private async Task HideFoldersAsync() => _areFoldersHidden = !_areFoldersHidden;
     
     protected override async Task OnInitializedAsync() => await LoadFoldersAsync();
 

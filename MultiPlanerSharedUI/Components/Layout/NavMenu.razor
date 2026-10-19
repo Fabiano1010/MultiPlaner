@@ -7,7 +7,7 @@
     <div class="user-img-div">
         <img src="_content/MultiPlanerSharedUI/images/user.svg" alt="" class="user-img">
     </div>
-    <div class="nav-user-name nav-text">@displayName</div>
+    <div class="nav-user-name nav-text">@_displayName</div>
 </div>
 <div class="nav-links">
     <div class="nav-items">
@@ -38,7 +38,7 @@
     [CascadingParameter] 
     private Task<AuthenticationState>? AuthState { get; set; }
 
-    private string displayName = "User";
+    private string _displayName = "User";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -46,7 +46,7 @@
         {
             var user = (await AuthState).User;
             var name = user.Identity?.Name;
-            if (!string.IsNullOrWhiteSpace(name)) displayName = name;
+            if (!string.IsNullOrWhiteSpace(name)) _displayName = name;
         }
     }
 

@@ -1,0 +1,37 @@
+﻿@page "/FolderInsidePage/{FolderId:int}"
+@using System.Net.Http.Json
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Rooms
+@inject HttpClient Http
+@inject NavigationManager Nav
+@layout MainLayout
+@attribute [Authorize]
+
+<div class="main-content main-content-rooms">
+    <div class="folder-name">@_folderName</div>
+    <div class="rooms-folders-container container-inside">
+        <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
+        <Rooms @key="FolderId" FolderId="FolderId"/>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int FolderId { get; set; }
+
+    private string? _folderName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders");
+            _folderName = folders?.FirstOrDefault(f => f.Id == FolderId)?.Name;
+        }
+        catch (HttpRequestException)
+        {
+            _folderName = null;
+        }
+    }
+
+    private async Task GoBack() => Nav.NavigateTo("/Rooms");
+}

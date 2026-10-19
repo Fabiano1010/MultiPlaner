@@ -48,7 +48,7 @@ public static class MauiProgram
 
         // Serwisy domenowe
         builder.Services.AddSingleton<EventService>();
-
+        builder.Services.AddSingleton<RoomSelection>();
 #if DEBUG
         // Narzędzia developerskie
         builder.Services.AddBlazorWebViewDeveloperTools();
