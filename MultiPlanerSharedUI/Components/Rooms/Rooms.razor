@@ -1,6 +1,5 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
-@using MultiPlanerSharedUI.Components.Layout
 @implements IDisposable
 @inject HttpClient Http
 @inject RoomSelection Selection
@@ -69,8 +68,8 @@
     private string? _errorMessage;
     private List<RoomResponse>? _rooms = new();
     private string _status = "active";
-    private bool _showDelete = false;
-    private bool _showRemove = false;
+    private bool _showDelete;
+    private bool _showRemove;
 
     protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
 
@@ -87,7 +86,7 @@
         try {
             var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status) ?? new();
 
-            if (FolderId is int folderId)
+            if (FolderId is { } folderId)
             {
                 var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders") ?? new();
                 var ids = folders.FirstOrDefault(f => f.Id == folderId)?.RoomIds;
@@ -95,7 +94,7 @@
             }
 
             _rooms = result;
-            Selection.Prune(_rooms.Select(r => r.Id));
+            await Selection.Prune(_rooms.Select(r => r.Id));
         }
         catch (HttpRequestException e) {
             _errorMessage = "Cannot load calendars. " + e.Message;
@@ -135,7 +134,7 @@
 
     private async Task RemoveAsync()
     {
-        if (FolderId is not int folderId) return;
+        if (FolderId is not { } folderId) return;
         var failed = 0;
         string? lastError = null;
 

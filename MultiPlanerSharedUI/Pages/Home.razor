@@ -29,15 +29,15 @@
 </AuthorizeView>
 
 @code {
-    private void Register() {
+    private async Task Register() {
         Nav.NavigateTo("/register");
     }
 
-    private void Login() {
+    private async Task Login() {
         Nav.NavigateTo("/login");
     }
 
-    private void About() {
+    private async Task About() {
         Nav.NavigateTo("/about");
     }
 }

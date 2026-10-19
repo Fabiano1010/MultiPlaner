@@ -37,24 +37,19 @@
     private bool _isOpen;
     private bool _showCalendarPopup;
     private bool _showFolderPopup;
-    private bool _showPopup;
-    private string _ErrorMessage;
     private Rooms? _rooms;
     private Folders? _folders;
     
-    private void OpenCalendarPopup() {
+    private async Task OpenCalendarPopup() {
         _isOpen = false;
         _showCalendarPopup = true;
     }
 
-    private void OpenFloderPopup() {
+    private async Task OpenFloderPopup() {
         _isOpen = false;
         _showFolderPopup = true;
     }
     
-    private async Task HandleClose() {
-        _showPopup = false;
-    }
 
     private async Task HandleRoomCreated() {
         if (_rooms is not null) {

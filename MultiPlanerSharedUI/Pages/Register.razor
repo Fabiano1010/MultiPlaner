@@ -3,7 +3,7 @@
 @layout AuthLayout
 @inject AuthService Auth
 @inject NavigationManager Nav
-@inject IJSRuntime JS
+@inject IJSRuntime Js
 
 @attribute [AllowAnonymous]
 
@@ -13,25 +13,25 @@
         <form class="auth-form" @onsubmit="RegisterAsync" @onmsubit:preventDefault>
             <div class="input-group">
                 <label for="name">Name</label>
-                <input @bind="name" id="name" placeholder="Name" class="auth-input @(hasErrorName ? "error-input" : "")"/>
+                <input @bind="_name" id="name" placeholder="Name" class="auth-input @(_hasErrorName ? "error-input" : "")"/>
                 <div class="input-error"></div>
             </div>
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="email" id="email" placeholder="Email" class="auth-input @(hasError ? "error-input" : "")"  />
+                <input @bind="_email" id="email" placeholder="Email" class="auth-input @(_hasError ? "error-input" : "")"  />
                 <div class="input-error"></div>
             </div>
 
             <div class="input-group">
                 <label for="password">Password</label>
                 <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
-                    <input @bind="password" @bind:event="oninput"
-                           type="@(showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="auth-input-pass @(hasErrorPassword ? "error-input" : "")"/>
+                    <input @bind="_password" @bind:event="oninput"
+                           type="@(_showPassword ? "text" : "password")"
+                           id="password" placeholder="Password" class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
-                            @onclick="() => showPassword = !showPassword"
-                            aria-label="@(showPassword ? "Hide password" : "Show password")">
-                        <img src="_content/MultiPlanerSharedUI/images/@(showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
+                            @onclick="() => _showPassword = !_showPassword"
+                            aria-label="@(_showPassword ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
                     </button>
                 </div>
             </div>
@@ -39,13 +39,13 @@
             <div class="input-group">
                 <label for="passwordConfirm">Confirm Password</label>
                 <div class="password-wrapper " >
-                    <input @bind="passwordConfirm" @bind:event="oninput"
-                           type="@(showPasswordConfirm ? "text" : "password")"
-                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass @(hasErrorPassword ? "error-input" : "")"/>
+                    <input @bind="_passwordConfirm" @bind:event="oninput"
+                           type="@(_showPasswordConfirm ? "text" : "password")"
+                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
-                            @onclick="() => showPasswordConfirm = !showPasswordConfirm"
-                            aria-label="@(showPasswordConfirm ? "Hide password" : "Show password")">
-                        <img src="_content/MultiPlanerSharedUI/images/@(showPasswordConfirm ? "eye-off.svg" : "eye.svg")" alt="" />
+                            @onclick="() => _showPasswordConfirm = !_showPasswordConfirm"
+                            aria-label="@(_showPasswordConfirm ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(_showPasswordConfirm ? "eye-off.svg" : "eye.svg")" alt="" />
                     </button>
                 </div>
                 <div class="input-error"></div>
@@ -55,8 +55,8 @@
                     class="auth-btn @(CanSubmit ? "btn-main" : "")"
                     disabled="@(!CanSubmit)">Register</button>
             
-            @if (error is not null) { 
-                <span class="error">@error</span>
+            @if (_error is not null) { 
+                <span class="error">@_error</span>
             }
             <div class="register-direction">
                 <p>Already have an account? <a href="/login">Log in</a></p>
@@ -68,25 +68,25 @@
 
 
 @code {
-    string email = "";
-    string password = "";
-    string passwordConfirm = "";
-    string name = "";
-    string countryCode = "PL";
-    string timeZoneId = "Europe/Warsaw";
-    string? error;
+    private string _email = "";
+    private string _password = "";
+    private string _passwordConfirm = "";
+    private string _name = "";
+    private string _countryCode = "PL";
+    private string _timeZoneId = "Europe/Warsaw";
+    private string? _error;
     
     bool CanSubmit => 
-        !string.IsNullOrWhiteSpace(email) && 
-        System.Net.Mail.MailAddress.TryCreate(email, out _) && 
-        !string.IsNullOrWhiteSpace(password) && password == passwordConfirm && 
-        !string.IsNullOrWhiteSpace(name);
-    
-    bool showPassword = false;
-    bool showPasswordConfirm = false; 
-    bool hasError;
-    bool hasErrorPassword;
-    bool hasErrorName;
+        !string.IsNullOrWhiteSpace(_email) && 
+        System.Net.Mail.MailAddress.TryCreate(_email, out _) && 
+        !string.IsNullOrWhiteSpace(_password) && _password == _passwordConfirm && 
+        !string.IsNullOrWhiteSpace(_name);
+
+    private bool _showPassword;
+    private bool _showPasswordConfirm; 
+    private bool _hasError;
+    private bool _hasErrorPassword;
+    private bool _hasErrorName;
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -94,16 +94,16 @@
 
         try
         {
-            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/locale.js");
+            var module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/locale.js");
 
             var detectedTimeZone = await module.InvokeAsync<string?>("getTimeZone");
             var detectedCountry = await module.InvokeAsync<string?>("getCountryCode");
 
             if (!string.IsNullOrWhiteSpace(detectedTimeZone))
-                timeZoneId = detectedTimeZone;
+                _timeZoneId = detectedTimeZone;
 
             if (!string.IsNullOrWhiteSpace(detectedCountry))
-                countryCode = detectedCountry;
+                _countryCode = detectedCountry;
 
             StateHasChanged();
         }
@@ -116,32 +116,32 @@
     
     async Task RegisterAsync()
     {
-        error = null;
-        hasError = false;
-        hasErrorPassword = false;
-        hasErrorName = false;
+        _error = null;
+        _hasError = false;
+        _hasErrorPassword = false;
+        _hasErrorName = false;
         try
         {
-            await Auth.RegisterAsync(name, email, password, countryCode, timeZoneId);
+            await Auth.RegisterAsync(_name, _email, _password, _countryCode, _timeZoneId);
             Nav.NavigateTo("/login");   
         }
         catch (ApiException ex)
         {
-            error = ex.Status == 409 ? "This account already exists." : ex.Message;
+            _error = ex.Status == 409 ? "This account already exists." : ex.Message;
             if (ex.Status == 400 && ex.Message.Contains("Password")) {
-                hasErrorPassword = true;
+                _hasErrorPassword = true;
             }
             if (ex.Status == 409) {
-                hasError = true;
+                _hasError = true;
             }
             if(ex.Status == 400 && ex.Message.Contains("DisplayName")) {
-                hasErrorName = true;
+                _hasErrorName = true;
             }
         }
         catch (HttpRequestException e)
         {
             
-            error = "Cannot connect to server. " + e.Message;
+            _error = "Cannot connect to server. " + e.Message;
         }
     }
 }

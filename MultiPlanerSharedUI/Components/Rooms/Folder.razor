@@ -1,14 +1,12 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
-@using MultiPlanerSharedUI.Components.Layout
 @implements IDisposable
-@inject HttpClient Http
 @inject ApiClient Api
 @inject RoomSelection Selection
 @inject NavigationManager Nav
 
 <div class="folder" 
-     @onclick="HandleClickFolder"
+     @onclick="HandleClickFolderAsync"
      @oncontextmenu="e => _menu?.Show(e)" 
      @oncontextmenu:preventDefault>
     <div class="folder-header">
@@ -73,7 +71,7 @@
     private bool _isFavourite;
     private bool _isSaving;
     private byte[]? _rowVersion;
-    private bool _menuOpen, _showRename, _showDelete;
+    private bool _showRename, _showDelete;
     private ContextMenu? _menu;
     private bool _isAdding;
     private string? _addError;
@@ -88,13 +86,20 @@
     private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Selection.Changed -= OnSelectionChanged;
     
-    protected override void OnParametersSet() {
+    protected override async Task OnParametersSetAsync() {
         _isFavourite = FolderData?.IsFavourite ?? false;
         _rowVersion = FolderData?.RowVersion;
     }
     
-    private void StartRename() { _menuOpen = false; _showRename = true; }
-    private void StartDelete() { _menuOpen = false; _showDelete = true; }
+    private async Task StartRename() {
+        _menu?.Hide();
+        _showRename = true; 
+    }
+
+    private async Task StartDelete() {
+        _menu?.Hide();
+        _showDelete = true;
+    }
     
     private async Task ToggleFavouriteAsync() {
         if (FolderData is null || _isSaving) return;
@@ -166,9 +171,9 @@
 
             if (failed == 0)
             {
-                Selection.Clear();
+                await Selection.Clear();
                 await OnChanged.InvokeAsync();  
-            }
+            } 
             else
             {
                 _addError = $"{failed} of {Selection.Count} failed. {_addError}";
@@ -180,7 +185,7 @@
         }
     }
 
-    private void HandleClickFolder() {
+    private async Task HandleClickFolderAsync() {
         if (FolderData is null) return;
         Nav.NavigateTo($"/FolderInsidePage/{FolderData.Id}");
     }
