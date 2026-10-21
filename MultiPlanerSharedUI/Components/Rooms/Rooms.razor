@@ -66,6 +66,15 @@
     }
 </div>
 
+<ConfirmPopup IsVisible="_showDelete" Title="Delete calendars" Danger="true" ConfirmText="Delete"
+              Message="@($"Delete or leave {Selection.Count} selected calendar(s)? Calendars you own will be deleted for everyone. This cannot be undone.")"
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false" />
+
+<ConfirmPopup IsVisible="_showRemove" Title="Remove from folder" ConfirmText="Remove"
+              Message="@($"Remove {Selection.Count} selected calendar(s) from this folder? They will not be deleted.")"
+              OnConfirm="RemoveAsync" OnClose="() => _showRemove = false" />
+
+
 
 <ConfirmPopup IsVisible="_showDelete" Title="Delete calendars" Danger="true" ConfirmText="Delete"
               Message="@($"Delete or leave {Selection.Count} selected calendar(s)? Calendars you own will be deleted for everyone. This cannot be undone.")"
