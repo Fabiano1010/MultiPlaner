@@ -12,7 +12,21 @@
             <option value="all">All</option>
             <option value="archived">Archive</option>
         </select>
-    
+        <div class="password-wrapper search-wrapper">
+            <button type="button" class="toggle-password search-img-btn" @onclick="ApplySearchNow">
+                <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="search">
+            </button>
+            <input class="auth-input-pass input-search" type="search" placeholder="Search"
+                   value="@_search"
+                   @oninput="OnSearchInput"
+                   @onkeydown="OnSearchKeyDown" />
+            @if (!string.IsNullOrEmpty(_search)) {
+                <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button>
+            }
+           
+        </div>
+       
+        
         @if (Selection.Active) {
             <button type="button" class="btn-main btn-cancel" @onclick="Selection.Clear">
                 Deselect all (@Selection.Count)
@@ -37,19 +51,21 @@
         <LoadingSpinner />
     } else if (!string.IsNullOrEmpty(_errorMessage)) {
         <div class="error-message">@_errorMessage</div>
-    } else if (_rooms is not null && _rooms.Count > 0) {
-
-        foreach (var room in _rooms.OrderByDescending(r => r.Membership?.IsFavourite ?? false)) {
+    } else if (_visibleRooms is { Count: > 0 }) {
+        foreach (var room in _visibleRooms) {
             <Room @key="room.Id" RoomData="room"
                   OnConflict="() => LoadRoomsAsync()"
-                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)" 
-                  OnChanged="() => LoadRoomsAsync(silent:true)"/>
+                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)"
+                  OnChanged="() => LoadRoomsAsync(silent: true)" />
         }
-        
     } else {
-        <div class="no-rooms-message">@(FolderId is null ? "Hey add some calendars!" : "This folder is empty.")</div>
+        <div class="no-rooms-message">
+            @(!string.IsNullOrWhiteSpace(_search) ? "No calendars match your search."
+            : FolderId is null ? "Hey add some calendars!" : "This folder is empty.")
+        </div>
     }
 </div>
+
 
 <ConfirmPopup IsVisible="_showDelete" Title="Delete calendars" Danger="true" ConfirmText="Delete"
               Message="@($"Delete or leave {Selection.Count} selected calendar(s)? Calendars you own will be deleted for everyone. This cannot be undone.")"
@@ -67,9 +83,14 @@
     private bool _isLoading = true;
     private string? _errorMessage;
     private List<RoomResponse>? _rooms = new();
+    private List<RoomResponse>? _visibleRooms = new();
+    private CancellationTokenSource? _debounce;
     private string _status = "active";
     private bool _showDelete;
     private bool _showRemove;
+    private string? _search;
+    
+    private const int DebounceMs = 250;
 
     protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
 
@@ -77,7 +98,12 @@
 
     private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
 
-    public void Dispose() => Selection.Changed -= OnSelectionChanged;
+    public void Dispose()
+    {
+        Selection.Changed -= OnSelectionChanged;
+        _debounce?.Cancel();
+        _debounce?.Dispose();
+    }
 
     public async Task LoadRoomsAsync(bool silent = false) {
         if (!silent) _isLoading = true;
@@ -94,6 +120,7 @@
             }
 
             _rooms = result;
+            ApplyFilter();
             await Selection.Prune(_rooms.Select(r => r.Id));
         }
         catch (HttpRequestException e) {
@@ -159,4 +186,60 @@
             throw new ApiException($"{failed} operation(s) failed. {lastError}", 0);
         
     }
+
+    private async Task OnSearchInput(ChangeEventArgs e) {
+        _search = e.Value?.ToString() ?? "";
+        
+        _debounce?.Cancel();
+        _debounce?.Dispose();
+        _debounce = new CancellationTokenSource();
+        
+        var token =_debounce.Token;
+
+        try {
+            await Task.Delay(DebounceMs, token);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException or ObjectDisposedException)
+        {
+            return;
+        }
+
+        ApplyFilter();
+        StateHasChanged();
+
+    }
+    private void ApplyFilter()
+    {
+        var source = _rooms ?? new List<RoomResponse>();
+        var term = (_search ?? "").Trim();
+
+        IEnumerable<RoomResponse> query = source;
+        if (term.Length > 0)
+            query = query.Where(r => Contains(r.Name, term) || Contains(r.OwnerDisplayName, term));
+
+        _visibleRooms = query.OrderByDescending(r => r.Membership?.IsFavourite ?? false).ToList();
+    }
+
+    private void ApplySearchNow()
+    {
+        _debounce?.Cancel();
+        ApplyFilter();
+    }
+
+    private void ClearSearch()
+    {
+        _debounce?.Cancel();
+        _search = "";
+        ApplyFilter();
+    }
+
+    private void OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") ApplySearchNow();
+        else if (e.Key == "Escape") ClearSearch();
+    }
+    
+    private static bool Contains(string? value, string term) =>
+        value is not null && value.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+
 }

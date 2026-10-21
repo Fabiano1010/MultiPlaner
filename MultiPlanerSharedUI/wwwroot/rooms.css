@@ -336,3 +336,13 @@
     justify-content: center;
     font-size: calc(1.2*var(--font-size-large));
 }
+.input-search{
+    background-color: var(--color-primary-dim-light);
+}
+.search-wrapper{
+    min-width: 195px;
+    width: 12vw;
+}
+search-img-btn{
+    left:10px
+}
