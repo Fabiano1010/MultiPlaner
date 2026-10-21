@@ -13,8 +13,8 @@
     --font-size-small: 12px;
     --font-size-medium: 18px;
     --font-size-large: 24px;
-    --sidebar-width: max(3.4vw, 55px);
-    --sidebar-width-open: max(10vw, 130px);
+    --sidebar-width: 60px;
+    --sidebar-width-open: 150px;
     --selected-color: #43d5ff;
 }
 
@@ -72,18 +72,19 @@ html, body{
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 100;                      
+    z-index: 100;
     width: var(--sidebar-width);
+    height: 100dvh;
     background-color: var(--color-secondary);
     color: var(--color-text-reversed);
     display: flex;
     flex-direction: column;
-    height: 100dvh;
-    padding: 0.5vw;
-    flex-shrink: 0;
+    padding: 9px;
     overflow: hidden;
     transition: width 0.35s ease-in-out;
+    box-sizing: border-box;
 }
+
 
 .mobile-nav-bar,
 .mobile-nav-close,
@@ -98,6 +99,7 @@ html, body{
     opacity: 0;
     white-space: nowrap;
     transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
 }
 
 .sidebar:hover .nav-text {
@@ -146,6 +148,7 @@ html, body{
     flex-direction: column;
     justify-content: space-between;
     height: 90%;
+    width: 100%;
 }
 .nav-items{
     display: flex;
@@ -165,7 +168,7 @@ html, body{
     display: flex;
     justify-content: start;
     align-items: center;
-    padding: 10px 10px 10px 10px;
+    padding: 10px;
     text-align: center;
     text-decoration: none;
     font-size: var(--font-size-medium);
