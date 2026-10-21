@@ -336,3 +336,34 @@
     justify-content: center;
     font-size: calc(1.2*var(--font-size-large));
 }
+.input-search{
+    background-color: var(--color-primary-dim-light);
+    padding-left: 35px;
+}
+.search-wrapper{
+    min-width: 195px;
+    width: 12vw;
+}
+.search-img-btn{
+    left:5px;
+    position: absolute;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+.search-img-btn img {
+    height: 20px;
+    width: 20px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.search-img-btn:hover img {
+    opacity: 1;
+}
+.password-wrapper:focus-within .search-img-btn img {
+    opacity: 1;
+}

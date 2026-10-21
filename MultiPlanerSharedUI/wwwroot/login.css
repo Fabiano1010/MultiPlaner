@@ -162,11 +162,12 @@ input[type="password"]::-ms-reveal {
     position: relative;
     display: flex;
     align-items: center;
-    transition: 0.25s all;
+    transition: 0.25s ease-in-out;
     border-radius: 15px;
 }
 .password-wrapper:hover{
     filter: drop-shadow(0 10px 10px var(--color-primary));
+    
 }
 
 .password-wrapper .auth-input {
@@ -210,7 +211,7 @@ input[type="password"]::-ms-reveal {
 }
 
 @keyframes bounce-auth{
-    0% { transform: translateY(0) scale(1); box-shadow: 0 5px 5px var(--color-primary); }
+    0% { transform: translateY(0) scale(1);  }
     50% { transform: translateY(-5px) scale(1.05); box-shadow: 0 10px 10px var(--color-primary); }
-    100% { transform: translateY(0) scale(1); box-shadow: 0 5px 5px var(--color-primary); }
+    100% { transform: translateY(0) scale(1);  }
 }
