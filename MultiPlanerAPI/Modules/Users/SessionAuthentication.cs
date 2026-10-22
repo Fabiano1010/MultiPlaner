@@ -36,7 +36,7 @@ public static class SessionAuthentication
         {
             options.User.RequireUniqueEmail = true;
             options.User.AllowedUserNameCharacters = null!;
-            options.Password.RequiredLength = 12;
+            options.Password.RequiredLength = 8;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.AllowedForNewUsers = true;
