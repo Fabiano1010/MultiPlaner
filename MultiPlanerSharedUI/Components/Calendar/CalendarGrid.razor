@@ -1,38 +1,39 @@
-﻿@using MultiPlanerSharedModels.Services
-@using MultiPlanerSharedModels.Models
+﻿@using MultiPlanerSharedModels.Models
 
+
+<div class="calendar">
+    <div class="calendar-day-name-container">
+        @foreach (var day in _dayNames)
+        {
+            <div class="calendar-day-name">@day</div>
+        }
+    </div>
+</div>
 <div class="calendar-grid-wrapper">
-
-   
-    @foreach (var day in _dayNames)
-    {
-        <div class="calendar-day-name">@day</div>
-    }
-    
-    @foreach (var cell in _days)
-    {
-        <div class="calendar-cell
-                    @(!cell.IsCurrentMonth ? "other-month" : "")
-                    @(cell.IsSelected ? "selected" : "")
-                    @(cell.IsInRange ? "in-range" : "")
-                    @(cell.IsRangeStart ? "range-start" : "")
-                    @(cell.IsRangeEnd ? "range-end" : "")
-                    @(cell.IsSunday ? "sunday" : "")
-                    @(cell.IsToday ? "today" : "")"
-             @onclick="() => HandleDayClick(cell)">
-            <div class="day-number-div">
-                <span class="day-number">@cell.Day</span>
-            </div>
-           
-            <div class="dots">
-                @foreach (var color in cell.EventColors)
-                {
-                    <div class="event-dot" style="background-color: @color;"></div>
-                }
-            </div>
-
+@foreach (var cell in _days)
+{
+    <div class="calendar-cell
+                @(!cell.IsCurrentMonth ? "other-month" : "")
+                @(cell.IsSelected ? "selected" : "")
+                @(cell.IsInRange ? "in-range" : "")
+                @(cell.IsRangeStart ? "range-start" : "")
+                @(cell.IsRangeEnd ? "range-end" : "")
+                @(cell.IsSunday ? "sunday" : "")
+                @(cell.IsToday ? "today" : "")"
+         @onclick="() => HandleDayClick(cell)">
+        <div class="day-number-div">
+            <span class="day-number">@cell.Day</span>
         </div>
-    }
+       
+        <div class="dots">
+            @foreach (var color in cell.EventColors)
+            {
+                <div class="event-dot" style="background-color: @color;"></div>
+            }
+        </div>
+
+    </div>
+}
 
 </div>
 

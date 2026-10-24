@@ -1,16 +1,20 @@
-﻿
+﻿.calendar-day-name-container {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding: 0 0.5vw;
+    scrollbar-gutter: stable;   /* zob. uwaga o paskach przewijania */
+}
 
 .calendar-grid-wrapper {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.25rem;
-    padding-left: 0.5vw;
-    padding-right: 0.5vw;
+    padding: 0 0.5vw 10px;
     height: 65vh;
-    overflow-y: scroll;
-   padding-bottom: 10px;
+    overflow-y: auto;
     align-content: start;
-    width: 100%;
+    scrollbar-gutter: stable;
 }
 
 .calendar-day-name {

@@ -1,6 +1,5 @@
 ﻿using System.Net.Http.Json;
-using System.Net.Http.Json;
-using MultiPlanerSharedModels.Contracts.Auth;
+using MultiPlanerSharedModels.Contracts.Rooms;
 
 namespace MultiPlanerSharedUI.Services;
 
@@ -9,6 +8,14 @@ public class ApiClient(HttpClient http) {
         var r = await http.GetFromJsonAsync<CsrfResponse>("api/auth/csrf");
         return r!.Token;
     }
+    public async Task<T?> GetAsync<T>(string url, CancellationToken ct = default)
+    {
+        var res = await http.GetAsync(url, ct);
+        await EnsureSuccessAsync(res);
+        return await res.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+    }
+    public Task<RoomResponse?> GetRoomAsync(int id, CancellationToken ct = default)
+        => GetAsync<RoomResponse>($"api/rooms/{id}", ct);
     public Task<HttpResponseMessage> PostAsync(string url, object? body = null)
         => SendAsync(HttpMethod.Post, url, body);
 
