@@ -65,4 +65,9 @@
         <ProjectReference Include="..\MultiPlanerSharedUI\MultiPlanerSharedUI.csproj" />
     </ItemGroup>
 
+
+    <ItemGroup>
+      <None Include="Platforms\MacCatalyst\SceneDelegate.cs" />
+    </ItemGroup>
+
 </Project>
