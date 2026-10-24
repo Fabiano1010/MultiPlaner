@@ -1,9 +1,9 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Rooms
 <div class="header">
-    <button type="button" class="action-button goback-btn" title="Back" @onclick="OnBack">
-        <img src="_content/MultiPlanerSharedUI/images/arrow-left.svg" alt="Back" class="action-button-img">
-    </button>
     <div class="date-controls-div">
+        <button type="button" class="action-button goback-btn" title="Back" @onclick="OnBack">
+            <img src="_content/MultiPlanerSharedUI/images/arrow-left.svg" alt="Back" class="action-button-img">
+        </button>
         <div class="date-controls">
             <div class="date-controls-date">@CurrentMonth.Year</div>
             <div class="date-controls-date">@CurrentMonth.ToString("MMMM")</div>
@@ -15,7 +15,6 @@
             </div>
             <div class="action-button" @onclick="OnNextMonth"><img src="_content/MultiPlanerSharedUI/images/chevron-right.svg" alt="" class="action-button-img"></div>
         </div>
-
     </div>
     <div class="calendar-data">
         <div class="calendar-data-name">@Room.Name</div>

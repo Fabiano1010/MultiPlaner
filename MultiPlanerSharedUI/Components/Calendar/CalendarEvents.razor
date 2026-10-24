@@ -1,8 +1,6 @@
 ﻿@using MultiPlanerSharedModels.Models
 @using MultiPlanerSharedUI.Components.Events
 
-
-
 <div class="events-container">
     <div class="events-controls">
         <button type="button" class="action-button events-toggle"
@@ -71,7 +69,7 @@
     private Event? SelectedEvent = null;
     private bool ShowDetails = false;
     
-    private bool _collapsed;
+    private bool _collapsed = true;
 
     [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
 

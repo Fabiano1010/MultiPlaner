@@ -13,6 +13,7 @@
     --font-size-small: 12px;
     --font-size-medium: 18px;
     --font-size-large: 24px;
+    --font-size-xl: 30px;
     --sidebar-width: 60px;
     --sidebar-width-open: 150px;
     --selected-color: #43d5ff;
@@ -222,10 +223,7 @@ html, body{
     top: 0.5rem;
 }
 
-.action-buttons{
-    display: flex;
-    gap: 0.5rem
-}
+
 .action-button-img{
     width: 25px;
     height: 25px;
@@ -242,6 +240,7 @@ html, body{
     user-select: none;
     border:none;
     outline:none;
+    background: none;
 }
 .action-button:hover{
     background-color: var(--color-secondary);
