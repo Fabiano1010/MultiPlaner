@@ -1,13 +1,44 @@
 ﻿
 @page "/calendar/{RoomId:int}"
 @using MultiPlanerSharedUI.Components.Calendar
-@using MultiPlanerSharedUI.Components.Events
+@inject NavigationManager Nav
 
-<CalendarHeader /> 
-<CalendarGrid />
-<CalendarEvents />
+<CalendarHeader 
+    CurrentMonth="_month"
+    OnPreviousMonth="PreviousMonth"
+    OnNextMonth="NextMonth"
+    GoToToday="GoToToday"
+    OnBack="GoBack"
+    /> 
+    <CalendarGrid 
+        CurrentMonth="_month"
+        OnDaySelected="d => _selectedDate = d"
+        IsAddingEvent="_isAddingEvent"
+        />
+    <CalendarEvents 
+        CurrentMonth="_month"
+        SelectedDate="_selectedDate"
+        IsAddingEvent="_isAddingEvent"
+        OnAddEvent="() => _isAddingEvent = !_isAddingEvent"
+        />
 
 
 @code {
     [Parameter] public int RoomId { get; set; }
+    private DateTime _month = new(DateTime.Now.Year, DateTime.Now.Month, 1);
+    private DateTime? _selectedDate = DateTime.Today;
+    private bool _isAddingEvent;
+    
+    private void PreviousMonth() => _month = _month.AddMonths(-1);
+    private void NextMonth() => _month = _month.AddMonths(1);
+
+    private void GoToToday() {
+        _month=new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        _selectedDate = DateTime.Today;
+    }
+
+    private void GoBack() => Nav.NavigateTo("/Rooms");
+    
+
+
 }

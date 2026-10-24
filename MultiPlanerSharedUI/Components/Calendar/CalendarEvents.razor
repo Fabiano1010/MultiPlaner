@@ -1,10 +1,8 @@
 ﻿@using MultiPlanerSharedModels.Services
 @using MultiPlanerSharedModels.Models
 @using MultiPlanerSharedUI.Components.Events
-@using MultiPlanerSharedUI.Components.Calendar
-@using MultiPlanerSharedUI.Components.Layout
 
-@inject EventService EventApi
+
 
 <div class="events-container">
     <div class="events-controls">
@@ -70,10 +68,10 @@
 
     private async Task LoadEvents()
     {
-        if (SelectedDate.HasValue)
-            Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
-        else
-            Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
+        // if (SelectedDate.HasValue)
+        //     Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
+        // else
+        //     Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
     }
 
     private void OpenDetails(Event ev)
