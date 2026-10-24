@@ -1,9 +1,15 @@
-﻿.calendar-day-name-container {
+﻿.calendar-page {           
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;        
+}
+
+.calendar-day-name-container {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.25rem;
     padding: 0 0.5vw;
-    scrollbar-gutter: stable;   /* zob. uwaga o paskach przewijania */
+    scrollbar-gutter: stable;   
 }
 
 .calendar-grid-wrapper {
@@ -11,10 +17,12 @@
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.25rem;
     padding: 0 0.5vw 10px;
-    height: 65vh;
+    height: auto;
     overflow-y: auto;
     align-content: start;
     scrollbar-gutter: stable;
+    min-height: 0;
+    flex: 1;
 }
 
 .calendar-day-name {
@@ -112,16 +120,31 @@
     display: flex;
     flex-direction: column;
     padding: 1vh 0 0 1vw;
-    justify-content: center;
     align-items: center;
     width: 99%;
-    gap: 10px;
     border-top: 1px solid var(--color-primary);
-    height: 25vh;
-    max-height: 190px;
     box-sizing: border-box;
-    overflow: hidden;
 }
+
+.events-collapse {
+    display: grid;
+    grid-template-rows: 1fr;
+    width: 100%;
+    transition: grid-template-rows 0.3s ease, opacity 0.2s ease;
+}
+
+.events-collapse.collapsed {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition: grid-template-rows 0.3s ease, opacity 0.2s ease, visibility 0s 0.3s;
+}
+
+.events-collapse-inner {
+    overflow: hidden;
+    min-height: 0;
+}
+
 .events-controls {
     display: flex;
     flex-direction: row;
@@ -138,6 +161,7 @@
 .events-controls-div{
     width: 40vw;
     align-items: center;
+    padding-bottom: 5px;
 }
 .events-control-date{
     font-size: 1.7rem;
@@ -193,13 +217,17 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.2rem;
     width: 100%;
-    height: 75%;
-    overflow-y: scroll;
-    padding: 10px;
-
+    max-height: 15vh;
+    overflow-y: auto;
+    padding-top: 10px;
+    padding-bottom: 5px;
 }
+.events-toggle-icon { transition: transform 0.25s ease; }
+.events-toggle-icon.down { transform: rotate(-90deg); } 
+.events-toggle-icon.up   { transform: rotate(90deg); }
+
 .events-item{
     display: flex;
     flex-direction: row;
@@ -278,4 +306,6 @@
     justify-content: flex-end;
     margin-top: 0.5rem;
 }
-
+.goback-btn{
+    background: none;
+}

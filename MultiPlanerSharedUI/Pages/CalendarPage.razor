@@ -9,24 +9,26 @@
 @if (_isLoading) {
     <LoadingSpinner />
 }
-else if (!string.IsNullOrEmpty(ErrorMessage)) {
-    <div class="error-message">@ErrorMessage</div>
+else if (!string.IsNullOrEmpty(_errorMessage)) {
+    <div class="error-message">@_errorMessage</div>
     <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
 }
 else if (_roomData is not null) {
-    <CalendarHeader Room="_roomData"
-                    CurrentMonth="_month"
-                    OnPreviousMonth="PreviousMonth"
-                    OnNextMonth="NextMonth"
-                    GoToToday="GoToToday"
-                    OnBack="GoBack" />
-    <CalendarGrid CurrentMonth="_month"
-                  OnDaySelected="d => _selectedDate = d"
-                  IsAddingEvent="_isAddingEvent" />
-    <CalendarEvents CurrentMonth="_month"
-                    SelectedDate="_selectedDate"
-                    IsAddingEvent="_isAddingEvent"
-                    OnAddEvent="() => _isAddingEvent = !_isAddingEvent" />
+    <div class="calendar-page">
+        <CalendarHeader Room="_roomData"
+                        CurrentMonth="_month"
+                        OnPreviousMonth="PreviousMonth"
+                        OnNextMonth="NextMonth"
+                        GoToToday="GoToToday"
+                        OnBack="GoBack" />
+        <CalendarGrid CurrentMonth="_month"
+                      OnDaySelected="d => _selectedDate = d"
+                      IsAddingEvent="_isAddingEvent" />
+        <CalendarEvents CurrentMonth="_month"
+                        SelectedDate="_selectedDate"
+                        IsAddingEvent="_isAddingEvent"
+                        OnAddEvent="() => _isAddingEvent = !_isAddingEvent" />
+    </div>
 }
 
 @code {
@@ -36,7 +38,7 @@ else if (_roomData is not null) {
     private DateTime? _selectedDate = DateTime.Today;
     private bool _isAddingEvent;
     private bool _isLoading = true;
-    private string? ErrorMessage;
+    private string? _errorMessage;
     private RoomResponse? _roomData;
     private int _loadedRoomId;
 
@@ -50,21 +52,21 @@ else if (_roomData is not null) {
     private async Task LoadRoomAsync()
     {
         _isLoading = true;
-        ErrorMessage = null;
+        _errorMessage = null;
         _roomData = null;
 
         try {
             _roomData = await Api.GetRoomAsync(RoomId);
-            if (_roomData is null) ErrorMessage = "Calendar not found.";
+            if (_roomData is null) _errorMessage = "Calendar not found.";
         }
         catch (ApiException e) when (e.Status is 403 or 404) {
-            ErrorMessage = "Calendar not found or you don't have access.";
+            _errorMessage = "Calendar not found or you don't have access.";
         }
         catch (ApiException e) {
-            ErrorMessage = e.Message;
+            _errorMessage = e.Message;
         }
         catch (HttpRequestException e) {
-            ErrorMessage = "Cannot reach the server. " + e.Message;
+            _errorMessage = "Cannot reach the server. " + e.Message;
         }
         finally {
             _isLoading = false;

@@ -240,6 +240,8 @@ html, body{
     justify-content: center;
     align-items: center;
     user-select: none;
+    border:none;
+    outline:none;
 }
 .action-button:hover{
     background-color: var(--color-secondary);
@@ -285,6 +287,7 @@ html, body{
     padding: 0.5rem 1.5rem;
     border-radius: var(--border-radius);
     border: none;
+    outline: none;
     cursor: pointer;
     font-family: var(--font-sans);
     font-size: var(--font-size-medium);
