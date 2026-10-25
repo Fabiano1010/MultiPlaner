@@ -22,6 +22,7 @@
     align-items: center;
     gap: 0.75rem;
     min-width: 0;
+    justify-content: space-between;
 }
 .date-controls {
     display: flex;
@@ -32,6 +33,7 @@
 .date-controls-date{
     text-transform: Capitalize;
     font-size: 1.2rem;
+    width: 100px;
 }
 .calendar-data {
     justify-self: center;
