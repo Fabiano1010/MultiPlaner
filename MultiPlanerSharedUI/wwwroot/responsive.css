@@ -550,3 +550,18 @@
         transition: none;
     }
 }
+
+
+@media (max-width: 800px) {
+    .header {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "left right"
+            "title title";
+        height: auto;
+        row-gap: 0.5rem;
+    }
+    .date-controls-div { grid-area: left; }
+    .action-buttons    { grid-area: right; }
+    .calendar-data     { grid-area: title; }
+}

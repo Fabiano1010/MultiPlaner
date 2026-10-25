@@ -1,13 +1,85 @@
-﻿
-@page "/calendar/{RoomId:int}"
+﻿@page "/calendar/{RoomId:int}"
+@using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Calendar
-@using MultiPlanerSharedUI.Components.Events
+@layout MainLayout
+@attribute [Authorize]
+@inject NavigationManager Nav
+@inject ApiClient Api
 
-<CalendarHeader /> 
-<CalendarGrid />
-<CalendarEvents />
-
+@if (_isLoading) {
+    <LoadingSpinner />
+}
+else if (!string.IsNullOrEmpty(_errorMessage)) {
+    <div class="error-message">@_errorMessage</div>
+    <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
+}
+else if (_roomData is not null) {
+    <div class="calendar-page">
+        <CalendarHeader Room="_roomData"
+                        CurrentMonth="_month"
+                        OnPreviousMonth="PreviousMonth"
+                        OnNextMonth="NextMonth"
+                        GoToToday="GoToToday"
+                        OnBack="GoBack" />
+        <CalendarGrid CurrentMonth="_month"
+                      OnDaySelected="d => _selectedDate = d"
+                      IsAddingEvent="_isAddingEvent" />
+        <CalendarEvents CurrentMonth="_month"
+                        SelectedDate="_selectedDate"
+                        IsAddingEvent="_isAddingEvent"
+                        OnAddEvent="() => _isAddingEvent = !_isAddingEvent" />
+    </div>
+}
 
 @code {
     [Parameter] public int RoomId { get; set; }
+
+    private DateTime _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? _selectedDate = DateTime.Today;
+    private bool _isAddingEvent;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private RoomResponse? _roomData;
+    private int _loadedRoomId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedRoomId == RoomId) return; 
+        _loadedRoomId = RoomId;
+        await LoadRoomAsync();
+    }
+
+    private async Task LoadRoomAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        _roomData = null;
+
+        try {
+            _roomData = await Api.GetRoomAsync(RoomId);
+            if (_roomData is null) _errorMessage = "Calendar not found.";
+        }
+        catch (ApiException e) when (e.Status is 403 or 404) {
+            _errorMessage = "Calendar not found or you don't have access.";
+        }
+        catch (ApiException e) {
+            _errorMessage = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _errorMessage = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _isLoading = false;
+        }
+    }
+
+    private void PreviousMonth() => _month = _month.AddMonths(-1);
+    private void NextMonth() => _month = _month.AddMonths(1);
+
+    private void GoToToday() {
+        _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _selectedDate = DateTime.Today;
+    }
+
+    private void GoBack() => Nav.NavigateTo("/Rooms");
 }

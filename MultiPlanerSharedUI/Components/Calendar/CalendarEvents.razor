@@ -1,19 +1,21 @@
-﻿@using MultiPlanerSharedModels.Services
-@using MultiPlanerSharedModels.Models
+﻿@using MultiPlanerSharedModels.Models
 @using MultiPlanerSharedUI.Components.Events
-@using MultiPlanerSharedUI.Components.Calendar
-@using MultiPlanerSharedUI.Components.Layout
-
-@inject EventService EventApi
 
 <div class="events-container">
     <div class="events-controls">
+        <button type="button" class="action-button events-toggle"
+                aria-expanded="@(!_collapsed)"
+                title="@(_collapsed ? "Show events" : "Hide events")"
+                @onclick="ToggleCollapsed">
+            <img src="_content/MultiPlanerSharedUI/images/chevron-left.svg" alt=""
+                 class="action-button-img events-toggle-icon @(_collapsed ? "up" : "down")">
+        </button>
         <div class="events-controls-div">
             <div class="events-control-date">
                 Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd.MM.yyyy") : DateTime.Today.ToString("dd.MM.yyyy"))
             </div>
             <div class="events-buttons-container">
-                <div class="events-button @(IsAddingEvent ? "active" : "")" 
+                <div class="events-button @(IsAddingEvent ? "active" : "")"
                      @onclick="OnAddEvent">
                     <img src="/_content/MultiPlanerSharedUI/images/plus.svg" alt="" class="plus-icon @(IsAddingEvent ? "plus-icon-active" : "")">
                     <div class="events-button-name">Add Event</div>
@@ -28,23 +30,27 @@
             <img src="_content/MultiPlanerSharedUI/images/message-square.svg" alt="" class="action-button-img">
         </div>
     </div>
-    <div class="events-list">
-        @if (Events.Count == 0)
-        {
-            <div class="events-empty">Nothing is happening here :c</div>
-        }
-        @foreach (var ev in Events)
-        {
-            <div class="events-item" 
-                 style="border-left: 5px solid #@ev.Color"
-                 @onclick="() => OpenDetails(ev)">
-                <div class="events-item-name">@ev.Title</div>
-                <div class="events-item-user">@ev.User</div>
-                <div class="events-item-data">
-                    @ev.StartDate.ToString("dd.MM.yyyy") - @ev.EndDate.ToString("dd.MM.yyyy")
-                </div>
+    <div class="events-collapse @(_collapsed ? "collapsed" : "")">
+        <div class="events-collapse-inner">
+            <div class="events-list">
+                @if (Events.Count == 0)
+                {
+                    <div class="events-empty">Nothing is happening here :c</div>
+                }
+                @foreach (var ev in Events)
+                {
+                    <div class="events-item" 
+                         style="border-left: 5px solid #@ev.Color"
+                         @onclick="() => OpenDetails(ev)">
+                        <div class="events-item-name">@ev.Title</div>
+                        <div class="events-item-user">@ev.User</div>
+                        <div class="events-item-data">
+                            @ev.StartDate.ToString("dd.MM.yyyy") - @ev.EndDate.ToString("dd.MM.yyyy")
+                        </div>
+                    </div>
+                }
             </div>
-        }
+        </div>
     </div>
 </div>
 
@@ -62,6 +68,16 @@
     private List<Event> Events = new();
     private Event? SelectedEvent = null;
     private bool ShowDetails = false;
+    
+    private bool _collapsed = true;
+
+    [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
+
+    private async Task ToggleCollapsed()
+    {
+        _collapsed = !_collapsed;
+        await OnCollapsedChanged.InvokeAsync(_collapsed);
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -70,10 +86,10 @@
 
     private async Task LoadEvents()
     {
-        if (SelectedDate.HasValue)
-            Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
-        else
-            Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
+        // if (SelectedDate.HasValue)
+        //     Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
+        // else
+        //     Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
     }
 
     private void OpenDetails(Event ev)
