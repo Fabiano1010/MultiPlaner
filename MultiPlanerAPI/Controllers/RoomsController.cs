@@ -11,7 +11,7 @@ namespace MultiPlanerAPI.Controllers;
 [Route("api/rooms")]
 [Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class RoomsController(RoomService rooms) : ControllerBase
+public sealed class RoomsController(RoomService rooms, RoomMembershipService membership) : ControllerBase
 {
     [HttpPost, Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
     [ProducesResponseType<RoomResponse>(StatusCodes.Status201Created)]
@@ -61,6 +61,15 @@ public sealed class RoomsController(RoomService rooms) : ControllerBase
     public async Task<IActionResult> Archive(int roomId, CancellationToken cancellationToken)
     {
         await rooms.ArchiveAsync(roomId, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{roomId:int}/members/me")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Leave(int roomId, CancellationToken cancellationToken)
+    {
+        await membership.LeaveAsync(roomId, cancellationToken);
         return NoContent();
     }
 

@@ -15,7 +15,7 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var guestId = actor.GuestSessionId;
         var result = await (from member in db.RoomMembers.AsNoTracking()
             join room in db.Rooms.AsNoTracking() on member.RoomId equals room.Id
-            where room.Id == roomId &&
+            where room.Id == roomId && member.LeftAtUtc == null &&
                   (userId != null && member.UserId == userId ||
                    guestId != null && member.GuestSessionId == guestId)
             select new { Room = room, Member = member })

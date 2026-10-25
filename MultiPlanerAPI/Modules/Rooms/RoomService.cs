@@ -97,7 +97,7 @@ public sealed class RoomService(
         var rooms = await (from member in db.RoomMembers.AsNoTracking()
             join room in db.Rooms.AsNoTracking() on member.RoomId equals room.Id
             join owner in db.Users.AsNoTracking() on room.OwnerUserId equals owner.Id
-            where (userId != null && member.UserId == userId ||
+            where member.LeftAtUtc == null && (userId != null && member.UserId == userId ||
                    guestId != null && member.GuestSessionId == guestId) &&
                   (status == "active" && room.ArchivedAtUtc == null && room.ExpiresAtUtc > now ||
                    status == "archived" && (room.ArchivedAtUtc != null || room.ArchiveOnExpiry && room.ExpiresAtUtc <= now) ||
@@ -174,7 +174,7 @@ public sealed class RoomService(
     {
         var (room, _) = await access.RequireMemberAsync(roomId, cancellationToken);
         access.RequireReadable(room);
-        var query = db.RoomMembers.AsNoTracking().Where(m => m.RoomId == roomId);
+        var query = db.RoomMembers.AsNoTracking().Where(m => m.RoomId == roomId && m.LeftAtUtc == null);
         var count = await query.CountAsync(cancellationToken);
         var offset = (long)(page.Page - 1) * page.PageSize;
         if (offset > int.MaxValue)

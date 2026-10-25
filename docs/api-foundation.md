@@ -1,5 +1,9 @@
 # Fundament API i etapy 1–3
 
+Kontynuacja: [etap 4 — wydarzenia i opuszczanie pokoju](api-stage-4.md).
+Nowe instalacje stosują całą historię migracji; istniejące bazy otrzymują kolejne
+migracje bez resetu.
+
 ## Zakres
 
 Wdrożone są podstawy API, model SQL Server, konta/sesje, reset hasła,

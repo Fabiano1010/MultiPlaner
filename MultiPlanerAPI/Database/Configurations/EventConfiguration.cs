@@ -18,6 +18,7 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<CalendarEvent>
         b.Property(x => x.Title).HasMaxLength(128).IsRequired();
         b.Property(x => x.Description).HasMaxLength(4000);
         b.Property(x => x.Color).HasMaxLength(6).IsUnicode(false);
+        b.Property(x => x.TimeZoneId).HasMaxLength(128);
         b.Property(x => x.Category).HasConversion<string>().HasMaxLength(32);
         b.HasOne<Room>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.NoAction);
         b.HasOne<RoomMember>().WithMany().HasForeignKey(x => new { x.AuthorMemberId, x.RoomId })
@@ -25,6 +26,7 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<CalendarEvent>
         b.HasIndex(x => new { x.RoomId, x.StartsAtUtc, x.EndsAtUtc });
         b.HasIndex(x => new { x.RoomId, x.Category });
         b.HasIndex(x => new { x.RoomId, x.IsPinned });
+        b.HasIndex(x => new { x.RoomId, x.AuthorMemberId, x.StartsAtUtc });
     }
 }
 

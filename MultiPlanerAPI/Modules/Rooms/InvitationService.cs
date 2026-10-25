@@ -109,17 +109,6 @@ public sealed class InvitationService(
         var userId = actor.UserId;
         var guestId = actor.GuestSessionId;
         var (invitation, room) = await FindUsableAsync(token, cancellationToken);
-        var existing = await db.RoomMembers.AsNoTracking().FirstOrDefaultAsync(m =>
-            m.RoomId == room.Id &&
-            (userId != null && m.UserId == userId || guestId != null && m.GuestSessionId == guestId),
-            cancellationToken);
-        if (existing is not null)
-        {
-            return RoomService.ToResponse(room, existing, clock.GetUtcNow(),
-                await db.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName)
-                    .SingleAsync(cancellationToken));
-        }
-
         var displayName = await GetDisplayNameAsync(userId, guestId, request, cancellationToken);
         var newGuestId = userId is null && guestId is null ? Guid.NewGuid() : (Guid?)null;
         var strategy = db.Database.CreateExecutionStrategy();
@@ -171,19 +160,24 @@ public sealed class InvitationService(
     {
         await using var operationDb = new AppDbContext(dbOptions, clock);
         await using var transaction = await operationDb.Database.BeginTransactionAsync(cancellationToken);
-        var existingMember = await operationDb.RoomMembers.AsNoTracking().FirstOrDefaultAsync(m =>
+        room = await RoomMutationService.LockAsync(operationDb, room.Id, cancellationToken);
+        access.RequireActive(room);
+        var existingMember = await operationDb.RoomMembers.FirstOrDefaultAsync(m =>
             m.RoomId == room.Id &&
             (userId != null && m.UserId == userId ||
              guestId != null && m.GuestSessionId == guestId ||
              newGuestId != null && m.GuestSessionId == newGuestId), cancellationToken);
-        if (existingMember is not null)
+        if (existingMember is { LeftAtUtc: null })
         {
-            return RoomService.ToResponse(room, existingMember, clock.GetUtcNow());
+            return RoomService.ToResponse(room, existingMember, clock.GetUtcNow(),
+                await operationDb.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName)
+                    .SingleAsync(cancellationToken));
         }
 
         var now = clock.GetUtcNow();
         await ConsumeInvitationAsync(operationDb, invitation.Id, now, cancellationToken);
-        var member = AddParticipant(operationDb, room.Id, userId, guestId, newGuestId, displayName, now);
+        var member = existingMember ?? AddParticipant(operationDb, room.Id, userId, guestId, newGuestId, displayName, now);
+        member.LeftAtUtc = null;
         await operationDb.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return RoomService.ToResponse(room, member, clock.GetUtcNow(),
