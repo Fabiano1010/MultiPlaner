@@ -120,6 +120,7 @@ html, body{
     gap: 0.5rem;
     min-height: 100px;
     flex-shrink: 0;
+    cursor: pointer;
 }
 .user-img-div{
     aspect-ratio: 1;
@@ -129,6 +130,7 @@ html, body{
     display: flex;
     justify-content: center;
     align-items: center;
+   
     
 }
 .user-img{
