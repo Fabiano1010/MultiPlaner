@@ -1,12 +1,17 @@
 # MultiPlaner - Dev Guide
 
-## API — fundament i etapy 1–3
+## API — fundament i etapy 1–4
 
 Serwer ma schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,
 reset hasła przez SMTP, profil, cookies z CSRF, pokoje, prywatne foldery,
 okładki, archiwizację, zaproszenia i dołączanie gości.
 Instrukcja przygotowania **pustej bazy**, kontrakty i uruchamianie testów:
 [Fundament API](docs/api-foundation.md).
+
+Etap 4 dodaje wydarzenia pokoju, globalną listę wydarzeń, priorytet niezależny
+od przypięcia, wydarzenia całodniowe i opuszczanie pokoju z zachowaniem autorstwa.
+Kontrakty, filtry, reguły czasu i migracja aktualizująca istniejącą bazę:
+[Wydarzenia i członkostwo — etap 4](docs/api-stage-4.md).
 
 Sam backend nie wymaga workloadu MAUI. Użyj filtra rozwiązania:
 

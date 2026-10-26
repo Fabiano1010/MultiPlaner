@@ -1,6 +1,6 @@
-namespace MultiPlanerAPI.Models;
+using MultiPlanerSharedModels.Contracts.Events;
 
-public enum EventCategory { Meeting, Training, Social, BusinessTrip, Leave, Shift }
+namespace MultiPlanerAPI.Models;
 
 public sealed class CalendarEvent : TrackedEntity
 {
@@ -12,7 +12,11 @@ public sealed class CalendarEvent : TrackedEntity
     public DateTimeOffset StartsAtUtc { get; set; }
     public DateTimeOffset EndsAtUtc { get; set; }
     public bool IsAllDay { get; set; }
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDateExclusive { get; set; }
+    public string? TimeZoneId { get; set; }
     public EventCategory Category { get; set; }
     public string? Color { get; set; }
     public bool IsPinned { get; set; }
+    public bool IsHighPriority { get; set; }
 }

@@ -10,6 +10,7 @@ using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Modules.Rooms;
 using MultiPlanerAPI.Modules.Users;
+using MultiPlanerAPI.Modules.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,6 +88,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5)));
 builder.Services.AddUserSessions();
 builder.Services.AddScoped<RoomService>();
+builder.Services.AddScoped<RoomMutationService>();
+builder.Services.AddScoped<RoomMembershipService>();
+builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<RoomAccessService>();
 builder.Services.AddScoped<RoomArchivalService>();
 builder.Services.AddHostedService<RoomArchivalWorker>();
