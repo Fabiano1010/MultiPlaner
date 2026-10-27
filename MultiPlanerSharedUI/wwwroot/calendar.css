@@ -1,7 +1,7 @@
 ﻿.calendar-page {           
     display: flex;
     flex-direction: column;
-    height: 100dvh;        
+    height: 100dvh;
 }
 
 .header {
@@ -212,8 +212,8 @@
 }
 
 .event-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: #FF5722;
 }

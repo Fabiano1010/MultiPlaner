@@ -1,38 +1,35 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
-@using MultiPlanerSharedUI.Services
 
 <div class="calendar">
     <div class="calendar-day-name-container">
-        @foreach (var day in _dayNames)
-        {
+        @foreach (var day in _dayNames) {
             <div class="calendar-day-name">@day</div>
         }
     </div>
+</div>
+<div class="calendar-grid-wrapper">
+    @foreach (var cell in _days)
+    {
+        var date = cell.Date;
+        var colors = DotsFor(date);
 
-    <div class="calendar-grid-wrapper">
-        @foreach (var cell in _days)
-        {
-            var date = cell.Date;
-            var colors = DotsFor(date);
-
-            <div @key="date" class="@CellClass(cell)" @onclick="() => OnDayClicked.InvokeAsync(date)">
-                <div class="day-number-div">
-                    <span class="day-number">@date.Day</span>
-                </div>
-
-                <div class="dots">
-                    @foreach (var color in colors.Take(MaxDots))
-                    {
-                        <div class="event-dot" style="background-color: @color;"></div>
-                    }
-                    @if (colors.Count > MaxDots)
-                    {
-                        <span class="dots-more">+@(colors.Count - MaxDots)</span>
-                    }
-                </div>
+        <div @key="date" class="@CellClass(cell)" @onclick="() => OnDayClicked.InvokeAsync(date)">
+            <div class="day-number-div">
+                <span class="day-number">@date.Day</span>
             </div>
-        }
-    </div>
+
+            <div class="dots">
+                @foreach (var color in colors.Take(MaxDots))
+                {
+                    <div class="event-dot" style="background-color: @color;"></div>
+                }
+                @if (colors.Count > MaxDots)
+                {
+                    <span class="dots-more">+@(colors.Count - MaxDots)</span>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -47,45 +44,53 @@
     private sealed record Cell(DateOnly Date, bool IsCurrentMonth);
 
     private const int MaxDots = 6;
-    private static readonly string[] _dayNames = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+    private static readonly string[] _dayNames =
+        { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
     private readonly List<Cell> _days = new();
     private DateOnly _generatedFor;
     private IReadOnlyList<EventResponse>? _eventsSeen;
     private Dictionary<DateOnly, List<string>> _dots = new();
 
-    protected override void OnParametersSet() {
+    protected override void OnParametersSet()
+    {
         var month = new DateOnly(CurrentMonth.Year, CurrentMonth.Month, 1);
         var regenerated = month != _generatedFor;
-        if (regenerated) {
+        if (regenerated)
+        {
             _generatedFor = month;
             GenerateDays(month);
         }
 
-        if (regenerated || !ReferenceEquals(_eventsSeen, Events)) {
+        if (regenerated || !ReferenceEquals(_eventsSeen, Events))
+        {
             _eventsSeen = Events;
             BuildDots();
         }
     }
 
-    private void GenerateDays(DateOnly month) {
+    private void GenerateDays(DateOnly month)
+    {
         _days.Clear();
         var (start, endExclusive) = CalendarRange.Grid(CurrentMonth);
         for (var d = start; d < endExclusive; d = d.AddDays(1))
             _days.Add(new Cell(d, d.Month == month.Month));
     }
 
-    private void BuildDots() {
+    private void BuildDots()
+    {
         var gridStart = _days[0].Date;
         var gridEnd = _days[^1].Date;
         var byDay = new Dictionary<DateOnly, List<EventResponse>>();
 
-        foreach (var e in Events) {
+        foreach (var e in Events)
+        {
             var (first, last) = EventDays.Range(e);
             var from = first < gridStart ? gridStart : first;
             var to = last > gridEnd ? gridEnd : last;
 
-            for (var d = from; d <= to; d = d.AddDays(1)) {
+            for (var d = from; d <= to; d = d.AddDays(1))
+            {
                 if (!byDay.TryGetValue(d, out var list)) byDay[d] = list = new();
                 list.Add(e);
             }
@@ -104,7 +109,8 @@
     private IReadOnlyList<string> DotsFor(DateOnly d) =>
         _dots.TryGetValue(d, out var l) ? l : Array.Empty<string>();
 
-    private string CellClass(Cell c) {
+    private string CellClass(Cell c)
+    {
         var d = c.Date;
         var isStart = RangeStart == d;
         var isEnd = RangeEnd == d;
