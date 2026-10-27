@@ -54,6 +54,7 @@
 
     protected override void OnParametersSet()
     {
+        Console.WriteLine($"Grid OnParametersSet: events={Events.Count}, sameRef={ReferenceEquals(_eventsSeen, Events)}");
         var month = new DateOnly(CurrentMonth.Year, CurrentMonth.Month, 1);
         var regenerated = month != _generatedFor;
         if (regenerated)
@@ -79,8 +80,9 @@
 
     private void BuildDots()
     {
+        Console.WriteLine($"BuildDots: events={Events.Count}, days={_days.Count}");
         var gridStart = _days[0].Date;
-        var gridEnd = _days[^1].Date;
+        var gridEnd = _days[1].Date;
         var byDay = new Dictionary<DateOnly, List<EventResponse>>();
 
         foreach (var e in Events)
@@ -104,6 +106,7 @@
                 .ThenBy(e => e.StartsAtUtc)
                 .Select(e => "#" + e.Color)
                 .ToList());
+        Console.WriteLine(_dots);
     }
 
     private IReadOnlyList<string> DotsFor(DateOnly d) =>
@@ -124,6 +127,7 @@
         if (isStart) cls += " range-start";
         if (isEnd) cls += " range-end";
         if (d.DayOfWeek == DayOfWeek.Sunday) cls += " sunday";
+        if (d.DayOfWeek == DayOfWeek.Saturday) cls += " saturday";
         if (d == DateOnly.FromDateTime(DateTime.Today)) cls += " today";
         return cls;
     }

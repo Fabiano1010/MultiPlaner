@@ -31,6 +31,7 @@
         <CalendarGrid CurrentMonth="_month"
                       IsAddingEvent="_isAddingEvent"
                       SelectedDate="_selectedDate"
+                      Events="_events"
                       RangeStart="_rangeStart"
                       RangeEnd="_rangeEnd"
                       OnDayClicked="HandleDayClicked"/>
@@ -38,6 +39,7 @@
                         SelectedDate="_selectedDate"
                         OnAddEvent="ToggleAdding"
                         IsAddingEvent="_isAddingEvent"
+                        Events="_events"
         />
 
         @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null) {
@@ -187,10 +189,11 @@
                 var url = $"api/rooms/{RoomId}/events?from={from}&to={to}&status=active&page={page}&pageSize={pageSize}";
                 var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
                 if (result is null || result.Items.Count == 0) break;
-
+                Console.WriteLine(url);    
                 all.AddRange(result.Items);
                 if (all.Count >= result.TotalCount) break;
             }
+            
             Console.WriteLine($"events loaded: {all.Count}, cancelled: {ct.IsCancellationRequested}, room null: {_roomData is null}");
             _events = all;
             

@@ -170,6 +170,9 @@
 .calendar-cell.sunday{
     background: #FFDDDD;
 }
+.calendar-cell.saturday{
+    background: #efefef;
+}
 
 .calendar-cell:hover {
     background: var(--color-primary);
