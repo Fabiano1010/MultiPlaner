@@ -82,7 +82,7 @@
     {
         Console.WriteLine($"BuildDots: events={Events.Count}, days={_days.Count}");
         var gridStart = _days[0].Date;
-        var gridEnd = _days[1].Date;
+        var gridEnd = _days[^1].Date;
         var byDay = new Dictionary<DateOnly, List<EventResponse>>();
 
         foreach (var e in Events)

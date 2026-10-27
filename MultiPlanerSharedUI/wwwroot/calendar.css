@@ -241,7 +241,6 @@
 .events-collapse {
     display: grid;
     grid-template-rows: 1fr;
-    height: 30%;
     width: 100%;
     transition: grid-template-rows 0.3s ease, opacity 0.2s ease;
 }

@@ -24,10 +24,10 @@
     
         <CalendarHeader Room="_roomData"
                         CurrentMonth="_month"
-                        OnPreviousMonth="PreviousMonth"
-                        OnNextMonth="NextMonth"
-                        GoToToday="GoToToday"
-                        OnBack="GoBack"/>
+                        OnPreviousMonth="() => SetMonthAsync(_month.AddMonths(-1))"
+                        OnNextMonth="() => SetMonthAsync(_month.AddMonths(1))"
+                        GoToToday="GoToTodayAsync"
+                        OnBack="GoBack" />
         <CalendarGrid CurrentMonth="_month"
                       IsAddingEvent="_isAddingEvent"
                       SelectedDate="_selectedDate"
@@ -77,7 +77,6 @@
         _loadedRoomId = RoomId;
         await LoadRoomAsync();
     }
-    protected override async Task OnInitializedAsync() { await LoadRoomAsync(); }
 
     private async Task LoadRoomAsync() {
         _isLoading = true;
@@ -100,18 +99,13 @@
         finally {
             _isLoading = false;
         }
+        if (_roomData is not null)
+            await LoadEventsAsync(); 
     }
-
-    private void PreviousMonth() {
-        _month = _month.AddMonths(-1);
-    }
-
-    private void NextMonth() {
-        _month = _month.AddMonths(1);
-    }
-
-    private void GoToToday() {
-        _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    
+    private async Task GoToTodayAsync()
+    {
+        await SetMonthAsync(DateTime.Today);
         _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     }
 
