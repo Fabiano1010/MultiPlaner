@@ -236,6 +236,9 @@
     width: 100%;
     border-top: 1px solid var(--color-primary);
     box-sizing: border-box;
+    background: var(--background-color);
+    z-index: 10000;
+    position: relative;
 }
 
 .events-collapse {

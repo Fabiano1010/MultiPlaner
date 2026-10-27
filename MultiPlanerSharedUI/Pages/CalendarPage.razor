@@ -184,12 +184,10 @@
                 var url = $"api/rooms/{RoomId}/events?from={from}&to={to}&status=active&page={page}&pageSize={pageSize}";
                 var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
                 if (result is null || result.Items.Count == 0) break;
-                Console.WriteLine(url);    
+                   
                 all.AddRange(result.Items);
                 if (all.Count >= result.TotalCount) break;
             }
-            
-            Console.WriteLine($"events loaded: {all.Count}, cancelled: {ct.IsCancellationRequested}, room null: {_roomData is null}");
             _events = all;
             
             if (ct.IsCancellationRequested) return;

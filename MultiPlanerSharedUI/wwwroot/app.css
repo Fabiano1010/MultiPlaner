@@ -8,6 +8,7 @@
     --color-background: #FFFFFF;
     --color-text: #000000;
     --color-text-reversed: #FFFFFF;
+    --background-color: #FFFFFF;
     --border-radius: 10px;
     --font-sans: 'Red Hat Display', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-size-small: 12px;
@@ -73,7 +74,7 @@ html, body{
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 100;
+    z-index: 100000;
     width: var(--sidebar-width);
     height: 100dvh;
     background-color: var(--color-secondary);
