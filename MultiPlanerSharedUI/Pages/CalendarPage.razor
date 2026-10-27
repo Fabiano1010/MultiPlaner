@@ -1,56 +1,82 @@
 ﻿@page "/calendar/{RoomId:int}"
-@using MultiPlanerSharedModels.Contracts.Rooms
-@using MultiPlanerSharedUI.Components.Calendar
 @layout MainLayout
 @attribute [Authorize]
 @inject NavigationManager Nav
 @inject ApiClient Api
+@implements IDisposable
+@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Calendar
+@using MultiPlanerSharedUI.Components.Events
+@using MultiPlanerSharedModels.Contracts.Common
 
-@if (_isLoading) {
-    <LoadingSpinner />
-}
-else if (!string.IsNullOrEmpty(_errorMessage)) {
-    <div class="error-message">@_errorMessage</div>
-    <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
-}
-else if (_roomData is not null) {
-    <div class="calendar-page">
+
+
+<div class="calendar-page" tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
+    @if (_isLoading) {
+        <LoadingSpinner/>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage)) {
+        <div class="error-message">@_errorMessage</div>
+        <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
+    }
+    else if (_roomData is not null) {
+    
         <CalendarHeader Room="_roomData"
                         CurrentMonth="_month"
                         OnPreviousMonth="PreviousMonth"
                         OnNextMonth="NextMonth"
                         GoToToday="GoToToday"
-                        OnBack="GoBack" />
+                        OnBack="GoBack"/>
         <CalendarGrid CurrentMonth="_month"
-                      OnDaySelected="d => _selectedDate = d"
-                      IsAddingEvent="_isAddingEvent" />
+                      IsAddingEvent="_isAddingEvent"
+                      SelectedDate="_selectedDate"
+                      RangeStart="_rangeStart"
+                      RangeEnd="_rangeEnd"
+                      OnDayClicked="HandleDayClicked"/>
         <CalendarEvents CurrentMonth="_month"
                         SelectedDate="_selectedDate"
+                        OnAddEvent="ToggleAdding"
                         IsAddingEvent="_isAddingEvent"
-                        OnAddEvent="() => _isAddingEvent = !_isAddingEvent" />
-    </div>
-}
+        />
 
+        @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null) {
+            <AddEventForm IsVisible="_showAddForm"
+                          RoomId="RoomId"
+                          RoomTimeZoneId="@_roomData.TimeZoneId"
+                          Start="_rangeStart.Value"
+                          End="_rangeEnd.Value"
+                          OnClose="CancelAdding"
+                          OnSaved="HandleEventSaved"/>
+        }
+
+   
+    }
+</div>
 @code {
     [Parameter] public int RoomId { get; set; }
 
     private DateTime _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
-    private DateTime? _selectedDate = DateTime.Today;
+    private DateOnly? _selectedDate = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly? _rangeStart, _rangeEnd;
     private bool _isAddingEvent;
     private bool _isLoading = true;
+    private bool _showAddForm;
     private string? _errorMessage;
-    private RoomResponse? _roomData;
+    private string? _eventsError;
     private int _loadedRoomId;
+    private ElementReference _pageRef;
+    private RoomResponse? _roomData;
+    private List<EventResponse> _events = new();
+    private CancellationTokenSource? _loadCts;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_loadedRoomId == RoomId) return; 
+    protected override async Task OnParametersSetAsync() {
+        if (_loadedRoomId == RoomId) return;
         _loadedRoomId = RoomId;
         await LoadRoomAsync();
     }
 
-    private async Task LoadRoomAsync()
-    {
+    private async Task LoadRoomAsync() {
         _isLoading = true;
         _errorMessage = null;
         _roomData = null;
@@ -73,13 +99,128 @@ else if (_roomData is not null) {
         }
     }
 
-    private void PreviousMonth() => _month = _month.AddMonths(-1);
-    private void NextMonth() => _month = _month.AddMonths(1);
+    private void PreviousMonth() {
+        _month = _month.AddMonths(-1);
+    }
+
+    private void NextMonth() {
+        _month = _month.AddMonths(1);
+    }
 
     private void GoToToday() {
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        _selectedDate = DateTime.Today;
+        _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     }
 
-    private void GoBack() => Nav.NavigateTo("/Rooms");
+    private void GoBack() {
+        Nav.NavigateTo("/Rooms");
+    }
+
+    private async Task ToggleAdding() {
+        if (_isAddingEvent) { CancelAdding(); return; }
+
+        _isAddingEvent = true;
+        _rangeStart = _rangeEnd = null;
+
+        try { await _pageRef.FocusAsync(); }
+        catch (InvalidOperationException) {  }
+    }
+
+    private void HandleDayClicked(DateOnly day) {
+        if (!_isAddingEvent) {
+            _selectedDate = day;
+            return;
+        }
+
+        if (_rangeStart is null) {
+            _rangeStart = day;
+            return;
+        }
+
+        var first = _rangeStart.Value;
+        (_rangeStart, _rangeEnd) = day < first ? (day, first) : (first, day);
+        _showAddForm = true;
+    }
+
+    private void CancelAdding() {
+        _isAddingEvent = false;
+        _showAddForm = false;
+        _rangeStart = _rangeEnd = null;
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e) {
+        if (e.Key == "Escape" && _isAddingEvent) CancelAdding();
+    }
+    
+
+    private async Task SetMonthAsync(DateTime month) {
+        _month = new DateTime(month.Year, month.Month, 1);
+        var (start, endExcl) = CalendarRange.Grid(_month);
+        if (_selectedDate is not { } d || d < start || d >= endExcl) {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            _selectedDate = today >= start && today < endExcl && today.Month == _month.Month
+                ? today
+                : DateOnly.FromDateTime(_month);
+        }
+
+        await LoadEventsAsync();
+    }
+
+    private async Task LoadEventsAsync() {
+        if (_roomData is null) return;
+
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = new CancellationTokenSource();
+        var ct = _loadCts.Token;
+
+        var (start, endExcl) = CalendarRange.Grid(_month);
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(_roomData.TimeZoneId);
+        var from = Uri.EscapeDataString(StartOfDayUtc(start, tz).ToString("O"));
+        var to = Uri.EscapeDataString(StartOfDayUtc(endExcl, tz).ToString("O"));
+
+        try {
+            const int pageSize = 100;
+            var all = new List<EventResponse>();
+
+            for (var page = 1; ; page++) {
+                var url = $"api/rooms/{RoomId}/events?from={from}&to={to}&status=active&page={page}&pageSize={pageSize}";
+                var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
+                if (result is null || result.Items.Count == 0) break;
+
+                all.AddRange(result.Items);
+                if (all.Count >= result.TotalCount) break;
+            }
+            Console.WriteLine($"events loaded: {all.Count}, cancelled: {ct.IsCancellationRequested}, room null: {_roomData is null}");
+            _events = all;
+            
+            if (ct.IsCancellationRequested) return;
+            _events = all;
+            _eventsError = null;
+        }
+        catch (OperationCanceledException) {
+        }
+        catch (ApiException e) {
+            _eventsError = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _eventsError = "Cannot load events. " + e.Message;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            _eventsError = "Unexpected response from the server.";
+        }
+    }
+    private static DateTimeOffset StartOfDayUtc(DateOnly day, TimeZoneInfo tz) {
+        var local = DateTime.SpecifyKind(day.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, tz), TimeSpan.Zero);
+    }
+
+    private async Task HandleEventSaved()  {
+        CancelAdding();
+        await LoadEventsAsync();
+    }
+
+    public void Dispose() { _loadCts?.Cancel(); _loadCts?.Dispose(); }
+
 }

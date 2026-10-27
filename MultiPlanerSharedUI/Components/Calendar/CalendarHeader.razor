@@ -9,11 +9,13 @@
             <div class="date-controls-date">@CurrentMonth.ToString("MMMM")</div>
         </div>
         <div class="date-move">
-            <div class="action-button" @onclick="OnPreviousMonth"><img src="_content/MultiPlanerSharedUI/images/chevron-left.svg" alt="" class="action-button-img"></div>
+            <div class="action-button" @onclick="OnPreviousMonth"><img
+                    src="_content/MultiPlanerSharedUI/images/chevron-left.svg" alt="" class="action-button-img"></div>
             <div class="date-controls-today " @onclick="GoToToday">
                 Today
             </div>
-            <div class="action-button" @onclick="OnNextMonth"><img src="_content/MultiPlanerSharedUI/images/chevron-right.svg" alt="" class="action-button-img"></div>
+            <div class="action-button" @onclick="OnNextMonth"><img
+                    src="_content/MultiPlanerSharedUI/images/chevron-right.svg" alt="" class="action-button-img"></div>
         </div>
     </div>
     <div class="calendar-data">
@@ -36,8 +38,9 @@
     </div>
 
 </div>
+
 @code{
-    [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter][EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public EventCallback OnNextMonth { get; set; }
     [Parameter] public EventCallback OnPreviousMonth { get; set; }

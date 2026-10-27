@@ -1,5 +1,5 @@
-﻿@using MultiPlanerSharedModels.Models
-
+﻿@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedUI.Services
 
 <div class="calendar">
     <div class="calendar-day-name-container">
@@ -8,132 +8,117 @@
             <div class="calendar-day-name">@day</div>
         }
     </div>
-</div>
-<div class="calendar-grid-wrapper">
-@foreach (var cell in _days)
-{
-    <div class="calendar-cell
-                @(!cell.IsCurrentMonth ? "other-month" : "")
-                @(cell.IsSelected ? "selected" : "")
-                @(cell.IsInRange ? "in-range" : "")
-                @(cell.IsRangeStart ? "range-start" : "")
-                @(cell.IsRangeEnd ? "range-end" : "")
-                @(cell.IsSunday ? "sunday" : "")
-                @(cell.IsToday ? "today" : "")"
-         @onclick="() => HandleDayClick(cell)">
-        <div class="day-number-div">
-            <span class="day-number">@cell.Day</span>
-        </div>
-       
-        <div class="dots">
-            @foreach (var color in cell.EventColors)
-            {
-                <div class="event-dot" style="background-color: @color;"></div>
-            }
-        </div>
 
+    <div class="calendar-grid-wrapper">
+        @foreach (var cell in _days)
+        {
+            var date = cell.Date;
+            var colors = DotsFor(date);
+
+            <div @key="date" class="@CellClass(cell)" @onclick="() => OnDayClicked.InvokeAsync(date)">
+                <div class="day-number-div">
+                    <span class="day-number">@date.Day</span>
+                </div>
+
+                <div class="dots">
+                    @foreach (var color in colors.Take(MaxDots))
+                    {
+                        <div class="event-dot" style="background-color: @color;"></div>
+                    }
+                    @if (colors.Count > MaxDots)
+                    {
+                        <span class="dots-more">+@(colors.Count - MaxDots)</span>
+                    }
+                </div>
+            </div>
+        }
     </div>
-}
-
 </div>
 
 @code {
     [Parameter] public DateTime CurrentMonth { get; set; }
-    [Parameter] public EventCallback<(DateTime, DateTime)> OnRangeSelected { get; set; }
-    [Parameter] public EventCallback<DateTime> OnDaySelected { get; set; }
+    [Parameter] public DateOnly? SelectedDate { get; set; }
+    [Parameter] public DateOnly? RangeStart { get; set; }
+    [Parameter] public DateOnly? RangeEnd { get; set; }
     [Parameter] public bool IsAddingEvent { get; set; }
-    
-    private DateTime _generatedFor;
-    
-    private readonly List<DayCell> _days = new();
-    private DateTime? _rangeStart = null;
+    [Parameter] public IReadOnlyList<EventResponse> Events { get; set; } = Array.Empty<EventResponse>();
+    [Parameter] public EventCallback<DateOnly> OnDayClicked { get; set; }
 
-    private readonly string[] _dayNames = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+    private sealed record Cell(DateOnly Date, bool IsCurrentMonth);
 
-    protected override void OnParametersSet()
-    {
-        var month = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
-        if (month == _generatedFor) return;
-        _generatedFor = month;
-        _rangeStart = null;
-        GenerateDays();
+    private const int MaxDots = 6;
+    private static readonly string[] _dayNames = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+    private readonly List<Cell> _days = new();
+    private DateOnly _generatedFor;
+    private IReadOnlyList<EventResponse>? _eventsSeen;
+    private Dictionary<DateOnly, List<string>> _dots = new();
+
+    protected override void OnParametersSet() {
+        var month = new DateOnly(CurrentMonth.Year, CurrentMonth.Month, 1);
+        var regenerated = month != _generatedFor;
+        if (regenerated) {
+            _generatedFor = month;
+            GenerateDays(month);
+        }
+
+        if (regenerated || !ReferenceEquals(_eventsSeen, Events)) {
+            _eventsSeen = Events;
+            BuildDots();
+        }
     }
-    
 
-    private void GenerateDays()
-    {
+    private void GenerateDays(DateOnly month) {
         _days.Clear();
-
-        var firstDay = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
-        var daysInMonth = DateTime.DaysInMonth(CurrentMonth.Year, CurrentMonth.Month);
-
-        
-        int startOffset = ((int)firstDay.DayOfWeek + 6) % 7;
-
-       
-        for (int i = 0; i < startOffset; i++)
-        {
-            var date = firstDay.AddDays(-(startOffset - i));
-            _days.Add(new DayCell { Day = date.Day, Date = date, IsCurrentMonth = false, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
-        }
-
-        for (int i = 1; i <= daysInMonth; i++)
-        {
-            var date = new DateTime(CurrentMonth.Year, CurrentMonth.Month, i);
-            _days.Add(new DayCell { Day = i, Date = date, IsCurrentMonth = true, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
-        }
-
-        while (_days.Count % 7 != 0)
-        {
-            var date = firstDay.AddDays(_days.Count - startOffset);
-            _days.Add(new DayCell { Day = date.Day, Date = date, IsCurrentMonth = false, IsSunday = date.DayOfWeek == DayOfWeek.Sunday });
-        }
-      
-      
-        // var events = await EventApi.GetEventsAsync(CurrentMonth.Year, CurrentMonth.Month);
-        // foreach (var cell in Days.Where(d => d.IsCurrentMonth))
-        // {
-        //     cell.EventColors = events
-        //         .Where(e => cell.Date >= e.StartDate.Date && cell.Date <= e.EndDate.Date)
-        //         .Select(e => $"#{e.Color}")  
-        //         .ToList();
-        // }
+        var (start, endExclusive) = CalendarRange.Grid(CurrentMonth);
+        for (var d = start; d < endExclusive; d = d.AddDays(1))
+            _days.Add(new Cell(d, d.Month == month.Month));
     }
 
-    private async Task HandleDayClick(DayCell cell)
-    {
-        if (IsAddingEvent)
-        {
-            
-            if (_rangeStart == null)
-            {
-                _rangeStart = cell.Date;
-                foreach (var d in _days) { d.IsSelected = false; d.IsInRange = false; }
-                cell.IsSelected = true;
-            }
-            else
-            {
-                var start = _rangeStart.Value < cell.Date ? _rangeStart.Value : cell.Date;
-                var end = _rangeStart.Value < cell.Date ? cell.Date : _rangeStart.Value;
-                foreach (var d in _days)
-                {
-                    d.IsRangeStart = d.Date == start;
-                    d.IsRangeEnd = d.Date == end;
-                    d.IsInRange = d.Date > start && d.Date < end;
-                    d.IsSelected = d.IsRangeStart || d.IsRangeEnd;
-                }
-                _rangeStart = null;
-                await OnRangeSelected.InvokeAsync((start, end));
+    private void BuildDots() {
+        var gridStart = _days[0].Date;
+        var gridEnd = _days[^1].Date;
+        var byDay = new Dictionary<DateOnly, List<EventResponse>>();
+
+        foreach (var e in Events) {
+            var (first, last) = EventDays.Range(e);
+            var from = first < gridStart ? gridStart : first;
+            var to = last > gridEnd ? gridEnd : last;
+
+            for (var d = from; d <= to; d = d.AddDays(1)) {
+                if (!byDay.TryGetValue(d, out var list)) byDay[d] = list = new();
+                list.Add(e);
             }
         }
-        else
-        {
-           
-            foreach (var d in _days) d.IsSelected = false;
-            cell.IsSelected = true;
-            await OnDaySelected.InvokeAsync(cell.Date);
-        }
+
+        _dots = byDay.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+                .OrderByDescending(e => e.IsPinned)
+                .ThenByDescending(e => e.IsHighPriority)
+                .ThenBy(e => e.StartsAtUtc)
+                .Select(e => "#" + e.Color)
+                .ToList());
     }
 
-    
+    private IReadOnlyList<string> DotsFor(DateOnly d) =>
+        _dots.TryGetValue(d, out var l) ? l : Array.Empty<string>();
+
+    private string CellClass(Cell c) {
+        var d = c.Date;
+        var isStart = RangeStart == d;
+        var isEnd = RangeEnd == d;
+        var inRange = RangeStart is { } s && RangeEnd is { } e && d > s && d < e;
+        var selected = IsAddingEvent ? isStart || isEnd : SelectedDate == d;
+
+        var cls = "calendar-cell";
+        if (!c.IsCurrentMonth) cls += " other-month";
+        if (selected) cls += " selected";
+        if (inRange) cls += " in-range";
+        if (isStart) cls += " range-start";
+        if (isEnd) cls += " range-end";
+        if (d.DayOfWeek == DayOfWeek.Sunday) cls += " sunday";
+        if (d == DateOnly.FromDateTime(DateTime.Today)) cls += " today";
+        return cls;
+    }
 }
