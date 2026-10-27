@@ -8,7 +8,7 @@ using MultiPlanerSharedModels.Contracts.Rooms;
 
 namespace MultiPlanerAPI.Modules.Rooms;
 
-public sealed class UserFolderService(AppDbContext db, CurrentActor actor, RoomAccessService roomAccess)
+public sealed class UserFolderService(AppDbContext db, CurrentActor actor, RoomMutationService mutations, TimeProvider clock)
 {
     public async Task<IReadOnlyList<UserFolderResponse>> ListAsync(CancellationToken cancellationToken)
     {
@@ -62,19 +62,24 @@ public sealed class UserFolderService(AppDbContext db, CurrentActor actor, RoomA
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task AssignAsync(int folderId, int roomId, CancellationToken cancellationToken)
-    {
-        var folder = await RequireFolderAsync(folderId, cancellationToken);
-        var (room, _) = await roomAccess.RequireMemberAsync(roomId, cancellationToken);
-        roomAccess.RequireReadable(room);
-        var assignment = await db.UserFolderRooms.SingleOrDefaultAsync(a =>
-            a.OwnerUserId == folder.OwnerUserId && a.RoomId == roomId, cancellationToken);
-        if (assignment is null)
-            db.UserFolderRooms.Add(new UserFolderRoom
-                { OwnerUserId = folder.OwnerUserId, RoomId = roomId, FolderId = folderId });
-        else assignment.FolderId = folderId;
-        await db.SaveChangesAsync(cancellationToken);
-    }
+    public Task AssignAsync(int folderId, int roomId, CancellationToken cancellationToken) =>
+        mutations.ExecuteAsync(roomId, async (operationDb, room) =>
+        {
+            var userId = actor.RequireUserId();
+            var roomAccess = new RoomAccessService(operationDb, actor, clock);
+            await roomAccess.RequireMemberAsync(roomId, cancellationToken);
+            roomAccess.RequireReadable(room);
+            if (!await operationDb.UserFolders.AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId, cancellationToken))
+                throw new ApiException(404, "folder_not_found", "Folder not found.");
+            var assignment = await operationDb.UserFolderRooms.SingleOrDefaultAsync(a =>
+                a.OwnerUserId == userId && a.RoomId == roomId, cancellationToken);
+            if (assignment is null)
+                operationDb.UserFolderRooms.Add(new UserFolderRoom
+                    { OwnerUserId = userId, RoomId = roomId, FolderId = folderId });
+            else assignment.FolderId = folderId;
+            await operationDb.SaveChangesAsync(cancellationToken);
+            return true;
+        }, cancellationToken);
 
     public async Task UnassignAsync(int folderId, int roomId, CancellationToken cancellationToken)
     {
