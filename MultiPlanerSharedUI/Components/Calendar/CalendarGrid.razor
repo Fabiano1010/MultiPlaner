@@ -11,7 +11,7 @@
     @foreach (var cell in _days)
     {
         var date = cell.Date;
-        var colors = DotsFor(date);
+        var dots = DotsFor(date);
 
         <div @key="date" class="@CellClass(cell)" @onclick="() => OnDayClicked.InvokeAsync(date)">
             <div class="day-number-div">
@@ -19,13 +19,13 @@
             </div>
 
             <div class="dots">
-                @foreach (var color in colors.Take(MaxDots))
+                @foreach (var dot in dots.Take(MaxDots))
                 {
-                    <div class="event-dot" style="background-color: @color;"></div>
+                    <div class="event-dot @(dot.IsHighPriority ? "high" : "")" style="background-color: #@dot.Color;"></div>
                 }
-                @if (colors.Count > MaxDots)
+                @if (dots.Count > MaxDots)
                 {
-                    <span class="dots-more">+@(colors.Count - MaxDots)</span>
+                    <span class="dots-more">+@(dots.Count - MaxDots)</span>
                 }
             </div>
         </div>
@@ -42,7 +42,7 @@
     [Parameter] public EventCallback<DateOnly> OnDayClicked { get; set; }
 
     private sealed record Cell(DateOnly Date, bool IsCurrentMonth);
-
+    private record EventDot(string Color, bool IsHighPriority);
     private const int MaxDots = 6;
     private static readonly string[] _dayNames =
         { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
@@ -50,7 +50,7 @@
     private readonly List<Cell> _days = new();
     private DateOnly _generatedFor;
     private IReadOnlyList<EventResponse>? _eventsSeen;
-    private Dictionary<DateOnly, List<string>> _dots = new();
+    private Dictionary<DateOnly, List<EventDot>> _dots = new();
 
     protected override void OnParametersSet()
     {
@@ -102,13 +102,15 @@
                 .OrderByDescending(e => e.IsPinned)
                 .ThenByDescending(e => e.IsHighPriority)
                 .ThenBy(e => e.StartsAtUtc)
-                .Select(e => "#" + e.Color)
+                .Select(e => new EventDot(e.Color, e.IsHighPriority))
                 .ToList());
      
     }
 
-    private IReadOnlyList<string> DotsFor(DateOnly d) =>
-        _dots.TryGetValue(d, out var l) ? l : Array.Empty<string>();
+    private IReadOnlyList<EventDot> DotsFor(DateOnly d) =>
+        _dots.TryGetValue(d, out var list)
+            ? list
+            : Array.Empty<EventDot>();
 
     private string CellClass(Cell c)
     {
