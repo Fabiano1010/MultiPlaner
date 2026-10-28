@@ -121,6 +121,20 @@
 .bell-btn {
     transform: rotate(25deg);
 }
+/*.bell-btn:active{*/
+/*    animation: ding_dong 1s forwards;*/
+/*}*/
+/*@keyframes ding_dong {*/
+/*     0%{*/
+/*         transform: rotate(25deg);*/
+/*     }*/
+/*    50%{*/
+/*        transform: rotate(300deg);*/
+/*    }*/
+/*    100%{*/
+/*        transform: rotate(20deg);*/
+/*    }*/
+/*}*/
 
 .calendar-day-name-container {
     display: grid;

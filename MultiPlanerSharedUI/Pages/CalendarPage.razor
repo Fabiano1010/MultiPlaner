@@ -25,8 +25,14 @@
                         CurrentMonth="_month"
                         OnPreviousMonth="() => SetMonthAsync(_month.AddMonths(-1))"
                         OnNextMonth="() => SetMonthAsync(_month.AddMonths(1))"
+                        OnOpenSettings="OpenSettingsAsync"
+                        OnOpenMembers="OpenMebmersAsync"
                         GoToToday="GoToTodayAsync"
-                        OnBack="GoBack"/>
+                        OnBack="GoBack"
+                        OnNotifications="ToggleNotifications"
+                        OnLinkCreate="CreateLinkAsync"
+                        NotificationsState="_notificationsState"
+                        />
         <CalendarGrid CurrentMonth="_month"
                       IsAddingEvent="_isAddingEvent"
                       SelectedDate="_selectedDate"
@@ -37,13 +43,11 @@
         <CalendarEvents CurrentMonth="_month"
                         SelectedDate="_selectedDate"
                         OnAddEvent="ToggleAdding"
+                        OnOpenChat="OpenChatAsync"
                         IsAddingEvent="_isAddingEvent"
                         Events="_events"
                         RoomId="_loadedRoomId"
-                        OnChanged="LoadEventsAsync"
-
-
-        />
+                        OnChanged="LoadEventsAsync"/>
 
         @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null) {
             <AddEventForm IsVisible="_showAddForm"
@@ -54,6 +58,24 @@
                           OnClose="CancelAdding"
                           OnSaved="HandleEventSaved"/>
         }
+        @if (_roomData is not null) {
+            <CalendarSettings 
+                IsVisible="_showSettings"
+                Room="_roomData"
+                OnClose="ClosePopup"
+            />
+            <CalendarMembers 
+                IsVisible="_showMembers"
+                Room="_roomData"
+                OnClose="ClosePopup"
+            />
+            <CalendarChat 
+                IsVisible="_showChat"
+                Room="_roomData"
+                OnClose="ClosePopup"
+            />
+        }
+       
     }
 </div>
 
@@ -66,8 +88,11 @@
     private bool _isAddingEvent;
     private bool _isLoading = true;
     private bool _showAddForm;
+    private bool _showSettings;
+    private bool _showMembers;
+    private bool _showChat;
+    private bool _notificationsState;
     private string? _errorMessage;
-    private string? _eventsError;
     private int _loadedRoomId;
     private ElementReference _pageRef;
     private RoomResponse? _roomData;
@@ -146,13 +171,29 @@
         (_rangeStart, _rangeEnd) = day < first ? (day, first) : (first, day);
         _showAddForm = true;
     }
-
+    
     private void CancelAdding() {
         _isAddingEvent = false;
         _showAddForm = false;
         _rangeStart = _rangeEnd = null;
     }
 
+    private void ClosePopup() {
+        _showMembers = false;
+        _showChat = false;
+        _showSettings = false;
+    }
+
+    private async Task OpenSettingsAsync() {
+        _showSettings = true;
+    }
+    private async Task OpenMebmersAsync() {
+        _showMembers = true;
+    }
+    private async Task OpenChatAsync() {
+        _showChat = true;
+    }
+    
     private void HandleKeyDown(KeyboardEventArgs e) {
         if (e.Key == "Escape" && _isAddingEvent) CancelAdding();
     }
@@ -201,18 +242,18 @@
 
             if (ct.IsCancellationRequested) return;
             _events = all;
-            _eventsError = null;
+            _errorMessage = null;
         }
         catch (OperationCanceledException) {
         }
         catch (ApiException e) {
-            _eventsError = e.Message;
+            _errorMessage = e.Message;
         }
         catch (HttpRequestException e) {
-            _eventsError = "Cannot load events. " + e.Message;
+            _errorMessage = "Cannot load events. " + e.Message;
         }
         catch (JsonException) {
-            _eventsError = "Unexpected response from the server.";
+            _errorMessage = "Unexpected response from the server.";
         }
     }
 
@@ -225,6 +266,15 @@
         CancelAdding();
         await LoadEventsAsync();
     }
+
+    private async Task CreateLinkAsync() {
+        
+    }
+
+    private async Task ToggleNotifications() {
+        _notificationsState = !_notificationsState;
+    }
+    
 
     public void Dispose() {
         _loadCts?.Cancel();

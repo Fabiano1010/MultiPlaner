@@ -26,7 +26,7 @@
                 </div>
             </div>
         </div>
-        <div class="chat-btn action-button">
+        <div class="chat-btn action-button" @onclick="OnOpenChat">
             <img src="_content/MultiPlanerSharedUI/images/message-square.svg" alt="" class="action-button-img">
         </div>
     </div>
@@ -73,6 +73,7 @@
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public DateOnly? SelectedDate { get; set; }
     [Parameter] public EventCallback OnAddEvent { get; set; }
+    [Parameter] public EventCallback OnOpenChat { get; set; }
     [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public bool IsAddingEvent { get; set; }

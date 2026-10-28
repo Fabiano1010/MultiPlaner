@@ -1,0 +1,24 @@
+﻿@using MultiPlanerSharedModels.Contracts.Rooms
+
+<Popup Title="Chat" IsVisible="IsVisible" OnClose="HandleClose">
+    <div>
+        
+    </div>
+</Popup>
+
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] [EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+   
+    
+    
+    private string? _errorMessage;
+    
+    private Task HandleClose() {
+        _errorMessage = "";
+        return OnClose.InvokeAsync();
+    }
+    
+}

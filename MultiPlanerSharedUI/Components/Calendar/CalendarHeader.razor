@@ -23,17 +23,17 @@
         <div class="calendar-data-owner">@Room.OwnerDisplayName</div>
     </div>
     <div class="action-buttons">
-        <div class="action-button">
+        <div class="action-button" @onclick="OnLinkCreate">
             <img src="_content/MultiPlanerSharedUI/images/link.svg" alt="" class="action-button-img">
         </div>
-        <div class="action-button">
+        <div class="action-button" @onclick="OnOpenMembers">
             <img src="_content/MultiPlanerSharedUI/images/users.svg" alt="" class="action-button-img">
         </div>
-        <div class="action-button">
+        <div class="action-button"  @onclick="OnOpenSettings">
             <img src="_content/MultiPlanerSharedUI/images/settings.svg" alt="" class="action-button-img">
         </div>
-        <div class="action-button">
-            <img src="_content/MultiPlanerSharedUI/images/bell.svg" alt="" class="action-button-img bell-btn">
+        <div class="action-button" @onclick="OnNotifications">
+            <img src="_content/MultiPlanerSharedUI/images/@(NotificationsState ? "bell.svg" : "bell-off.svg") " alt="" class="action-button-img bell-btn">
         </div>
     </div>
 
@@ -44,6 +44,14 @@
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public EventCallback OnNextMonth { get; set; }
     [Parameter] public EventCallback OnPreviousMonth { get; set; }
+    [Parameter] public EventCallback OnOpenSettings { get; set; }
+    [Parameter] public EventCallback OnOpenMembers { get; set; }
     [Parameter] public EventCallback GoToToday { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnNotifications { get; set; }
+    [Parameter] public EventCallback OnLinkCreate { get; set; }
+    [Parameter] public bool NotificationsState { get; set; }
+
+    
+    
 }
