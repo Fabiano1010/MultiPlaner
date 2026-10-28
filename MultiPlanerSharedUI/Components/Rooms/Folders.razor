@@ -4,11 +4,11 @@
 
 <div class="hide-folders-box">
     <div class="action-button hide-folders">
-        <div class="toggle-btn"
+        <div class="toggle-btn @(_areFoldersHidden ? "up" : "down")"
              aria-expanded="@(!_areFoldersHidden)"
              title="@(_areFoldersHidden ? "Show folders" : "Hide folders")"
              @onclick="HideFoldersAsync">
-            <img src="_content/MultiPlanerSharedUI/images/@(_areFoldersHidden ? "arrow-down-right.svg" : "arrow-up-left.svg")"
+            <img src="_content/MultiPlanerSharedUI/images/arrow-up-left.svg"
                  alt="" />
         </div>
         

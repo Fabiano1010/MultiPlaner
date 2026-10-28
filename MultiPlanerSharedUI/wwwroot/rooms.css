@@ -246,7 +246,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: transform 0.25s ease;
 }
+.toggle-btn.down { transform: rotate(0deg); }
+.toggle-btn.up   { transform: rotate(-180deg); }
+
 .folders-collapse {
     margin-top: 0.5rem;
     
