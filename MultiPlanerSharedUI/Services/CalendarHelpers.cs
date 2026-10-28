@@ -30,16 +30,22 @@ public static class EventDays
         return (first, lastDay);
     }
 
-    public static string Describe(EventResponse e) {
-        var (f, l) = Range(e);
-        if (e.IsAllDay)
-            return f == l ? "All day" : $"{f:dd.MM.yyyy} – {l:dd.MM.yyyy}";
+    public readonly record struct EventSpan(DateOnly StartDate, DateOnly EndDate, TimeOnly? StartTime, TimeOnly? EndTime);
 
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(e.RoomTimeZoneId);
-        var s = TimeZoneInfo.ConvertTime(e.StartsAtUtc, tz);
-        var en = TimeZoneInfo.ConvertTime(e.EndsAtUtc, tz);
-        return f == l ? $"{s:HH:mm} – {en:HH:mm}" : $"{s:dd.MM HH:mm} – {en:dd.MM HH:mm}";
+    public static EventSpan Span(EventResponse e)
+    {
+        if (e.IsAllDay && e.StartDate is { } s && e.EndDateExclusive is { } x)
+        {
+            var last = x.AddDays(-1);
+            return new EventSpan(s, last < s ? s : last, null, null);
+        }
+
+        
+        var (startDate, startTime) = ToLocal(e.StartsAtUtc, e.RoomTimeZoneId);
+        var (endDate, endTime) = ToLocal(e.EndsAtUtc, e.RoomTimeZoneId);
+        return new EventSpan(startDate, endDate, startTime, endTime);
     }
+    
     public static DateTimeOffset ToUtc(DateOnly date, TimeOnly time, string tzId)
     {
         var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);

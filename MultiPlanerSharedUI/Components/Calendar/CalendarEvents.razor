@@ -32,20 +32,29 @@
     </div>
     <div class="events-collapse @(_collapsed ? "collapsed" : "")">
         <div class="events-collapse-inner">
-            <div class="events-list">
-                @if (_dayEvents.Count == 0) {
+            <div class="events-list-cointainer">
+                <div class="events-list">
+                    @if (_dayEvents.Count == 0) {
                     <div class="events-empty">Nothing is happening here :c</div>
-                }
-                @foreach (var ev in _dayEvents) {
+                    }
+                    @foreach (var ev in _dayEvents) {
                     <div class="events-item" @key="ev.Id"
-                         style="border-left: 5px solid #@ev.Color"
-                         @onclick="() => OpenDetails(ev)">
-                        <div class="events-item-name">@(ev.IsPinned ? "x" : "")@ev.Title</div>
-                        <div class="events-item-user">@ev.Author.DisplayName</div>
-                        <div class="events-item-data">@EventDays.Describe(ev)</div>
+                    style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
+                    @onclick="() => OpenDetails(ev)">
+                        <div class="events-item-details">
+                            <div class="events-item-name">@(ev.IsPinned ? "x" : "")@ev.Title</div>
+                            <div class="events-item-user">@ev.Author.DisplayName</div>
+                        </div>
+
+                        @{ var span = EventDays.Span(ev); }
+                    <div class="events-item-date">
+                        @span.StartDate.ToString("dd.MM.yyyy") - @span.EndDate.ToString("dd.MM.yyyy")
+                                </div>
                     </div>
-                }
+                    }
+                </div>
             </div>
+            
         </div>
     </div>
 </div>
