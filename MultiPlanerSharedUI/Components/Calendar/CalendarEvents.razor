@@ -1,5 +1,4 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
-@using MultiPlanerSharedModels.Models
 @using MultiPlanerSharedUI.Components.Events
 <div class="events-container">
     <div class="events-controls">
@@ -51,10 +50,12 @@
     </div>
 </div>
 
-<EventDetails IsVisible="ShowDetails"
-              Event="SelectedEvent"
-              OnClose="CloseDetails"
-              OnDeleted="HandleDeleted"/>
+<EventDetails IsVisible="_showDetails"
+              Event="_selectedEvent"
+              OnClose="HandleCloseDetails"
+              OnChanged="OnChanged" 
+              RoomId="RoomId"
+              />
 
 @code {
     [Parameter] public DateTime CurrentMonth { get; set; }
@@ -64,9 +65,10 @@
     [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public bool IsAddingEvent { get; set; }
     [Parameter] public IReadOnlyList<EventResponse> Events { get; set; } = Array.Empty<EventResponse>();
+    [Parameter] public int RoomId { get; set; }
 
-    private EventResponse? SelectedEvent;
-    private bool ShowDetails;
+    private EventResponse? _selectedEvent;
+    private bool _showDetails;
     private IReadOnlyList<EventResponse>? _eventsSeen;
     private DateOnly? _daySeen;
     private List<EventResponse> _dayEvents = new();
@@ -93,16 +95,13 @@
     }
 
     private void OpenDetails(EventResponse ev) {
-        SelectedEvent = ev; ShowDetails = true;
+        _selectedEvent = ev; _showDetails = true;
     }
+    
 
-    private async Task HandleDeleted() {
-        CloseDetails(); await OnChanged.InvokeAsync();
-    }
-
-    private void CloseDetails() {
-        ShowDetails = false;
-        SelectedEvent = null;
+    private void HandleCloseDetails() {
+        _showDetails = false;
+        _selectedEvent = null;
     }
     
 

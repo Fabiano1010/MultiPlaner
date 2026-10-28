@@ -40,4 +40,18 @@ public static class EventDays
         var en = TimeZoneInfo.ConvertTime(e.EndsAtUtc, tz);
         return f == l ? $"{s:HH:mm} – {en:HH:mm}" : $"{s:dd.MM HH:mm} – {en:dd.MM HH:mm}";
     }
+    public static DateTimeOffset ToUtc(DateOnly date, TimeOnly time, string tzId)
+    {
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+        var local = DateTime.SpecifyKind(date.ToDateTime(time), DateTimeKind.Unspecified);
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, tz), TimeSpan.Zero);
+    }
+
+    public static (DateOnly Date, TimeOnly Time) ToLocal(DateTimeOffset utc, string tzId)
+    {
+        var local = TimeZoneInfo.ConvertTime(utc, TimeZoneInfo.FindSystemTimeZoneById(tzId));
+        return (DateOnly.FromDateTime(local.DateTime), TimeOnly.FromDateTime(local.DateTime));
+    }
+    
+    
 }

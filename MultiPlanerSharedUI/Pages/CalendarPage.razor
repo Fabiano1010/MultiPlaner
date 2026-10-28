@@ -40,11 +40,15 @@
                         OnAddEvent="ToggleAdding"
                         IsAddingEvent="_isAddingEvent"
                         Events="_events"
+                        RoomId="_loadedRoomId"
+                        OnChanged="LoadEventsAsync"
+                     
+                
         />
 
         @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null) {
             <AddEventForm IsVisible="_showAddForm"
-                          RoomId="RoomId"
+                          RoomId="_loadedRoomId"
                           RoomTimeZoneId="@_roomData.TimeZoneId"
                           Start="_rangeStart.Value"
                           End="_rangeEnd.Value"
@@ -216,7 +220,6 @@
         CancelAdding();
         await LoadEventsAsync();
     }
-
     public void Dispose() { _loadCts?.Cancel(); _loadCts?.Dispose(); }
 
 }
