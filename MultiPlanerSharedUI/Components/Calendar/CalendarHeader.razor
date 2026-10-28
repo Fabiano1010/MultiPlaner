@@ -40,7 +40,7 @@
 </div>
 
 @code{
-    [Parameter][EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter] [EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public DateTime CurrentMonth { get; set; }
     [Parameter] public EventCallback OnNextMonth { get; set; }
     [Parameter] public EventCallback OnPreviousMonth { get; set; }

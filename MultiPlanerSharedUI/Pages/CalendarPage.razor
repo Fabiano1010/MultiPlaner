@@ -3,13 +3,13 @@
 @attribute [Authorize]
 @inject NavigationManager Nav
 @inject ApiClient Api
-@implements IDisposable
+@using System.Text.Json
+@using MultiPlanerSharedModels.Contracts.Common
 @using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedModels.Contracts.Rooms
 @using MultiPlanerSharedUI.Components.Calendar
 @using MultiPlanerSharedUI.Components.Events
-@using MultiPlanerSharedModels.Contracts.Common
-
+@implements IDisposable
 
 
 <div class="calendar-page" tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
@@ -21,13 +21,12 @@
         <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
     }
     else if (_roomData is not null) {
-    
         <CalendarHeader Room="_roomData"
                         CurrentMonth="_month"
                         OnPreviousMonth="() => SetMonthAsync(_month.AddMonths(-1))"
                         OnNextMonth="() => SetMonthAsync(_month.AddMonths(1))"
                         GoToToday="GoToTodayAsync"
-                        OnBack="GoBack" />
+                        OnBack="GoBack"/>
         <CalendarGrid CurrentMonth="_month"
                       IsAddingEvent="_isAddingEvent"
                       SelectedDate="_selectedDate"
@@ -42,8 +41,8 @@
                         Events="_events"
                         RoomId="_loadedRoomId"
                         OnChanged="LoadEventsAsync"
-                     
-                
+
+
         />
 
         @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null) {
@@ -55,10 +54,9 @@
                           OnClose="CancelAdding"
                           OnSaved="HandleEventSaved"/>
         }
-
-   
     }
 </div>
+
 @code {
     [Parameter] public int RoomId { get; set; }
 
@@ -103,12 +101,12 @@
         finally {
             _isLoading = false;
         }
+
         if (_roomData is not null)
-            await LoadEventsAsync(); 
+            await LoadEventsAsync();
     }
-    
-    private async Task GoToTodayAsync()
-    {
+
+    private async Task GoToTodayAsync() {
         await SetMonthAsync(DateTime.Today);
         _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     }
@@ -118,13 +116,19 @@
     }
 
     private async Task ToggleAdding() {
-        if (_isAddingEvent) { CancelAdding(); return; }
+        if (_isAddingEvent) {
+            CancelAdding();
+            return;
+        }
 
         _isAddingEvent = true;
         _rangeStart = _rangeEnd = null;
 
-        try { await _pageRef.FocusAsync(); }
-        catch (InvalidOperationException) {  }
+        try {
+            await _pageRef.FocusAsync();
+        }
+        catch (InvalidOperationException) {
+        }
     }
 
     private void HandleDayClicked(DateOnly day) {
@@ -152,7 +156,7 @@
     private void HandleKeyDown(KeyboardEventArgs e) {
         if (e.Key == "Escape" && _isAddingEvent) CancelAdding();
     }
-    
+
 
     private async Task SetMonthAsync(DateTime month) {
         _month = new DateTime(month.Year, month.Month, 1);
@@ -184,16 +188,17 @@
             const int pageSize = 100;
             var all = new List<EventResponse>();
 
-            for (var page = 1; ; page++) {
+            for (var page = 1;; page++) {
                 var url = $"api/rooms/{RoomId}/events?from={from}&to={to}&status=active&page={page}&pageSize={pageSize}";
                 var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
                 if (result is null || result.Items.Count == 0) break;
-                   
+
                 all.AddRange(result.Items);
                 if (all.Count >= result.TotalCount) break;
             }
+
             _events = all;
-            
+
             if (ct.IsCancellationRequested) return;
             _events = all;
             _eventsError = null;
@@ -206,20 +211,24 @@
         catch (HttpRequestException e) {
             _eventsError = "Cannot load events. " + e.Message;
         }
-        catch (System.Text.Json.JsonException)
-        {
+        catch (JsonException) {
             _eventsError = "Unexpected response from the server.";
         }
     }
+
     private static DateTimeOffset StartOfDayUtc(DateOnly day, TimeZoneInfo tz) {
         var local = DateTime.SpecifyKind(day.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
         return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, tz), TimeSpan.Zero);
     }
 
-    private async Task HandleEventSaved()  {
+    private async Task HandleEventSaved() {
         CancelAdding();
         await LoadEventsAsync();
     }
-    public void Dispose() { _loadCts?.Cancel(); _loadCts?.Dispose(); }
+
+    public void Dispose() {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+    }
 
 }

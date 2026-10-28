@@ -5,18 +5,21 @@
 @attribute [AllowAnonymous]
 
 <AuthorizeView>
-    <Authorized><RedirectTo Url="/dashboard" /></Authorized>
+    <Authorized>
+        <RedirectTo Url="/dashboard"/>
+    </Authorized>
     <NotAuthorized>
 
         <div class="main-content-box-auth">
             <div class="home-box-notloggedin">
                 <div>
-                    <div class="welcome-msg">Welcome to </div>
+                    <div class="welcome-msg">Welcome to</div>
                     <div class="title-text">MultiPlaner</div>
                 </div>
                 <div class="logo-large">
-                    <img src="_content/MultiPlanerSharedUI/images/logo.svg" alt="MultiPlaner Logo" class="logo-img-large">
-                    
+                    <img src="_content/MultiPlanerSharedUI/images/logo.svg" alt="MultiPlaner Logo"
+                         class="logo-img-large">
+
                 </div>
                 <div class="home-btn-group">
                     <button @onclick="Register" class="btn-main home-btns">Register</button>
@@ -29,6 +32,7 @@
 </AuthorizeView>
 
 @code {
+
     private async Task Register() {
         Nav.NavigateTo("/register");
     }
@@ -40,4 +44,5 @@
     private async Task About() {
         Nav.NavigateTo("/about");
     }
+
 }

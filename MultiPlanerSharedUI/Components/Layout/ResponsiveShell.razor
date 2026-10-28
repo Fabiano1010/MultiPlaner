@@ -3,7 +3,7 @@
         <button type="button" class="mobile-nav-toggle" aria-label="Open navigation"
                 aria-controls="primary-navigation" aria-expanded="@_menuOpen"
                 @ref="_menuToggle" @onclick="OpenMenu">
-            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt="" />
+            <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt=""/>
         </button>
         <span class="mobile-nav-title">MultiPlaner</span>
     </header>
@@ -14,14 +14,13 @@
     <nav id="primary-navigation" class="sidebar @(_menuOpen ? "is-open" : "")" aria-label="Main navigation"
          @onkeydown="HandleMenuKeyDown">
         <button type="button" class="mobile-nav-close" aria-label="Close navigation"
-                @ref="_closeButton" @onclick="CloseMenu">×</button>
-        @if (IsAuthenticated)
-        {
-            <NavMenu OnNavigate="CloseMenu" />
+                @ref="_closeButton" @onclick="CloseMenu">×
+        </button>
+        @if (IsAuthenticated) {
+            <NavMenu OnNavigate="CloseMenu"/>
         }
-        else
-        {
-            <NavMenuNotLoggedIn OnNavigate="CloseMenu" />
+        else {
+            <NavMenuNotLoggedIn OnNavigate="CloseMenu"/>
         }
     </nav>
 
@@ -39,30 +38,26 @@
     private ElementReference _menuToggle;
     private ElementReference _closeButton;
 
-    private void OpenMenu()
-    {
+    private void OpenMenu() {
         _menuOpen = true;
         _focusCloseButton = true;
     }
 
-    private async Task CloseMenu()
-    {
+    private async Task CloseMenu() {
         if (!_menuOpen) return;
         _menuOpen = false;
         await _menuToggle.FocusAsync();
     }
 
-    private async Task HandleMenuKeyDown(KeyboardEventArgs args)
-    {
+    private async Task HandleMenuKeyDown(KeyboardEventArgs args) {
         if (args.Key == "Escape") await CloseMenu();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_focusCloseButton && _menuOpen)
-        {
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (_focusCloseButton && _menuOpen) {
             _focusCloseButton = false;
             await _closeButton.FocusAsync();
         }
     }
+
 }

@@ -9,30 +9,32 @@
              title="@(_areFoldersHidden ? "Show folders" : "Hide folders")"
              @onclick="HideFoldersAsync">
             <img src="_content/MultiPlanerSharedUI/images/arrow-up-left.svg"
-                 alt="" />
+                 alt=""/>
         </div>
-        
+
     </div>
     <span>@(_areFoldersHidden ? "Show folders" : "Hide folders")</span>
 </div>
-    
+
 
 <div class="folders-collapse @(_areFoldersHidden ? "collapsed" : "")">
     <div class="folders-collapse-inner">
         <div class="folders-container">
             @if (_isLoading) {
-                <LoadingSpinner />
-            } else if (!string.IsNullOrEmpty(_errorMessage)) {
+                <LoadingSpinner/>
+            }
+            else if (!string.IsNullOrEmpty(_errorMessage)) {
                 <div class="error-message">@_errorMessage</div>
-            } else if (_folders is not null && _folders.Count > 0) {
+            }
+            else if (_folders is not null && _folders.Count > 0) {
                 foreach (var folder in _folders.OrderByDescending(f => f.IsFavourite)) {
                     <Folder @key="folder.Id" FolderData="folder"
                             OnConflict="() => LoadFoldersAsync()"
-                            OnFavouriteChanged="() => LoadFoldersAsync(silent: true)" 
-                            OnChanged="() => LoadFoldersAsync(silent: true)"/>
+                            OnFavouriteChanged="() => LoadFoldersAsync(true)"
+                            OnChanged="() => LoadFoldersAsync(true)"/>
                 }
-                
-            } else {
+            }
+            else {
                 <div class="no-folders-message">Hey add some folders!</div>
             }
         </div>
@@ -43,11 +45,15 @@
     private bool _isLoading = true;
     private string? _errorMessage;
     private List<UserFolderResponse>? _folders = new();
-    
+
     private bool _areFoldersHidden;
-    private async Task HideFoldersAsync() => _areFoldersHidden = !_areFoldersHidden;
-    
-    protected override async Task OnInitializedAsync() => await LoadFoldersAsync();
+    private async Task HideFoldersAsync() {
+        _areFoldersHidden = !_areFoldersHidden;
+    }
+
+    protected override async Task OnInitializedAsync() {
+        await LoadFoldersAsync();
+    }
 
     public async Task LoadFoldersAsync(bool silent = false) {
         if (!silent) _isLoading = true;
@@ -55,7 +61,7 @@
 
         try {
             var result = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders");
-            _folders = result ?? new();
+            _folders = result ?? new List<UserFolderResponse>();
         }
         catch (HttpRequestException e) {
             _errorMessage = "Cannot load folders. " + e.Message;
@@ -66,7 +72,5 @@
         }
     }
 
-    
-    
-    
+
 }

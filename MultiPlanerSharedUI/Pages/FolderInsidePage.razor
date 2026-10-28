@@ -20,18 +20,18 @@
 
     private string? _folderName;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        try
-        {
+    protected override async Task OnParametersSetAsync() {
+        try {
             var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders");
             _folderName = folders?.FirstOrDefault(f => f.Id == FolderId)?.Name;
         }
-        catch (HttpRequestException)
-        {
+        catch (HttpRequestException) {
             _folderName = null;
         }
     }
 
-    private async Task GoBack() => Nav.NavigateTo("/Rooms");
+    private async Task GoBack() {
+        Nav.NavigateTo("/Rooms");
+    }
+
 }

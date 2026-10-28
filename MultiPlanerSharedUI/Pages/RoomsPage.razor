@@ -5,12 +5,12 @@
 @attribute [Authorize]
 
 <div class="main-content main-content-rooms">
-    
+
     <div class="rooms-folders-container">
         <Folders @ref="_folders"/>
         <Rooms @ref="_rooms"/>
     </div>
-    
+
     <div class="fab-menu @(_isOpen ? "open" : "")">
         <div class="fab-item fab-item-2" title="Add Folder"
              @onclick="OpenFloderPopup">
@@ -21,15 +21,17 @@
             <img src="_content/MultiPlanerSharedUI/images/calendar-plus.svg" alt="Add Calendar"/>
         </div>
         <div class="add-room-button fab-main" aria-expanded="@_isOpen"
-                @onclick="() => _isOpen = !_isOpen">
-            <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="Add" />
+             @onclick="() => _isOpen = !_isOpen">
+            <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="Add"/>
         </div>
     </div>
-    
 
-    <AddCalendarForm IsVisible="_showCalendarPopup" OnCreate="HandleRoomCreated" OnClose="() => _showCalendarPopup = false" />
-    <AddFolderForm IsVisible="_showFolderPopup" OnCreate="HandleFolderCreated" OnClose="() => _showFolderPopup = false"   />
-    </div>
+
+    <AddCalendarForm IsVisible="_showCalendarPopup" OnCreate="HandleRoomCreated"
+                     OnClose="() => _showCalendarPopup = false"/>
+    <AddFolderForm IsVisible="_showFolderPopup" OnCreate="HandleFolderCreated"
+                   OnClose="() => _showFolderPopup = false"/>
+</div>
 
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
@@ -39,7 +41,7 @@
     private bool _showFolderPopup;
     private Rooms? _rooms;
     private Folders? _folders;
-    
+
     private async Task OpenCalendarPopup() {
         _isOpen = false;
         _showCalendarPopup = true;
@@ -49,16 +51,17 @@
         _isOpen = false;
         _showFolderPopup = true;
     }
-    
+
 
     private async Task HandleRoomCreated() {
         if (_rooms is not null) {
-            await _rooms.LoadRoomsAsync(silent: true);
+            await _rooms.LoadRoomsAsync(true);
         }
     }
+
     private async Task HandleFolderCreated() {
         if (_folders is not null) {
-            await _folders.LoadFoldersAsync(silent: true);
+            await _folders.LoadFoldersAsync(true);
         }
     }
 

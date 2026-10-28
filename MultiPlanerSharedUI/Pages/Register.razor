@@ -1,4 +1,5 @@
 ﻿@page "/register"
+@using System.Net.Mail
 @using Microsoft.JSInterop
 @layout AuthLayout
 @inject AuthService Auth
@@ -13,12 +14,14 @@
         <form class="auth-form" @onsubmit="RegisterAsync" @onmsubit:preventDefault>
             <div class="input-group">
                 <label for="name">Name</label>
-                <input @bind="_name" id="name" placeholder="Name" class="auth-input @(_hasErrorName ? "error-input" : "")"/>
+                <input @bind="_name" id="name" placeholder="Name"
+                       class="auth-input @(_hasErrorName ? "error-input" : "")"/>
                 <div class="input-error"></div>
             </div>
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="_email" id="email" placeholder="Email" class="auth-input @(_hasError ? "error-input" : "")"  />
+                <input @bind="_email" id="email" placeholder="Email"
+                       class="auth-input @(_hasError ? "error-input" : "")"/>
                 <div class="input-error"></div>
             </div>
 
@@ -27,35 +30,41 @@
                 <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
                     <input @bind="_password" @bind:event="oninput"
                            type="@(_showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
+                           id="password" placeholder="Password"
+                           class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => _showPassword = !_showPassword"
                             aria-label="@(_showPassword ? "Hide password" : "Show password")">
-                        <img src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
+                        <img src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")"
+                             alt=""/>
                     </button>
                 </div>
             </div>
 
             <div class="input-group">
                 <label for="passwordConfirm">Confirm Password</label>
-                <div class="password-wrapper " >
+                <div class="password-wrapper ">
                     <input @bind="_passwordConfirm" @bind:event="oninput"
                            type="@(_showPasswordConfirm ? "text" : "password")"
-                           id="passwordConfirm" placeholder="Confirm Password" class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
+                           id="passwordConfirm" placeholder="Confirm Password"
+                           class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => _showPasswordConfirm = !_showPasswordConfirm"
                             aria-label="@(_showPasswordConfirm ? "Hide password" : "Show password")">
-                        <img src="_content/MultiPlanerSharedUI/images/@(_showPasswordConfirm ? "eye-off.svg" : "eye.svg")" alt="" />
+                        <img
+                            src="_content/MultiPlanerSharedUI/images/@(_showPasswordConfirm ? "eye-off.svg" : "eye.svg")"
+                            alt=""/>
                     </button>
                 </div>
                 <div class="input-error"></div>
             </div>
-            
+
             <button type="submit"
                     class="auth-btn @(CanSubmit ? "btn-main" : "")"
-                    disabled="@(!CanSubmit)">Register</button>
-            
-            @if (_error is not null) { 
+                    disabled="@(!CanSubmit)">Register
+            </button>
+
+            @if (_error is not null) {
                 <span class="error">@_error</span>
             }
             <div class="register-direction">
@@ -75,25 +84,23 @@
     private string _countryCode = "PL";
     private string _timeZoneId = "Europe/Warsaw";
     private string? _error;
-    
-    bool CanSubmit => 
-        !string.IsNullOrWhiteSpace(_email) && 
-        System.Net.Mail.MailAddress.TryCreate(_email, out _) && 
-        !string.IsNullOrWhiteSpace(_password) && _password == _passwordConfirm && 
+
+    bool CanSubmit =>
+        !string.IsNullOrWhiteSpace(_email) &&
+        MailAddress.TryCreate(_email, out _) &&
+        !string.IsNullOrWhiteSpace(_password) && _password == _passwordConfirm &&
         !string.IsNullOrWhiteSpace(_name);
 
     private bool _showPassword;
-    private bool _showPasswordConfirm; 
+    private bool _showPasswordConfirm;
     private bool _hasError;
     private bool _hasErrorPassword;
     private bool _hasErrorName;
-    
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (!firstRender) return;
 
-        try
-        {
+        try {
             var module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/locale.js");
 
             var detectedTimeZone = await module.InvokeAsync<string?>("getTimeZone");
@@ -107,41 +114,38 @@
 
             StateHasChanged();
         }
-        catch
-        {
+        catch {
             // default values will be used if detection fails
         }
     }
-    
-    
-    async Task RegisterAsync()
-    {
+
+
+    async Task RegisterAsync() {
         _error = null;
         _hasError = false;
         _hasErrorPassword = false;
         _hasErrorName = false;
-        try
-        {
+        try {
             await Auth.RegisterAsync(_name, _email, _password, _countryCode, _timeZoneId);
-            Nav.NavigateTo("/login");   
+            Nav.NavigateTo("/login");
         }
-        catch (ApiException ex)
-        {
+        catch (ApiException ex) {
             _error = ex.Status == 409 ? "This account already exists." : ex.Message;
             if (ex.Status == 400 && ex.Message.Contains("Password")) {
                 _hasErrorPassword = true;
             }
+
             if (ex.Status == 409) {
                 _hasError = true;
             }
-            if(ex.Status == 400 && ex.Message.Contains("DisplayName")) {
+
+            if (ex.Status == 400 && ex.Message.Contains("DisplayName")) {
                 _hasErrorName = true;
             }
         }
-        catch (HttpRequestException e)
-        {
-            
+        catch (HttpRequestException e) {
             _error = "Cannot connect to server. " + e.Message;
         }
     }
+
 }

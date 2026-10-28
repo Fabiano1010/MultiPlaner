@@ -1,4 +1,5 @@
 ﻿@page "/login"
+@using System.Net.Mail
 @layout AuthLayout
 @inject AuthService Auth
 @inject NavigationManager Nav
@@ -10,20 +11,23 @@
         <form class="auth-form" @onsubmit="LoginAsync" @onmsubit:preventDefault>
             <div class="input-group">
                 <label for="email">Email</label>
-                <input @bind="_email" id="email" placeholder="Email" class="input-main auth-input @(_hasError ? "error-input" : "")" />
+                <input @bind="_email" id="email" placeholder="Email"
+                       class="input-main auth-input @(_hasError ? "error-input" : "")"/>
                 <div class="input-error"></div>
             </div>
-            
+
             <div class="input-group">
                 <label for="password">Password</label>
                 <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
                     <input @bind="_password" @bind:event="oninput"
                            type="@(_showPassword ? "text" : "password")"
-                           id="password" placeholder="Password" class="auth-input-pass @(_hasError ? "error-input" : "")"/>
+                           id="password" placeholder="Password"
+                           class="auth-input-pass @(_hasError ? "error-input" : "")"/>
                     <button type="button" class="toggle-password"
                             @onclick="() => _showPassword = !_showPassword"
                             aria-label="@(_showPassword ? "Hide password" : "Show password")">
-                        <img src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")" alt="" />
+                        <img src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")"
+                             alt=""/>
                     </button>
                 </div>
                 <div class="input-error"></div>
@@ -31,13 +35,15 @@
                     <a href="/reset-password">Forgot your password?</a>
                 </div>
             </div>
-  
+
             <div class="remember-group">
-                <div class="rememberMe-box"><input type="checkbox" @bind="_remember" id="remember"> <label for="remember">Remember Me</label></div>
+                <div class="rememberMe-box"><input type="checkbox" @bind="_remember" id="remember"> <label
+                        for="remember">Remember Me</label></div>
             </div>
             <button type="submit"
                     class="auth-btn @(CanSubmit ? "btn-main" : "")"
-                    disabled="@(!CanSubmit)">Login</button>
+                    disabled="@(!CanSubmit)">Login
+            </button>
 
             @if (_error is not null) {
                 <span class="error">@_error</span>
@@ -56,27 +62,24 @@
     private string _password = "";
     private string? _error;
     private bool _remember;
-    private bool CanSubmit => !string.IsNullOrWhiteSpace(_email) && !string.IsNullOrWhiteSpace(_password) && System.Net.Mail.MailAddress.TryCreate(_email, out _);
+    private bool CanSubmit => !string.IsNullOrWhiteSpace(_email) && !string.IsNullOrWhiteSpace(_password) && MailAddress.TryCreate(_email, out _);
     private bool _showPassword;
     private bool _hasError;
 
-    async Task LoginAsync()
-    {
+    async Task LoginAsync() {
         _error = null;
         _hasError = false;
-        try
-        {
+        try {
             await Auth.LoginAsync(_email, _password, _remember);
             Nav.NavigateTo("/");
         }
-        catch (ApiException ex)
-        {
+        catch (ApiException ex) {
             _error = ex.Status == 401 ? "Invalid email or password." : ex.Message;
             _hasError = true;
         }
-        catch (HttpRequestException e)
-        {
+        catch (HttpRequestException e) {
             _error = "Cannot connect to the server." + e.Message;
         }
     }
+
 }

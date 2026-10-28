@@ -1,5 +1,4 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
-
 <div class="calendar">
     <div class="calendar-day-name-container">
         @foreach (var day in _dayNames) {
@@ -8,8 +7,7 @@
     </div>
 </div>
 <div class="calendar-grid-wrapper">
-    @foreach (var cell in _days)
-    {
+    @foreach (var cell in _days) {
         var date = cell.Date;
         var dots = DotsFor(date);
 
@@ -19,12 +17,11 @@
             </div>
 
             <div class="dots">
-                @foreach (var dot in dots.Take(MaxDots))
-                {
-                    <div class="event-dot @(dot.IsHighPriority ? "high" : "")" style="background-color: #@dot.Color;"></div>
+                @foreach (var dot in dots.Take(MaxDots)) {
+                    <div class="event-dot @(dot.IsHighPriority ? "high" : "")"
+                         style="background-color: #@dot.Color;"></div>
                 }
-                @if (dots.Count > MaxDots)
-                {
+                @if (dots.Count > MaxDots) {
                     <span class="dots-more">+@(dots.Count - MaxDots)</span>
                 }
             </div>
@@ -42,8 +39,11 @@
     [Parameter] public EventCallback<DateOnly> OnDayClicked { get; set; }
 
     private sealed record Cell(DateOnly Date, bool IsCurrentMonth);
+
     private record EventDot(string Color, bool IsHighPriority);
+
     private const int MaxDots = 6;
+
     private static readonly string[] _dayNames =
         { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 
@@ -52,46 +52,39 @@
     private IReadOnlyList<EventResponse>? _eventsSeen;
     private Dictionary<DateOnly, List<EventDot>> _dots = new();
 
-    protected override void OnParametersSet()
-    {
+    protected override void OnParametersSet() {
         var month = new DateOnly(CurrentMonth.Year, CurrentMonth.Month, 1);
         var regenerated = month != _generatedFor;
-        if (regenerated)
-        {
+        if (regenerated) {
             _generatedFor = month;
             GenerateDays(month);
         }
 
-        if (regenerated || !ReferenceEquals(_eventsSeen, Events))
-        {
+        if (regenerated || !ReferenceEquals(_eventsSeen, Events)) {
             _eventsSeen = Events;
             BuildDots();
         }
     }
 
-    private void GenerateDays(DateOnly month)
-    {
+    private void GenerateDays(DateOnly month) {
         _days.Clear();
         var (start, endExclusive) = CalendarRange.Grid(CurrentMonth);
         for (var d = start; d < endExclusive; d = d.AddDays(1))
             _days.Add(new Cell(d, d.Month == month.Month));
     }
 
-    private void BuildDots()
-    {
+    private void BuildDots() {
         var gridStart = _days[0].Date;
         var gridEnd = _days[^1].Date;
         var byDay = new Dictionary<DateOnly, List<EventResponse>>();
 
-        foreach (var e in Events)
-        {
+        foreach (var e in Events) {
             var (first, last) = EventDays.Range(e);
             var from = first < gridStart ? gridStart : first;
             var to = last > gridEnd ? gridEnd : last;
 
-            for (var d = from; d <= to; d = d.AddDays(1))
-            {
-                if (!byDay.TryGetValue(d, out var list)) byDay[d] = list = new();
+            for (var d = from; d <= to; d = d.AddDays(1)) {
+                if (!byDay.TryGetValue(d, out var list)) byDay[d] = list = new List<EventResponse>();
                 list.Add(e);
             }
         }
@@ -104,16 +97,15 @@
                 .ThenBy(e => e.StartsAtUtc)
                 .Select(e => new EventDot(e.Color, e.IsHighPriority))
                 .ToList());
-     
     }
 
-    private IReadOnlyList<EventDot> DotsFor(DateOnly d) =>
-        _dots.TryGetValue(d, out var list)
+    private IReadOnlyList<EventDot> DotsFor(DateOnly d) {
+        return _dots.TryGetValue(d, out var list)
             ? list
             : Array.Empty<EventDot>();
+    }
 
-    private string CellClass(Cell c)
-    {
+    private string CellClass(Cell c) {
         var d = c.Date;
         var isStart = RangeStart == d;
         var isEnd = RangeEnd == d;
@@ -131,4 +123,5 @@
         if (d == DateOnly.FromDateTime(DateTime.Today)) cls += " today";
         return cls;
     }
+
 }

@@ -1,4 +1,4 @@
-﻿.main-content-box-auth{
+﻿.main-content-box-auth {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -7,7 +7,7 @@
     width: 100%;
 }
 
-.main-content-box-auth h2{
+.main-content-box-auth h2 {
     font-size: 2.5rem;
     margin-bottom: 1rem;
     letter-spacing: 5px;
@@ -15,7 +15,7 @@
     color: var(--color-text);
 }
 
-.form-box{
+.form-box {
     width: 25vw;
     height: 40vh;
     min-height: 400px;
@@ -27,7 +27,8 @@
     border-radius: 15px;
     background-color: var(--color-primary-dim);
 }
-.auth-form{
+
+.auth-form {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -36,9 +37,10 @@
     justify-content: center;
     align-items: center;
     gap: 0.5rem;
-    
+
 }
-.auth-input, .auth-input-pass{
+
+.auth-input, .auth-input-pass {
     width: 100%;
     height: 40px;
     border-radius: 15px;
@@ -47,25 +49,28 @@
     padding: 0.5rem;
     font-size: var(--font-size-medium);
     transition: 0.25s all;
-    
+
 }
+
 input[type="password"]::-ms-reveal {
     display: none;
 }
-.auth-input:hover{
+
+.auth-input:hover {
     box-shadow: 0 5px 5px var(--color-primary);
-    
+
 }
 
 
-.input-group{
+.input-group {
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     justify-content: left;
 }
-.input-group label{
+
+.input-group label {
     font-size: var(--font-size-small);
     font-weight: 600;
     text-transform: uppercase;
@@ -74,10 +79,12 @@ input[type="password"]::-ms-reveal {
     padding-left: 0.5rem;
     user-select: none;
 }
-.error-input{
+
+.error-input {
     border: 1px solid red;
 }
-.error{
+
+.error {
     color: red;
     font-size: 0.65rem;
     font-weight: 600;
@@ -85,12 +92,14 @@ input[type="password"]::-ms-reveal {
     padding-left: 0.5rem;
     user-select: none;
 }
-.password-reset-direction{
+
+.password-reset-direction {
     display: flex;
     justify-content: right;
     width: 100%;
 }
-.password-reset-direction a{
+
+.password-reset-direction a {
     text-decoration: none;
     color: var(--color-primary);
     font-size: var(--font-size-small);
@@ -98,13 +107,15 @@ input[type="password"]::-ms-reveal {
     transition: ease-in 0.1s;
     user-select: none;
 }
-.password-reset-direction a:hover{
+
+.password-reset-direction a:hover {
     text-decoration: underline;
     color: var(--color-text);
     font-size: var(--font-size-small);
     font-weight: 600;
 }
-.remember-group{
+
+.remember-group {
     display: flex;
     align-items: center;
     justify-content: left;
@@ -113,18 +124,20 @@ input[type="password"]::-ms-reveal {
     padding-left: 0.5rem;
     user-select: none;
 }
-.register-direction a{
+
+.register-direction a {
     text-decoration: none;
     color: var(--color-primary);
     font-weight: 600;
     transition: ease-in 0.1s;
 }
 
-.register-direction a:hover{
+.register-direction a:hover {
     text-decoration: underline;
     color: var(--color-text);
 }
-.auth-btn{
+
+.auth-btn {
     width: 50%;
     height: 40px;
     border-radius: 15px;
@@ -138,22 +151,24 @@ input[type="password"]::-ms-reveal {
 }
 
 .auth-btn:enabled {
-    background-color: var(--color-secondary); 
+    background-color: var(--color-secondary);
     color: var(--color-text-reversed);
     transition: ease-in 0.20s;
 }
-.auth-btn:enabled:hover{
+
+.auth-btn:enabled:hover {
     background-color: white;
     color: var(--color-text);
     box-shadow: 0 10px 10px var(--color-primary);
     transform: translateY(-2px);
-    
+
 }
 
 .auth-btn:disabled {
     cursor: not-allowed;
 }
-.auth-register{
+
+.auth-register {
     height: 50vh;
     min-height: 500px;
 }
@@ -165,14 +180,15 @@ input[type="password"]::-ms-reveal {
     transition: 0.25s ease-in-out;
     border-radius: 15px;
 }
-.password-wrapper:hover{
+
+.password-wrapper:hover {
     filter: drop-shadow(0 10px 10px var(--color-primary));
-    
+
 }
 
 .password-wrapper .auth-input {
     width: 100%;
-    padding-right: 44px;   
+    padding-right: 44px;
 }
 
 .toggle-password {
@@ -196,22 +212,36 @@ input[type="password"]::-ms-reveal {
 .toggle-password:hover img {
     opacity: 1;
 }
+
 .password-wrapper:focus-within .toggle-password img {
     opacity: 1;
 }
+
 @media (prefers-reduced-motion: reduce) {
-    .password-wrapper:focus-within { animation: none; }
-    .auth-input:focus { animation: none; }
+    .password-wrapper:focus-within {
+        animation: none;
+    }
+
+    .auth-input:focus {
+        animation: none;
+    }
 }
 
 
-.auth-input:focus, .password-wrapper:focus-within{
+.auth-input:focus, .password-wrapper:focus-within {
     filter: drop-shadow(0 10px 10px var(--color-primary));
     animation: bounce-auth 0.5s;
 }
 
-@keyframes bounce-auth{
-    0% { transform: translateY(0) scale(1);  }
-    50% { transform: translateY(-5px) scale(1.05); box-shadow: 0 10px 10px var(--color-primary); }
-    100% { transform: translateY(0) scale(1);  }
+@keyframes bounce-auth {
+    0% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 10px 10px var(--color-primary);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+    }
 }

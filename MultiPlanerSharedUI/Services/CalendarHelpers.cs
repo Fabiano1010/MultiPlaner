@@ -30,34 +30,32 @@ public static class EventDays
         return (first, lastDay);
     }
 
-    public readonly record struct EventSpan(DateOnly StartDate, DateOnly EndDate, TimeOnly? StartTime, TimeOnly? EndTime);
-
-    public static EventSpan Span(EventResponse e)
-    {
-        if (e.IsAllDay && e.StartDate is { } s && e.EndDateExclusive is { } x)
-        {
+    public static EventSpan Span(EventResponse e) {
+        if (e.IsAllDay && e.StartDate is { } s && e.EndDateExclusive is { } x) {
             var last = x.AddDays(-1);
             return new EventSpan(s, last < s ? s : last, null, null);
         }
 
-        
+
         var (startDate, startTime) = ToLocal(e.StartsAtUtc, e.RoomTimeZoneId);
         var (endDate, endTime) = ToLocal(e.EndsAtUtc, e.RoomTimeZoneId);
         return new EventSpan(startDate, endDate, startTime, endTime);
     }
-    
-    public static DateTimeOffset ToUtc(DateOnly date, TimeOnly time, string tzId)
-    {
+
+    public static DateTimeOffset ToUtc(DateOnly date, TimeOnly time, string tzId) {
         var tz = TimeZoneInfo.FindSystemTimeZoneById(tzId);
         var local = DateTime.SpecifyKind(date.ToDateTime(time), DateTimeKind.Unspecified);
         return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, tz), TimeSpan.Zero);
     }
 
-    public static (DateOnly Date, TimeOnly Time) ToLocal(DateTimeOffset utc, string tzId)
-    {
+    public static (DateOnly Date, TimeOnly Time) ToLocal(DateTimeOffset utc, string tzId) {
         var local = TimeZoneInfo.ConvertTime(utc, TimeZoneInfo.FindSystemTimeZoneById(tzId));
         return (DateOnly.FromDateTime(local.DateTime), TimeOnly.FromDateTime(local.DateTime));
     }
-    
-    
+
+    public readonly record struct EventSpan(
+        DateOnly StartDate,
+        DateOnly EndDate,
+        TimeOnly? StartTime,
+        TimeOnly? EndTime);
 }

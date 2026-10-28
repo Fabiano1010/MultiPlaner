@@ -1,25 +1,23 @@
-﻿
-<Popup IsVisible="IsVisible" OnClose="@HandleCloseAsync">
+﻿<Popup IsVisible="IsVisible" OnClose="@HandleCloseAsync">
     <div class="user-settings-container">
-        
-        
-        
+
+
     </div>
-    
-    
+
+
 </Popup>
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-    
+
 
     private string? _errorMessage;
-    
+
     private async Task HandleCloseAsync() {
         _errorMessage = "";
         await OnClose.InvokeAsync();
     }
-    
+
 }

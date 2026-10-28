@@ -19,7 +19,7 @@
                     <span class="event-details-label">Category</span>
                     <span class="event-details-title">@Event.Category</span>
                 </div>
-                
+
                 @{ var span = EventDays.Span(Event); }
 
                 <div class="event-details-row">
@@ -35,8 +35,7 @@
                     </span>
                 </div>
 
-                @if (Event.IsAllDay)
-                {
+                @if (Event.IsAllDay) {
                     <div class="event-details-row">
                         <span class="event-details-label">Time</span>
                         <span class="event-details-value">All day</span>
@@ -48,56 +47,54 @@
                         @(Event.IsHighPriority ? "High" : "Normal")
                     </span>
                 </div>
-                @if (!string.IsNullOrEmpty(Event.Description))
-                {
+                @if (!string.IsNullOrEmpty(Event.Description)) {
                     <div class="event-details-row event-details-row-column">
                         <span class="event-details-label">Description</span>
                         <span class="event-details-value">@Event.Description</span>
                     </div>
                 }
-               
 
 
-                @if (!string.IsNullOrEmpty(_errorMessage)) { <div class="form-error">@_errorMessage</div> }
+
+                @if (!string.IsNullOrEmpty(_errorMessage)) {
+                    <div class="form-error">@_errorMessage</div>
+                }
 
                 <div class="form-actions">
-                    @if (Event.Permissions.CanDelete)
-                    {
-                        <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">Delete</button>
+                    @if (Event.Permissions.CanDelete) {
+                        <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">Delete
+                        </button>
                     }
-                    @if (Event.Permissions.CanEdit)
-                    {
+                    @if (Event.Permissions.CanEdit) {
                         <button type="button" class="btn-main btn-save" @onclick="StartEdit">Edit</button>
                     }
                 </div>
             </div>
         }
-        else
-        {
+        else {
             <form class="add-event-form" @onsubmit="SaveAsync" @onsubmit:preventDefault>
                 <div class="form-group">
                     <label>Event name</label>
-                    <input type="text" class="input-main" @bind="_title" @bind:event="oninput" maxlength="128" />
+                    <input type="text" class="input-main" @bind="_title" @bind:event="oninput" maxlength="128"/>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group"><label>Start</label>
-                        <input type="date" class="input-main" @bind="_start" /></div>
+                        <input type="date" class="input-main" @bind="_start"/></div>
                     <div class="form-group"><label>End</label>
-                        <input type="date" class="input-main" @bind="_end" /></div>
+                        <input type="date" class="input-main" @bind="_end"/></div>
                 </div>
 
                 <div class="form-group form-group-checkbox">
-                    <label><input type="checkbox" @bind="_allDay" /> All day</label>
+                    <label><input type="checkbox" @bind="_allDay"/> All day</label>
                 </div>
 
-                @if (!_allDay)
-                {
+                @if (!_allDay) {
                     <div class="form-row">
                         <div class="form-group"><label>From</label>
-                            <input type="time" class="input-main" @bind="_startTime" /></div>
+                            <input type="time" class="input-main" @bind="_startTime"/></div>
                         <div class="form-group"><label>To</label>
-                            <input type="time" class="input-main" @bind="_endTime" /></div>
+                            <input type="time" class="input-main" @bind="_endTime"/></div>
                     </div>
                 }
 
@@ -105,13 +102,15 @@
                     <div class="form-group">
                         <label>Category</label>
                         <select class="input-main" @bind="_category">
-                            @foreach (var c in Enum.GetValues<EventCategory>()) { <option value="@c">@c</option> }
+                            @foreach (var c in Enum.GetValues<EventCategory>()) {
+                                <option value="@c">@c</option>
+                            }
                         </select>
                     </div>
                     <div class="form-group form-group-color">
                         <label>Color</label>
-                        <input type="color" @bind="_color" disabled="@_defaultColor" />
-                        <label class="inline"><input type="checkbox" @bind="_defaultColor" /> Default</label>
+                        <input type="color" @bind="_color" disabled="@_defaultColor"/>
+                        <label class="inline"><input type="checkbox" @bind="_defaultColor"/> Default</label>
                     </div>
                 </div>
 
@@ -121,13 +120,17 @@
                 </div>
 
                 <div class="form-group form-group-checkbox">
-                    <label><input type="checkbox" @bind="_highPriority" /> High priority</label>
+                    <label><input type="checkbox" @bind="_highPriority"/> High priority</label>
                 </div>
 
-                @if (!string.IsNullOrEmpty(_errorMessage)) { <div class="form-error">@_errorMessage</div> }
+                @if (!string.IsNullOrEmpty(_errorMessage)) {
+                    <div class="form-error">@_errorMessage</div>
+                }
 
                 <div class="form-actions">
-                    <button type="button" class="btn-main btn-cancel" @onclick="CancelEdit" disabled="@_isSaving">Cancel</button>
+                    <button type="button" class="btn-main btn-cancel" @onclick="CancelEdit" disabled="@_isSaving">
+                        Cancel
+                    </button>
                     <button type="submit" class="btn-main btn-save" disabled="@_isSaving">Save</button>
                 </div>
             </form>
@@ -137,7 +140,7 @@
 
 <ConfirmPopup IsVisible="_showDelete" Title="Delete event" Danger="true" ConfirmText="Delete"
               Message="@($"Delete \"{Event?.Title}\"? This cannot be undone.")"
-              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false" />
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false"/>
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
@@ -145,8 +148,8 @@
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public int RoomId { get; set; }
-    
-    
+
+
     private bool _editing;
     private bool _showDelete;
     private bool _isSaving;
@@ -155,12 +158,12 @@
     private bool _allDay;
     private bool _highPriority;
     private bool _defaultColor;
-    
-    private string _errorMessage="";
+
+    private string _errorMessage = "";
     private string _title = "";
     private string? _description = "";
     private string _color = "#999999";
-    
+
     private DateOnly _start;
     private DateOnly _end;
     private TimeOnly _startTime;
@@ -170,18 +173,18 @@
     private string EventUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
 
     protected override void OnParametersSet() {
-        
         if (IsVisible && !_wasVisible) {
             _editing = false;
             _errorMessage = "";
         }
-        _wasVisible=IsVisible;
+
+        _wasVisible = IsVisible;
     }
 
     private void StartEdit() {
         if (Event is null) return;
         var e = Event;
-        
+
         _title = e.Title;
         _description = e.Description;
         _category = e.Category;
@@ -200,31 +203,36 @@
             (_start, _startTime) = EventDays.ToLocal(e.StartsAtUtc, e.RoomTimeZoneId);
             (_end, _endTime) = EventDays.ToLocal(e.EndsAtUtc, e.RoomTimeZoneId);
         }
+
         _errorMessage = "";
         _editing = true;
     }
-    
-    private void CancelEdit() { _editing = false; _errorMessage = ""; }
+
+    private void CancelEdit() {
+        _editing = false;
+        _errorMessage = "";
+    }
 
     private async Task SaveAsync() {
         if (Event is null) return;
         var title = _title.Trim();
         if (title.Length is < 1 or > 128) {
-            _errorMessage = "Event name is required (max 128 characters)."; 
+            _errorMessage = "Event name is required (max 128 characters).";
             return;
         }
 
         if (_end < _start) {
-            _errorMessage = "End date must not be before start date."; 
+            _errorMessage = "End date must not be before start date.";
             return;
         }
+
         EventTimeRequest time;
 
         try {
             if (_allDay) {
                 time = new EventTimeRequest {
-                    IsAllDay = true, 
-                    StartDate = _start, 
+                    IsAllDay = true,
+                    StartDate = _start,
                     EndDateExclusive = _end.AddDays(1)
                 };
             }
@@ -235,6 +243,7 @@
                     _errorMessage = "End date must be before start date.";
                     return;
                 }
+
                 time = new EventTimeRequest {
                     IsAllDay = false,
                     StartsAtUtc = from,
@@ -246,6 +255,7 @@
             _errorMessage = "No time zone was found.";
             return;
         }
+
         _isSaving = true;
         _errorMessage = "";
         try {
@@ -276,8 +286,6 @@
         finally {
             _isSaving = false;
         }
-        
-        
     }
 
     private async Task DeleteAsync() {

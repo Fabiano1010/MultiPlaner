@@ -19,14 +19,14 @@
             <input class="auth-input-pass input-search" type="search" placeholder="Search"
                    value="@_search"
                    @oninput="OnSearchInput"
-                   @onkeydown="OnSearchKeyDown" />
+                   @onkeydown="OnSearchKeyDown"/>
             @if (!string.IsNullOrEmpty(_search)) {
                 <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button>
             }
-           
+
         </div>
-       
-        
+
+
         @if (Selection.Active) {
             <button type="button" class="btn-main btn-cancel" @onclick="Selection.Clear">
                 Deselect all (@Selection.Count)
@@ -42,23 +42,26 @@
                 Delete / leave (@Selection.Count)
             </button>
         }
-        
+
     </div>
 }
 
 <div class="rooms-container">
     @if (_isLoading) {
-        <LoadingSpinner />
-    } else if (!string.IsNullOrEmpty(_errorMessage)) {
+        <LoadingSpinner/>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage)) {
         <div class="error-message">@_errorMessage</div>
-    } else if (_visibleRooms is { Count: > 0 }) {
+    }
+    else if (_visibleRooms is { Count: > 0 }) {
         foreach (var room in _visibleRooms) {
             <Room @key="room.Id" RoomData="room"
                   OnConflict="() => LoadRoomsAsync()"
-                  OnFavouriteChanged="() => LoadRoomsAsync(silent: true)"
-                  OnChanged="() => LoadRoomsAsync(silent: true)" />
+                  OnFavouriteChanged="() => LoadRoomsAsync(true)"
+                  OnChanged="() => LoadRoomsAsync(true)"/>
         }
-    } else {
+    }
+    else {
         <div class="no-rooms-message">
             @(!string.IsNullOrWhiteSpace(_search) ? "No calendars match your search."
             : FolderId is null ? "Hey add some calendars!" : "This folder is empty.")
@@ -68,21 +71,21 @@
 
 <ConfirmPopup IsVisible="_showDelete" Title="Delete calendars" Danger="true" ConfirmText="Delete"
               Message="@($"Delete or leave {Selection.Count} selected calendar(s)? Calendars you own will be deleted for everyone. This cannot be undone.")"
-              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false" />
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false"/>
 
 <ConfirmPopup IsVisible="_showRemove" Title="Remove from folder" ConfirmText="Remove"
               Message="@($"Remove {Selection.Count} selected calendar(s) from this folder? They will not be deleted.")"
-              OnConfirm="RemoveAsync" OnClose="() => _showRemove = false" />
+              OnConfirm="RemoveAsync" OnClose="() => _showRemove = false"/>
 
 
 
 <ConfirmPopup IsVisible="_showDelete" Title="Delete calendars" Danger="true" ConfirmText="Delete"
               Message="@($"Delete or leave {Selection.Count} selected calendar(s)? Calendars you own will be deleted for everyone. This cannot be undone.")"
-              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false" />
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false"/>
 
 <ConfirmPopup IsVisible="_showRemove" Title="Remove from folder" ConfirmText="Remove"
               Message="@($"Remove {Selection.Count} selected calendar(s) from this folder? They will not be deleted.")"
-              OnConfirm="RemoveAsync" OnClose="() => _showRemove = false" />
+              OnConfirm="RemoveAsync" OnClose="() => _showRemove = false"/>
 
 
 
@@ -98,17 +101,22 @@
     private bool _showDelete;
     private bool _showRemove;
     private string? _search;
-    
+
     private const int DebounceMs = 250;
 
-    protected override void OnInitialized() => Selection.Changed += OnSelectionChanged;
+    protected override void OnInitialized() {
+        Selection.Changed += OnSelectionChanged;
+    }
 
-    protected override async Task OnInitializedAsync() => await LoadRoomsAsync();
+    protected override async Task OnInitializedAsync() {
+        await LoadRoomsAsync();
+    }
 
-    private void OnSelectionChanged() => InvokeAsync(StateHasChanged);
+    private void OnSelectionChanged() {
+        InvokeAsync(StateHasChanged);
+    }
 
-    public void Dispose()
-    {
+    public void Dispose() {
         Selection.Changed -= OnSelectionChanged;
         _debounce?.Cancel();
         _debounce?.Dispose();
@@ -119,11 +127,10 @@
         _errorMessage = null;
 
         try {
-            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status) ?? new();
+            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status) ?? new List<RoomResponse>();
 
-            if (FolderId is { } folderId)
-            {
-                var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders") ?? new();
+            if (FolderId is { } folderId) {
+                var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders") ?? new List<UserFolderResponse>();
                 var ids = folders.FirstOrDefault(f => f.Id == folderId)?.RoomIds;
                 result = result.Where(r => ids != null && ids.Contains(r.Id)).ToList();
             }
@@ -140,85 +147,81 @@
             StateHasChanged();
         }
     }
-    private async Task OnStatusChanged(ChangeEventArgs e)
-    {
+
+    private async Task OnStatusChanged(ChangeEventArgs e) {
         _status = e.Value?.ToString() ?? "active";
         await LoadRoomsAsync();
     }
 
-    private async Task DeleteAsync()
-    {
+    private async Task DeleteAsync() {
         var failed = 0;
         string? lastError = null;
 
-        foreach (var id in Selection.Ids.ToList())
-        {
+        foreach (var id in Selection.Ids.ToList()) {
             var room = _rooms?.FirstOrDefault(r => r.Id == id);
             if (room is null) continue;
 
             var url = room.IsOwner ? $"api/rooms/{id}" : $"api/rooms/{id}/members/me";
-            try
-            {
+            try {
                 var res = await Api.SendAsync(HttpMethod.Delete, url);
                 await ApiClient.EnsureSuccessAsync(res);
             }
-            catch (ApiException e) { failed++; lastError = e.Message; }
+            catch (ApiException e) {
+                failed++;
+                lastError = e.Message;
+            }
         }
 
         await AfterBulkAsync(failed, lastError);
     }
 
-    private async Task RemoveAsync()
-    {
+    private async Task RemoveAsync() {
         if (FolderId is not { } folderId) return;
         var failed = 0;
         string? lastError = null;
 
-        foreach (var id in Selection.Ids.ToList())
-        {
-            try
-            {
+        foreach (var id in Selection.Ids.ToList()) {
+            try {
                 var res = await Api.SendAsync(HttpMethod.Delete, $"api/me/folders/{folderId}/rooms/{id}");
                 await ApiClient.EnsureSuccessAsync(res);
             }
-            catch (ApiException e) { failed++; lastError = e.Message; }
+            catch (ApiException e) {
+                failed++;
+                lastError = e.Message;
+            }
         }
 
         await AfterBulkAsync(failed, lastError);
     }
 
-    private async Task AfterBulkAsync(int failed, string? lastError)
-    {
-        await LoadRoomsAsync(silent: true);  
+    private async Task AfterBulkAsync(int failed, string? lastError) {
+        await LoadRoomsAsync(true);
 
         if (failed > 0)
             throw new ApiException($"{failed} operation(s) failed. {lastError}", 0);
-        
     }
 
     private async Task OnSearchInput(ChangeEventArgs e) {
         _search = e.Value?.ToString() ?? "";
-        
+
         _debounce?.Cancel();
         _debounce?.Dispose();
         _debounce = new CancellationTokenSource();
-        
-        var token =_debounce.Token;
+
+        var token = _debounce.Token;
 
         try {
             await Task.Delay(DebounceMs, token);
         }
-        catch (Exception ex) when (ex is TaskCanceledException or ObjectDisposedException)
-        {
+        catch (Exception ex) when (ex is TaskCanceledException or ObjectDisposedException) {
             return;
         }
 
         ApplyFilter();
         StateHasChanged();
-
     }
-    private void ApplyFilter()
-    {
+
+    private void ApplyFilter() {
         var source = _rooms ?? new List<RoomResponse>();
         var term = (_search ?? "").Trim();
 
@@ -229,26 +232,24 @@
         _visibleRooms = query.OrderByDescending(r => r.Membership?.IsFavourite ?? false).ToList();
     }
 
-    private void ApplySearchNow()
-    {
+    private void ApplySearchNow() {
         _debounce?.Cancel();
         ApplyFilter();
     }
 
-    private void ClearSearch()
-    {
+    private void ClearSearch() {
         _debounce?.Cancel();
         _search = "";
         ApplyFilter();
     }
 
-    private void OnSearchKeyDown(KeyboardEventArgs e)
-    {
+    private void OnSearchKeyDown(KeyboardEventArgs e) {
         if (e.Key == "Enter") ApplySearchNow();
         else if (e.Key == "Escape") ClearSearch();
     }
-    
-    private static bool Contains(string? value, string term) =>
-        value is not null && value.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+
+    private static bool Contains(string? value, string term) {
+        return value is not null && value.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+    }
 
 }

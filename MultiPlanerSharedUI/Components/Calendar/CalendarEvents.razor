@@ -33,16 +33,16 @@
     <div class="events-collapse @(_collapsed ? "collapsed" : "")">
         <div class="events-collapse-inner">
             <div class="events-list-cointainer">
-                
-                    @if (_dayEvents.Count == 0) {
-                        <div class="events-empty">Nothing is happening here :c</div>
-                    }
-                    else {
-                        <div class="events-list">
-                            @foreach (var ev in _dayEvents) {
-                             <div class="events-item @(ev.IsHighPriority ? "high" : "")" @key="ev.Id"
-                            style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
-                            @onclick="() => OpenDetails(ev)">
+
+                @if (_dayEvents.Count == 0) {
+                    <div class="events-empty">Nothing is happening here :c</div>
+                }
+                else {
+                    <div class="events-list">
+                        @foreach (var ev in _dayEvents) {
+                            <div class="events-item @(ev.IsHighPriority ? "high" : "")" @key="ev.Id"
+                                 style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
+                                 @onclick="() => OpenDetails(ev)">
                                 <div class="events-item-details">
                                     <div class="events-item-name">@(ev.IsPinned ? "x" : "")@ev.Title</div>
                                     <div class="events-item-user">@ev.Author.DisplayName</div>
@@ -50,15 +50,14 @@
 
                                 @{ var span = EventDays.Span(ev); }
                                 <div class="events-item-date">
-                                @span.StartDate.ToString("dd.MM.yyyy") - @span.EndDate.ToString("dd.MM.yyyy")
-                                        </div>
+                                    @span.StartDate.ToString("dd.MM.yyyy") - @span.EndDate.ToString("dd.MM.yyyy")
+                                </div>
                             </div>
-
-                            }
-                        </div>
-                    }
+                        }
+                    </div>
+                }
             </div>
-            
+
         </div>
     </div>
 </div>
@@ -66,9 +65,9 @@
 <EventDetails IsVisible="_showDetails"
               Event="_selectedEvent"
               OnClose="HandleCloseDetails"
-              OnChanged="OnChanged" 
+              OnChanged="OnChanged"
               RoomId="RoomId"
-              />
+/>
 
 @code {
     [Parameter] public DateTime CurrentMonth { get; set; }
@@ -100,7 +99,10 @@
         _eventsSeen = Events;
         _daySeen = day;
         _dayEvents = Events
-            .Where(e => { var (f, l) = EventDays.Range(e); return f <= day && day <= l; })
+            .Where(e => {
+                var (f, l) = EventDays.Range(e);
+                return f <= day && day <= l;
+            })
             .OrderByDescending(e => e.IsPinned)
             .ThenByDescending(e => e.IsAllDay)
             .ThenBy(e => e.StartsAtUtc)
@@ -108,14 +110,15 @@
     }
 
     private void OpenDetails(EventResponse ev) {
-        _selectedEvent = ev; _showDetails = true;
+        _selectedEvent = ev;
+        _showDetails = true;
     }
-    
+
 
     private void HandleCloseDetails() {
         _showDetails = false;
         _selectedEvent = null;
     }
-    
+
 
 }
