@@ -36,6 +36,26 @@
     box-sizing: border-box;
 }
 
+.logo-about{
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+}
+
+.logo-about {
+    width: 100%;
+    min-width: 0;
+}
+
+.logo-img-about {
+    display: block;
+    width: 100%;
+    max-width: 32rem;
+    height: auto;
+    margin-inline: auto;
+}
+
 .logo-img-large {
     display: block;
     width: min(100%, 8rem);
