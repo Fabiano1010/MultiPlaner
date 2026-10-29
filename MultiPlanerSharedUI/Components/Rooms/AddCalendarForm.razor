@@ -1,17 +1,17 @@
-﻿@using MultiPlanerSharedModels.Contracts.Rooms
-@using System.Net.Http.Json
+﻿@using System.Net.Http.Json
+@using MultiPlanerSharedModels.Contracts.Rooms
 @inject ApiClient Api
 
 <Popup IsVisible="IsVisible" Title="Add new calendar" OnClose="@HandleCloseAsync">
-    
+
     <div class="add-room-form-box">
-        <form class="add-room-form" @onsubmit="HandleSaveAsync" @onsubmit:preventDefault> 
+        <form class="add-room-form" @onsubmit="HandleSaveAsync" @onsubmit:preventDefault>
             <div class="form-group">
                 <label>Calendar name</label>
-                <input type="text" @bind="_calendarName" placeholder="Calendar name" class="input-main @(HasError ? "error-input" : "")"/>
+                <input type="text" @bind="_calendarName" placeholder="Calendar name"
+                       class="input-main @(HasError ? "error-input" : "")"/>
             </div>
-            @if (!string.IsNullOrEmpty(_errorMessage))
-            {
+            @if (!string.IsNullOrEmpty(_errorMessage)) {
                 <div class="form-error">@_errorMessage</div>
             }
             <div class="form-actions">
@@ -21,16 +21,16 @@
 
         </form>
     </div>
-    
-    
+
+
 </Popup>
 
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
-    
+
     [Parameter] public EventCallback OnClose { get; set; }
-    
+
     [Parameter] public EventCallback<RoomResponse> OnCreate { get; set; }
 
     private string _calendarName = "New Calendar";
@@ -38,8 +38,8 @@
     private string _errorMessage = "";
     private bool _isSaving;
     private bool HasError => !string.IsNullOrEmpty(_errorMessage);
-    
-    
+
+
     private async Task HandleCloseAsync() {
         _errorMessage = "";
         await OnClose.InvokeAsync();
@@ -56,7 +56,7 @@
         _errorMessage = "";
 
         try {
-            var request = new CreateRoomRequest() { Name = name };
+            var request = new CreateRoomRequest { Name = name };
             var response = await Api.PostAsync("api/rooms", request);
             await ApiClient.EnsureSuccessAsync(response);
             if (!response.IsSuccessStatusCode) {
@@ -64,6 +64,7 @@
                 _errorMessage = $"Error creating room: {response.StatusCode} - {body}";
                 return;
             }
+
             var room = await response.Content.ReadFromJsonAsync<RoomResponse>();
             await OnCreate.InvokeAsync(room!);
             await HandleCloseAsync();
@@ -79,4 +80,5 @@
             _calendarName = "New Calendar";
         }
     }
+
 }

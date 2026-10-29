@@ -3,32 +3,38 @@ using MultiPlanerSharedModels.Contracts.Rooms;
 
 namespace MultiPlanerSharedUI.Services;
 
-public class ApiClient(HttpClient http) {
+public class ApiClient(HttpClient http)
+{
     private async Task<string> GetCsrfAsync() {
         var r = await http.GetFromJsonAsync<CsrfResponse>("api/auth/csrf");
         return r!.Token;
     }
-    public async Task<T?> GetAsync<T>(string url, CancellationToken ct = default)
-    {
+
+    public async Task<T?> GetAsync<T>(string url, CancellationToken ct = default) {
         var res = await http.GetAsync(url, ct);
         await EnsureSuccessAsync(res);
-        return await res.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        return await res.Content.ReadFromJsonAsync<T>(ct);
     }
-    public Task<RoomResponse?> GetRoomAsync(int id, CancellationToken ct = default)
-        => GetAsync<RoomResponse>($"api/rooms/{id}", ct);
-    public Task<HttpResponseMessage> PostAsync(string url, object? body = null)
-        => SendAsync(HttpMethod.Post, url, body);
 
-    public Task<HttpResponseMessage> PatchAsync(string url, object? body = null)
-        => SendAsync(HttpMethod.Patch, url, body);
-    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? body = null)
-    {
+    public Task<RoomResponse?> GetRoomAsync(int id, CancellationToken ct = default) {
+        return GetAsync<RoomResponse>($"api/rooms/{id}", ct);
+    }
+
+    public Task<HttpResponseMessage> PostAsync(string url, object? body = null) {
+        return SendAsync(HttpMethod.Post, url, body);
+    }
+
+    public Task<HttpResponseMessage> PatchAsync(string url, object? body = null) {
+        return SendAsync(HttpMethod.Patch, url, body);
+    }
+
+    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? body = null) {
         var req = new HttpRequestMessage(method, url);
         if (body is not null) req.Content = JsonContent.Create(body);
         req.Headers.Add("X-CSRF-TOKEN", await GetCsrfAsync());
         return await http.SendAsync(req);
     }
-    
+
     public static async Task EnsureSuccessAsync(HttpResponseMessage res) {
         if (res.IsSuccessStatusCode) return;
 
@@ -52,7 +58,4 @@ public class ApiClient(HttpClient http) {
 
         throw new ApiException(message, (int)res.StatusCode, code);
     }
-
-    
-    
 }

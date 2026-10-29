@@ -9,12 +9,11 @@
 </div>
 
 @code {
-    
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationState { get; set; }
-    
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
     private string? _username;
-    
+
     protected override async Task OnInitializedAsync() {
         if (AuthenticationState != null) {
             var authState = await AuthenticationState;
@@ -22,5 +21,5 @@
             _username = user.Identity?.Name;
         }
     }
-    
+
 }

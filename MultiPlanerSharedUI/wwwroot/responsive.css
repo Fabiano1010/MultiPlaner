@@ -101,8 +101,7 @@
 
     .sidebar {
         height: 100dvh;
-        padding: calc(0.5rem + env(safe-area-inset-top)) 0.75rem
-                 calc(0.75rem + env(safe-area-inset-bottom));
+        padding: calc(0.5rem + env(safe-area-inset-top)) 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
         visibility: hidden;
         pointer-events: none;
         transform: translateX(-100%);
@@ -154,8 +153,7 @@
     .main-content-box-auth {
         min-height: 100%;
         height: auto;
-        padding: 1.25rem var(--mobile-page-padding)
-                 calc(1.25rem + env(safe-area-inset-bottom));
+        padding: 1.25rem var(--mobile-page-padding) calc(1.25rem + env(safe-area-inset-bottom));
     }
 
     .main-content-box-auth h2 {
@@ -245,8 +243,7 @@
     .rooms-folders-container {
         width: 100%;
         height: auto;
-        padding: var(--mobile-page-padding) var(--mobile-page-padding)
-                 calc(6rem + env(safe-area-inset-bottom));
+        padding: var(--mobile-page-padding) var(--mobile-page-padding) calc(6rem + env(safe-area-inset-bottom));
         overflow: visible;
     }
 
@@ -396,8 +393,7 @@
         width: 100%;
         max-height: none;
         height: auto;
-        padding: 1rem var(--mobile-page-padding)
-                 calc(1.5rem + env(safe-area-inset-bottom));
+        padding: 1rem var(--mobile-page-padding) calc(1.5rem + env(safe-area-inset-bottom));
         overflow: visible;
         align-items: stretch;
     }
@@ -468,10 +464,7 @@
         height: 100dvh;
         align-items: flex-start;
         overflow-y: auto;
-        padding: calc(0.75rem + env(safe-area-inset-top))
-                 calc(0.75rem + env(safe-area-inset-right))
-                 calc(0.75rem + env(safe-area-inset-bottom))
-                 calc(0.75rem + env(safe-area-inset-left));
+        padding: calc(0.75rem + env(safe-area-inset-top)) calc(0.75rem + env(safe-area-inset-right)) calc(0.75rem + env(safe-area-inset-bottom)) calc(0.75rem + env(safe-area-inset-left));
     }
 
     .popup-container {
@@ -561,7 +554,16 @@
         height: auto;
         row-gap: 0.5rem;
     }
-    .date-controls-div { grid-area: left; }
-    .action-buttons    { grid-area: right; }
-    .calendar-data     { grid-area: title; }
+
+    .date-controls-div {
+        grid-area: left;
+    }
+
+    .action-buttons {
+        grid-area: right;
+    }
+
+    .calendar-data {
+        grid-area: title;
+    }
 }

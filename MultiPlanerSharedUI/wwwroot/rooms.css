@@ -1,8 +1,8 @@
 ﻿
-.add-room-button{
+.add-room-button {
     width: 4rem;
     height: 4rem;
-    
+
     background-color: var(--color-secondary);
     color: var(--color-text-reversed);
 
@@ -16,7 +16,8 @@
     -webkit-tap-highlight-color: transparent;
     z-index: 999;
 }
-.add-room-button:hover{
+
+.add-room-button:hover {
     transform: translateY(-3px);
     filter: drop-shadow(0px 2px 6px var(--color-secondary));
 }
@@ -27,11 +28,13 @@
     scale: 0.9;
     transition-duration: 0.08s;
 }
-.add-room-button img{
+
+.add-room-button img {
     filter: invert(1);
 }
+
 .fab-menu {
-    position: fixed;     
+    position: fixed;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -45,7 +48,7 @@
 }
 
 .fab-menu.open .fab-main img {
-    transform: rotate(45deg);   
+    transform: rotate(45deg);
 }
 
 .fab-item {
@@ -80,8 +83,13 @@
 }
 
 
-.fab-menu.open .fab-item-1 { transition-delay: 0.03s; }
-.fab-menu.open .fab-item-2 { transition-delay: 0.08s; }
+.fab-menu.open .fab-item-1 {
+    transition-delay: 0.03s;
+}
+
+.fab-menu.open .fab-item-2 {
+    transition-delay: 0.08s;
+}
 
 .fab-item:hover {
     filter: drop-shadow(0px 3px 5px var(--color-secondary));
@@ -93,14 +101,14 @@
     filter: drop-shadow(0px 2px 6px var(--color-primary));
     scale: 0.9;
     transition-duration: 0.08s;
-    
+
 }
 
-.main-content-rooms{
-    
+.main-content-rooms {
+
 }
 
-.rooms-folders-container{
+.rooms-folders-container {
     display: flex;
     flex-direction: column;
     justify-content: left;
@@ -110,8 +118,8 @@
     height: auto;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-left: calc(var(--sidebar-width)*2); 
-    padding-right: calc(var(--sidebar-width)*0.5);
+    padding-left: calc(var(--sidebar-width) * 2);
+    padding-right: calc(var(--sidebar-width) * 0.5);
 }
 
 .rooms-container, .folders-container {
@@ -122,7 +130,7 @@
     justify-content: start;
     flex-wrap: wrap;
     padding-bottom: 1.5rem;
- 
+
 }
 
 .folder, .room {
@@ -134,7 +142,7 @@
     gap: 0.6rem;
     width: 12vw;
     aspect-ratio: 4 / 3;
-    margin-top: 1.4rem; 
+    margin-top: 1.4rem;
     box-sizing: border-box;
     border: 2px solid var(--color-secondary);
     border-radius: 0 var(--border-radius) var(--border-radius) var(--border-radius);
@@ -143,12 +151,14 @@
     cursor: pointer;
     user-select: none;
 }
-.room{
+
+.room {
     border-radius: var(--border-radius);
     margin-top: 0;
     gap: 0;
     position: relative;
 }
+
 .room-check {
     position: absolute;
     top: 0.5rem;
@@ -164,7 +174,7 @@
     content: "";
     position: absolute;
     left: -2px;
-    bottom: calc(100% - 1px);   
+    bottom: calc(100% - 1px);
     width: 45%;
     height: 1.4rem;
     box-sizing: border-box;
@@ -173,13 +183,15 @@
     border-radius: 10px 10px 0 0;
     background: var(--color-primary-dim-light);
 }
-.folder:hover , .room:hover {
+
+.folder:hover, .room:hover {
     filter: drop-shadow(0px 6px 8px var(--color-secondary));
     transform: translateY(-2px) scale(1);
 }
+
 .folder:active, .room:active {
-    transform:  scale(0.95);
-    
+    transform: scale(0.95);
+
 }
 
 
@@ -216,8 +228,9 @@
     filter: drop-shadow(0px 2px 5px var(--color-secondary));
     transform: translateY(-1px) scale(1.05);
 }
-.hide-folders-box{
-    position: relative;  
+
+.hide-folders-box {
+    position: relative;
     top: 2.5vh;
     display: flex;
     flex-direction: row;
@@ -227,7 +240,8 @@
     padding: 1rem 1.5rem 0;
     margin: 0rem -1.5rem 0;
 }
-.hide-folders{
+
+.hide-folders {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -236,20 +250,32 @@
 .hide-folders img {
     width: 80%;
 }
+
 .hide-folders:hover img {
     filter: invert(1);
 
 }
-.toggle-btn{
+
+.toggle-btn {
     width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: transform 0.25s ease;
 }
+
+.toggle-btn.down {
+    transform: rotate(0deg);
+}
+
+.toggle-btn.up {
+    transform: rotate(-180deg);
+}
+
 .folders-collapse {
     margin-top: 0.5rem;
-    
+
     display: grid;
     grid-template-rows: 1fr;
     opacity: 1;
@@ -267,6 +293,7 @@
     padding: 1rem 1.5rem 0;
     margin: 0rem -1.5rem 0;
 }
+
 .room-header {
     text-align: center;
     width: 100%;
@@ -275,7 +302,8 @@
     font-weight: bolder;
     font-size: var(--font-size-medium);
 }
-.room-body{
+
+.room-body {
     flex: 1;
     width: 100%;
     overflow: hidden;
@@ -284,7 +312,8 @@
     justify-content: center;
     align-items: center;
 }
-.room-content{
+
+.room-content {
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -292,7 +321,8 @@
     justify-content: center;
     align-items: center;
 }
-.favourite-btn{
+
+.favourite-btn {
     outline: none;
     border: none;
     background: none;
@@ -303,11 +333,13 @@
     height: 100%;
     width: 20%;
 }
-.favourite-icon{
+
+.favourite-icon {
     width: 100%;
     padding: 0;
 }
-.rooms-filter{
+
+.rooms-filter {
     position: relative;
     top: 0;
     left: 0;
@@ -316,36 +348,43 @@
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    
+
 }
-.room-selected{
+
+.room-selected {
     border: 3px solid var(--selected-color);
     filter: drop-shadow(0px 2px 6px var(--selected-color));
 }
-.folder-add-btn{
-    
+
+.folder-add-btn {
+
 }
-.container-inside{
+
+.container-inside {
     padding-top: 1rem;
 }
-.folder-name{
+
+.folder-name {
     padding: 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: calc(1.2*var(--font-size-large));
+    font-size: calc(1.2 * var(--font-size-large));
 }
-.input-search{
+
+.input-search {
     background-color: var(--color-primary-dim-light);
     padding-left: 35px;
 }
-.search-wrapper{
+
+.search-wrapper {
     min-width: 195px;
     width: 12vw;
 }
-.search-img-btn{
-    left:5px;
+
+.search-img-btn {
+    left: 5px;
     position: absolute;
     background: none;
     border: none;
@@ -354,6 +393,7 @@
     display: flex;
     align-items: center;
 }
+
 .search-img-btn img {
     height: 20px;
     width: 20px;
@@ -364,6 +404,7 @@
 .search-img-btn:hover img {
     opacity: 1;
 }
+
 .password-wrapper:focus-within .search-img-btn img {
     opacity: 1;
 }

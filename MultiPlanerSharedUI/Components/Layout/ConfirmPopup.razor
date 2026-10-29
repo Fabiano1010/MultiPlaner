@@ -3,12 +3,12 @@
         <div class="add-room-form">
             <p>@Message</p>
 
-            @if (!string.IsNullOrEmpty(_error))
-            {
+            @if (!string.IsNullOrEmpty(_error)) {
                 <div class="form-error">@_error</div>
             }
             <div class="form-actions">
-                <button type="button" class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel</button>
+                <button type="button" class="btn-main btn-cancel" @onclick="HandleClose" disabled="@_isSaving">Cancel
+                </button>
                 <button type="button" class="btn-main btn-save @(Danger ? "btn-danger" : "")"
                         @onclick="HandleConfirm" disabled="@_isSaving">@ConfirmText</button>
             </div>
@@ -28,23 +28,27 @@
     private string _error = "";
     private bool _isSaving;
 
-    private async Task HandleClose()
-    {
+    private async Task HandleClose() {
         _error = "";
         await OnClose.InvokeAsync();
     }
 
-    private async Task HandleConfirm()
-    {
+    private async Task HandleConfirm() {
         _isSaving = true;
         _error = "";
-        try
-        {
+        try {
             await OnConfirm.InvokeAsync();
             await HandleClose();
         }
-        catch (ApiException e) { _error = e.Message; }
-        catch (HttpRequestException e) { _error = "Cannot reach the server. " + e.Message; }
-        finally { _isSaving = false; }
+        catch (ApiException e) {
+            _error = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _error = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _isSaving = false;
+        }
     }
+
 }

@@ -1,6 +1,5 @@
-﻿@using MultiPlanerSharedModels.Models
+﻿@using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedUI.Components.Events
-
 <div class="events-container">
     <div class="events-controls">
         <button type="button" class="action-button events-toggle"
@@ -17,7 +16,8 @@
             <div class="events-buttons-container">
                 <div class="events-button @(IsAddingEvent ? "active" : "")"
                      @onclick="OnAddEvent">
-                    <img src="/_content/MultiPlanerSharedUI/images/plus.svg" alt="" class="plus-icon @(IsAddingEvent ? "plus-icon-active" : "")">
+                    <img src="/_content/MultiPlanerSharedUI/images/plus.svg" alt=""
+                         class="plus-icon @(IsAddingEvent ? "plus-icon-active" : "")">
                     <div class="events-button-name">Add Event</div>
                 </div>
                 <div class="events-button">
@@ -26,86 +26,100 @@
                 </div>
             </div>
         </div>
-        <div class="chat-btn action-button">
+        <div class="chat-btn action-button" @onclick="OnOpenChat">
             <img src="_content/MultiPlanerSharedUI/images/message-square.svg" alt="" class="action-button-img">
         </div>
     </div>
     <div class="events-collapse @(_collapsed ? "collapsed" : "")">
         <div class="events-collapse-inner">
-            <div class="events-list">
-                @if (Events.Count == 0)
-                {
+            <div class="events-list-cointainer">
+
+                @if (_dayEvents.Count == 0) {
                     <div class="events-empty">Nothing is happening here :c</div>
                 }
-                @foreach (var ev in Events)
-                {
-                    <div class="events-item" 
-                         style="border-left: 5px solid #@ev.Color"
-                         @onclick="() => OpenDetails(ev)">
-                        <div class="events-item-name">@ev.Title</div>
-                        <div class="events-item-user">@ev.User</div>
-                        <div class="events-item-data">
-                            @ev.StartDate.ToString("dd.MM.yyyy") - @ev.EndDate.ToString("dd.MM.yyyy")
-                        </div>
+                else {
+                    <div class="events-list">
+                        @foreach (var ev in _dayEvents) {
+                            <div class="events-item @(ev.IsHighPriority ? "high" : "")" @key="ev.Id"
+                                 style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
+                                 @onclick="() => OpenDetails(ev)">
+                                <div class="events-item-details">
+                                    <div class="events-item-name">@(ev.IsPinned ? "x" : "")@ev.Title</div>
+                                    <div class="events-item-user">@ev.Author.DisplayName</div>
+                                </div>
+
+                                @{ var span = EventDays.Span(ev); }
+                                <div class="events-item-date">
+                                    @span.StartDate.ToString("dd.MM.yyyy") - @span.EndDate.ToString("dd.MM.yyyy")
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
             </div>
+
         </div>
     </div>
 </div>
 
-<EventDetails IsVisible="ShowDetails"
-                   Event="SelectedEvent"
-                   OnClose="CloseDetails"
-                   OnDeleted="HandleDeleted" />
+<EventDetails IsVisible="_showDetails"
+              Event="_selectedEvent"
+              OnClose="HandleCloseDetails"
+              OnChanged="OnChanged"
+              RoomId="RoomId"
+/>
 
 @code {
     [Parameter] public DateTime CurrentMonth { get; set; }
-    [Parameter] public DateTime? SelectedDate { get; set; }
+    [Parameter] public DateOnly? SelectedDate { get; set; }
     [Parameter] public EventCallback OnAddEvent { get; set; }
+    [Parameter] public EventCallback OnOpenChat { get; set; }
+    [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public bool IsAddingEvent { get; set; }
+    [Parameter] public IReadOnlyList<EventResponse> Events { get; set; } = Array.Empty<EventResponse>();
+    [Parameter] public int RoomId { get; set; }
 
-    private List<Event> Events = new();
-    private Event? SelectedEvent = null;
-    private bool ShowDetails = false;
-    
+    private EventResponse? _selectedEvent;
+    private bool _showDetails;
+    private IReadOnlyList<EventResponse>? _eventsSeen;
+    private DateOnly? _daySeen;
+    private List<EventResponse> _dayEvents = new();
     private bool _collapsed = true;
 
-    [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
 
-    private async Task ToggleCollapsed()
-    {
+    private async Task ToggleCollapsed() {
         _collapsed = !_collapsed;
         await OnCollapsedChanged.InvokeAsync(_collapsed);
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        await LoadEvents();
+    protected override void OnParametersSet() {
+        var day = SelectedDate ?? DateOnly.FromDateTime(DateTime.Today);
+        if (ReferenceEquals(_eventsSeen, Events) && _daySeen == day) return;
+
+        _eventsSeen = Events;
+        _daySeen = day;
+        _dayEvents = Events
+            .Where(e => {
+                var (f, l) = EventDays.Range(e);
+                return f <= day && day <= l;
+            })
+            .OrderByDescending(e => e.IsPinned)
+            .ThenByDescending(e => e.IsAllDay)
+            .ThenBy(e => e.StartsAtUtc)
+            .ToList();
     }
 
-    private async Task LoadEvents()
-    {
-        // if (SelectedDate.HasValue)
-        //     Events = await EventApi.GetEventsAtDayAsync(SelectedDate.Value);
-        // else
-        //     Events = await EventApi.GetEventsAtDayAsync(DateTime.Today);
+    private void OpenDetails(EventResponse ev) {
+        _selectedEvent = ev;
+        _showDetails = true;
     }
 
-    private void OpenDetails(Event ev)
-    {
-        SelectedEvent = ev;
-        ShowDetails = true;
+
+    private void HandleCloseDetails() {
+        _showDetails = false;
+        _selectedEvent = null;
     }
 
-    private void CloseDetails()
-    {
-        ShowDetails = false;
-        SelectedEvent = null;
-    }
 
-    private async Task HandleDeleted()
-    {
-        await LoadEvents();
-    }
 }

@@ -1,83 +1,308 @@
-﻿@using MultiPlanerSharedModels.Services
-@using MultiPlanerSharedModels.Models
+﻿@using MultiPlanerSharedModels.Contracts.Events
+@inject ApiClient Api
 
-@using MultiPlanerSharedUI.Components.Events
-@using MultiPlanerSharedUI.Components.Calendar
-@using MultiPlanerSharedUI.Components.Layout
+<Popup IsVisible="IsVisible" Title="@(_editing ? "Edit event" : "Event details")" OnClose="HandleClose">
+    @if (Event is not null) {
+        @if (!_editing) {
+            <div class="event-details">
+                <div class="event-details-color-bar" style="background-color: #@Event.Color"></div>
 
-@inject EventService EventApi
-
-<Popup IsVisible="IsVisible" Title="Event details" OnClose="OnClose">
-    @if (Event != null)
-    {
-        <div class="event-details">
-            <div class="event-details-color-bar" style="background-color: #@Event.Color"></div>
-            
-            <div class="event-details-row">
-                <span class="event-details-label">Name</span>
-                <span class="event-details-value">@Event.Title</span>
-            </div>
-            <div class="event-details-row">
-                <span class="event-details-label">User</span>
-                <span class="event-details-value">@Event.User</span>
-            </div>
-            <div class="event-details-row">
-                <span class="event-details-label">Start</span>
-                <span class="event-details-value">@Event.StartDate.ToString("dd.MM.yyyy")</span>
-            </div>
-            <div class="event-details-row">
-                <span class="event-details-label">End</span>
-                <span class="event-details-value">@Event.EndDate.ToString("dd.MM.yyyy")</span>
-            </div>
-            @if (!string.IsNullOrEmpty(Event.Description))
-            {
-                <div class="event-details-row event-details-row-column">
-                    <span class="event-details-label">Description</span>
-                    <span class="event-details-value">@Event.Description</span>
+                <div class="event-details-row">
+                    <span class="event-details-label">Name</span>
+                    <h3 class="event-details-title">@(Event.IsPinned ? "x" : "")@Event.Title</h3>
                 </div>
-            }
-            <div class="event-details-row">
-                <span class="event-details-label">Priority</span>
-                <span class="event-details-value @(Event.IsHighPriority ? "high-priority" : "")">
-                    @(Event.IsHighPriority ? "High" : "Normal")
-                </span>
-            </div>
+                <div class="event-details-row">
+                    <span class="event-details-label">Author</span>
+                    <span class="event-details-title">@Event.Author.DisplayName</span>
+                </div>
+                <div class="event-details-row">
+                    <span class="event-details-label">Category</span>
+                    <span class="event-details-title">@Event.Category</span>
+                </div>
 
-            <div class="event-details-actions">
-                <button class="btn-delete" @onclick="HandleDelete">
-                    Delete event
-                </button>
-            </div>
+                @{ var span = EventDays.Span(Event); }
 
-            @if (!string.IsNullOrEmpty(ErrorMessage))
-            {
-                <div class="form-error">@ErrorMessage</div>
-            }
-        </div>
+                <div class="event-details-row">
+                    <span class="event-details-label">Start</span>
+                    <span class="event-details-value">
+                        @span.StartDate.ToString("dd.MM.yyyy")@(span.StartTime is { } st ? $" at {st:HH:mm}" : "")
+                    </span>
+                </div>
+                <div class="event-details-row">
+                    <span class="event-details-label">End</span>
+                    <span class="event-details-value">
+                        @span.EndDate.ToString("dd.MM.yyyy")@(span.EndTime is { } et ? $" at {et:HH:mm}" : "")
+                    </span>
+                </div>
+
+                @if (Event.IsAllDay) {
+                    <div class="event-details-row">
+                        <span class="event-details-label">Time</span>
+                        <span class="event-details-value">All day</span>
+                    </div>
+                }
+                <div class="event-details-row">
+                    <span class="event-details-label">Priority</span>
+                    <span class="event-details-value @(Event.IsHighPriority ? "high-priority" : "")">
+                        @(Event.IsHighPriority ? "High" : "Normal")
+                    </span>
+                </div>
+                @if (!string.IsNullOrEmpty(Event.Description)) {
+                    <div class="event-details-row event-details-row-column">
+                        <span class="event-details-label">Description</span>
+                        <span class="event-details-value">@Event.Description</span>
+                    </div>
+                }
+
+
+
+                @if (!string.IsNullOrEmpty(_errorMessage)) {
+                    <div class="form-error">@_errorMessage</div>
+                }
+
+                <div class="form-actions">
+                    @if (Event.Permissions.CanDelete) {
+                        <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">Delete
+                        </button>
+                    }
+                    @if (Event.Permissions.CanEdit) {
+                        <button type="button" class="btn-main btn-save" @onclick="StartEdit">Edit</button>
+                    }
+                </div>
+            </div>
+        }
+        else {
+            <form class="add-event-form" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+                <div class="form-group">
+                    <label>Event name</label>
+                    <input type="text" class="input-main" @bind="_title" @bind:event="oninput" maxlength="128"/>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group"><label>Start</label>
+                        <input type="date" class="input-main" @bind="_start"/></div>
+                    <div class="form-group"><label>End</label>
+                        <input type="date" class="input-main" @bind="_end"/></div>
+                </div>
+
+                <div class="form-group form-group-checkbox">
+                    <label><input type="checkbox" @bind="_allDay"/> All day</label>
+                </div>
+
+                @if (!_allDay) {
+                    <div class="form-row">
+                        <div class="form-group"><label>From</label>
+                            <input type="time" class="input-main" @bind="_startTime"/></div>
+                        <div class="form-group"><label>To</label>
+                            <input type="time" class="input-main" @bind="_endTime"/></div>
+                    </div>
+                }
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select class="input-main" @bind="_category">
+                            @foreach (var c in Enum.GetValues<EventCategory>()) {
+                                <option value="@c">@c</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group form-group-color">
+                        <label>Color</label>
+                        <input type="color" @bind="_color" disabled="@_defaultColor"/>
+                        <label class="inline"><input type="checkbox" @bind="_defaultColor"/> Default</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea class="input-main" @bind="_description" rows="3" maxlength="4000"></textarea>
+                </div>
+
+                <div class="form-group form-group-checkbox">
+                    <label><input type="checkbox" @bind="_highPriority"/> High priority</label>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_errorMessage)) {
+                    <div class="form-error">@_errorMessage</div>
+                }
+
+                <div class="form-actions">
+                    <button type="button" class="btn-main btn-cancel" @onclick="CancelEdit" disabled="@_isSaving">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-main btn-save" disabled="@_isSaving">Save</button>
+                </div>
+            </form>
+        }
     }
 </Popup>
 
+<ConfirmPopup IsVisible="_showDelete" Title="Delete event" Danger="true" ConfirmText="Delete"
+              Message="@($"Delete \"{Event?.Title}\"? This cannot be undone.")"
+              OnConfirm="DeleteAsync" OnClose="() => _showDelete = false"/>
+
 @code {
     [Parameter] public bool IsVisible { get; set; }
-    [Parameter] public Event? Event { get; set; }
+    [Parameter] public EventResponse? Event { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public EventCallback OnDeleted { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public int RoomId { get; set; }
 
-    private string ErrorMessage = "";
 
-    private async Task HandleDelete()
-    {
-        if (Event == null) return;
+    private bool _editing;
+    private bool _showDelete;
+    private bool _isSaving;
+    private bool _wasVisible;
 
-        var success = await EventApi.DeleteEventAsync(Event.Id);
-        if (success)
-        {
-            await OnDeleted.InvokeAsync();
+    private bool _allDay;
+    private bool _highPriority;
+    private bool _defaultColor;
+
+    private string _errorMessage = "";
+    private string _title = "";
+    private string? _description = "";
+    private string _color = "#999999";
+
+    private DateOnly _start;
+    private DateOnly _end;
+    private TimeOnly _startTime;
+    private TimeOnly _endTime;
+    private EventCategory _category;
+
+    private string EventUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
+
+    protected override void OnParametersSet() {
+        if (IsVisible && !_wasVisible) {
+            _editing = false;
+            _errorMessage = "";
+        }
+
+        _wasVisible = IsVisible;
+    }
+
+    private void StartEdit() {
+        if (Event is null) return;
+        var e = Event;
+
+        _title = e.Title;
+        _description = e.Description;
+        _category = e.Category;
+        _highPriority = e.IsHighPriority;
+        _allDay = e.IsAllDay;
+        _defaultColor = e.CustomColor is null;
+        _color = "#" + e.Color;
+
+        if (e.IsAllDay && e.StartDate is { } s && e.EndDateExclusive is { } x) {
+            _start = s;
+            _end = x.AddDays(-1) < s ? s : x.AddDays(-1);
+            _startTime = new TimeOnly(9, 0);
+            _endTime = new TimeOnly(10, 0);
+        }
+        else {
+            (_start, _startTime) = EventDays.ToLocal(e.StartsAtUtc, e.RoomTimeZoneId);
+            (_end, _endTime) = EventDays.ToLocal(e.EndsAtUtc, e.RoomTimeZoneId);
+        }
+
+        _errorMessage = "";
+        _editing = true;
+    }
+
+    private void CancelEdit() {
+        _editing = false;
+        _errorMessage = "";
+    }
+
+    private async Task SaveAsync() {
+        if (Event is null) return;
+        var title = _title.Trim();
+        if (title.Length is < 1 or > 128) {
+            _errorMessage = "Event name is required (max 128 characters).";
+            return;
+        }
+
+        if (_end < _start) {
+            _errorMessage = "End date must not be before start date.";
+            return;
+        }
+
+        EventTimeRequest time;
+
+        try {
+            if (_allDay) {
+                time = new EventTimeRequest {
+                    IsAllDay = true,
+                    StartDate = _start,
+                    EndDateExclusive = _end.AddDays(1)
+                };
+            }
+            else {
+                var from = EventDays.ToUtc(_start, _startTime, Event.RoomTimeZoneId);
+                var to = EventDays.ToUtc(_end, _endTime, Event.RoomTimeZoneId);
+                if (to <= from) {
+                    _errorMessage = "End date must be before start date.";
+                    return;
+                }
+
+                time = new EventTimeRequest {
+                    IsAllDay = false,
+                    StartsAtUtc = from,
+                    EndsAtUtc = to
+                };
+            }
+        }
+        catch (TimeZoneNotFoundException) {
+            _errorMessage = "No time zone was found.";
+            return;
+        }
+
+        _isSaving = true;
+        _errorMessage = "";
+        try {
+            var res = await Api.PatchAsync(EventUrl, new UpdateEventRequest {
+                Title = title,
+                Description = _description?.Trim(),
+                Time = time,
+                Category = _category,
+                Color = _defaultColor ? "" : _color.TrimStart('#'),
+                IsHighPriority = _highPriority,
+                RowVersion = Event.RowVersion
+            });
+            await ApiClient.EnsureSuccessAsync(res);
+            _editing = false;
+            await OnChanged.InvokeAsync();
             await OnClose.InvokeAsync();
         }
-        else
-        {
-            ErrorMessage = "Failed to delete event";
+        catch (ApiException e) when (e.Status == 409) {
+            _errorMessage = "This event was changed by someone else. Reloading…";
+            await OnChanged.InvokeAsync();
+        }
+        catch (ApiException e) {
+            _errorMessage = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _errorMessage = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _isSaving = false;
         }
     }
+
+    private async Task DeleteAsync() {
+        if (Event is null) return;
+
+        var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
+            new EventVersionRequest { RowVersion = Event.RowVersion });
+        await ApiClient.EnsureSuccessAsync(res);
+
+        await OnChanged.InvokeAsync();
+        await OnClose.InvokeAsync();
+    }
+
+    private Task HandleClose() {
+        _editing = false;
+        _errorMessage = "";
+        return OnClose.InvokeAsync();
+    }
+
 }
