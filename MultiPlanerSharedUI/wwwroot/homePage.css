@@ -15,8 +15,8 @@
 
 .home-box-notloggedin {
     width: 30vw;
-    height: 65vh;
-    min-height: 400px;
+    height: auto;
+    min-height: max(400px, 65vh);
     min-width: 160px;
     display: flex;
     flex-direction: column;
@@ -24,8 +24,25 @@
     align-items: center;
     border-radius: 15px;
     background-color: var(--color-primary-dim);
-    padding: 0 2rem 2rem 2rem;
+    padding: 2rem;
+    gap: 1.5rem;
     margin-top: 10vh;
+}
+
+.logo-large {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+}
+
+.logo-img-large {
+    display: block;
+    width: min(100%, 8rem);
+    height: auto;
+    max-height: 8rem;
+    object-fit: contain;
+    margin-inline: auto;
 }
 
 .home-btn-group {
