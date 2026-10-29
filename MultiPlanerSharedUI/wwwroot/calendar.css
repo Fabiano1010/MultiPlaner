@@ -214,7 +214,7 @@
 }
 
 .calendar-cell.selected {
-    background: var(--color-day-selected);
+    background: var(--color-day-selected-dark);
     color: white;
 }
 
