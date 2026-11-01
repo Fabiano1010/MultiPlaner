@@ -3,6 +3,7 @@ namespace MultiPlanerAPI.Models;
 public sealed class RoomMember : TrackedEntity
 {
     public int Id { get; set; }
+    public bool IsAdmin { get; set; }
     public int RoomId { get; set; }
     public int? UserId { get; set; }
     public Guid? GuestSessionId { get; set; }

@@ -1,14 +1,13 @@
 ﻿@if (IsVisible) {
     <div class="popup-overlay">
-        <div class="popup-container"
+        <div class="popup-container" role="dialog" aria-modal="true" aria-label="@Title"
              @ref="_container"
              tabindex="-1"
              @onclick:stopPropagation="true"
              @onkeydown="HandleKeyDown">
             <div class="popup-header">
                 <span class="popup-title">@Title</span>
-                <img src="_content/MultiPlanerSharedUI/images/x.svg" class="popup-close" alt="Close"
-                     @onclick="OnClose"/>
+                <button type="button" class="popup-close" aria-label="Zamknij" @onclick="OnClose"><img src="_content/MultiPlanerSharedUI/images/x.svg" alt="" /></button>
             </div>
             <div class="popup-content">
                 @ChildContent

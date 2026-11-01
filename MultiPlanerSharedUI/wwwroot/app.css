@@ -1,18 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Red+Hat+Display:wght@600&display=swap');
 
 :root {
-    --color-primary-dark: #7c7c7c;
+    --text-muted: #999999;
+    --text-label: #7c7c7c;
+    --text-subtle: #cccccc;
+    --text-light: #dddddd;
+    --text-main: #000000;
+    --text-inverse: #ffffff;
     --color-primary: #999999;
     --color-primary-dim: #cccccc;
     --color-primary-dim-light: #dddddd;
-    --color-primary-dim-50-opacity: #cccccc80;
     --color-day-selected: #6200EE;
     --color-day-selected-light: #EDE7F6;
     --color-secondary: #000000;
     --color-background: #FFFFFF;
     --color-text: #000000;
     --color-text-reversed: #FFFFFF;
-    --background-color: #FFFFFF;
     --border-radius: 10px;
     --font-sans: 'Red Hat Display', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-size-small: 12px;
@@ -456,3 +459,15 @@ html, body {
     transform: translateY(-2px);
     background: #d90000;
 }
+.settings-form, .settings-form form { display: flex; flex-direction: column; gap: .75rem; }
+.settings-form { max-width: 42rem; }
+.settings-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: .75rem 0; }
+.settings-form input:not([type=color]):not([type=checkbox]), .settings-form select { max-width: 100%; padding: .55rem; }
+.settings-form button, .settings-actions button { padding: .55rem .9rem; cursor: pointer; }
+.settings-avatar { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; }
+.theme-field { display: grid; grid-template-columns: minmax(8rem, 1fr) 3rem 7rem; align-items: center; gap: .5rem; }
+.member-row, .event-type-row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; border-bottom: 1px solid var(--color-primary); padding: .75rem 0; }
+.settings-form [role=alert] { color: #b00020; }
+@media (max-width: 480px) { .theme-field { grid-template-columns: 1fr 3rem; } .theme-field input[type=text], .theme-field .input-main { grid-column: 1 / -1; } }
+
+button.nav-user { border: 0; background: transparent; color: inherit; font: inherit; width: 100%; }

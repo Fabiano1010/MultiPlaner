@@ -1,23 +1,69 @@
-﻿<Popup IsVisible="IsVisible" OnClose="@HandleCloseAsync">
-    <div class="user-settings-container">
-
-
-    </div>
-
-
+@using MultiPlanerSharedModels.Contracts.Auth
+@using MultiPlanerSharedModels.Contracts.Users
+@using Microsoft.AspNetCore.Components.Forms
+@inject ApiClient Api
+@inject ApiAuthStateProvider Auth
+<Popup IsVisible="IsVisible" Title="Ustawienia konta" OnClose="Close">
+    @if (_me?.Kind == "user") {
+        @if (_appearance) { <ThemeEditor OnClose="() => _appearance = false" /> }
+        else {
+            <div class="settings-form">
+                <button @onclick="() => _appearance = true">Wygląd — kolory aplikacji</button>
+                <form @onsubmit="SaveProfile" @onsubmit:preventDefault>
+                    <label for="profile-name">Nick globalny</label>
+                    <input id="profile-name" class="input-main" @bind="_name" minlength="2" maxlength="64" required />
+                    <p>Nicki ustawione w poszczególnych pokojach pozostają bez zmian.</p>
+                    <button disabled="@_busy">Zapisz nick</button>
+                </form>
+                <AvatarImage Url="_me.AvatarUrl" />
+                <label>Zdjęcie profilowe (JPEG, PNG, WebP; do 5 MB)
+                    <InputFile OnChange="Upload" accept="image/jpeg,image/png,image/webp" disabled="@_busy" />
+                </label>
+                <button disabled="@_busy" @onclick="DeleteAvatar">Usuń zdjęcie</button>
+                <form @onsubmit="Password" @onsubmit:preventDefault>
+                    <h3>Zmiana hasła</h3>
+                    <label for="password-current">Obecne hasło</label><input id="password-current" type="password" autocomplete="current-password" @bind="_current" required />
+                    <label for="password-new">Nowe hasło</label><input id="password-new" type="password" autocomplete="new-password" @bind="_password" minlength="8" required />
+                    <label for="password-repeat">Powtórz nowe hasło</label><input id="password-repeat" type="password" autocomplete="new-password" @bind="_repeat" required />
+                    <button disabled="@_busy">Zmień hasło</button>
+                </form>
+            </div>
+        }
+    } else if (_me != null) { <p>Ustawienia konta są dostępne po zalogowaniu na zarejestrowane konto.</p> }
+    @if (_error != null) { <p role="alert">@_error</p> }
+    @if (_message != null) { <p role="status">@_message</p> }
 </Popup>
-
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-
-
-    private string? _errorMessage;
-
-    private async Task HandleCloseAsync() {
-        _errorMessage = "";
-        await OnClose.InvokeAsync();
+    private SessionResponse? _me;
+    private string _name = "", _current = "", _password = "", _repeat = "";
+    private string? _error, _message;
+    private bool _busy, _wasVisible, _appearance;
+    protected override async Task OnParametersSetAsync() {
+        var opening = IsVisible && !_wasVisible; _wasVisible = IsVisible;
+        if (opening) await Run(Reload);
+        if (!IsVisible) _appearance = false;
     }
-
+    private async Task Reload() { _me = await Api.GetAsync<SessionResponse>("api/me"); _name = _me?.DisplayName ?? ""; }
+    private async Task Run(Func<Task> action) {
+        if (_busy) return;
+        _busy = true; _error = _message = null;
+        try { await action(); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or IOException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    private Task SaveProfile() => Run(async () => {
+        using var response = await Api.PatchAsync("api/me", new UpdateProfileRequest { DisplayName = _name });
+        await ApiClient.EnsureSuccessAsync(response); await Reload(); Auth.NotifyAuthChanged(); _message = "Nick zapisany.";
+    });
+    private Task Upload(InputFileChangeEventArgs e) => Run(async () => { await Api.UploadAsync("api/me/avatar", e.File, 5 * 1024 * 1024); await Reload(); Auth.NotifyAuthChanged(); });
+    private Task DeleteAvatar() => Run(async () => { using var response = await Api.SendAsync(HttpMethod.Delete, "api/me/avatar"); await ApiClient.EnsureSuccessAsync(response); await Reload(); Auth.NotifyAuthChanged(); });
+    private Task Password() => Run(async () => {
+        if (_password != _repeat) { _error = "Nowe hasła muszą być identyczne."; return; }
+        using var response = await Api.PostAsync("api/me/change-password", new ChangePasswordRequest { CurrentPassword = _current, NewPassword = _password });
+        await ApiClient.EnsureSuccessAsync(response); _current = _password = _repeat = ""; _message = "Hasło zmienione. Pozostałe sesje zostały wylogowane.";
+    });
+    private async Task Close() { _appearance = false; _current = _password = _repeat = ""; _error = _message = null; await OnClose.InvokeAsync(); }
 }

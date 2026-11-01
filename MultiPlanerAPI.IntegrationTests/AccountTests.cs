@@ -156,7 +156,7 @@ public sealed class AccountTests(ApiFixture fixture)
             var updated = await client.PatchAsJsonAsync("/api/me", new UpdateProfileRequest
             {
                 DisplayName = "  New Name  ", CountryCode = "US", TimeZoneId = "America/New_York",
-                ContactDetails = "Contact me here", AvatarUrl = "https://example.com/avatar.png"
+                ContactDetails = "Contact me here"
             });
             Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
             var profile = await updated.Content.ReadFromJsonAsync<SessionResponse>();
@@ -164,7 +164,7 @@ public sealed class AccountTests(ApiFixture fixture)
             Assert.Equal(user.Email, profile.Email);
             Assert.Equal("New Name", profile.DisplayName);
             Assert.Equal("US", profile.CountryCode);
-            var cleared = await client.PatchAsJsonAsync("/api/me", new UpdateProfileRequest { ContactDetails = "", AvatarUrl = "" });
+            var cleared = await client.PatchAsJsonAsync("/api/me", new UpdateProfileRequest { ContactDetails = "" });
             var final = await cleared.Content.ReadFromJsonAsync<SessionResponse>();
             Assert.Null(final!.ContactDetails);
             Assert.Null(final.AvatarUrl);
@@ -223,7 +223,9 @@ public sealed class AccountTests(ApiFixture fixture)
             "/api/auth/register", "/api/auth/reset-password",
             "/api/invitations/join", "/api/invitations/preview",
             "/api/invitations/{token}", "/api/invitations/{token}/join", "/api/me",
-            "/api/me/events",
+            "/api/me/events", "/api/me/theme", "/api/me/avatar", "/api/me/change-password",
+            "/api/users/{userId}/avatar", "/api/rooms/{roomId}/event-types", "/api/rooms/{roomId}/event-types/{typeId}",
+            "/api/rooms/{roomId}/members/{memberId}", "/api/rooms/{roomId}/members/{memberId}/role",
             "/api/me/folders", "/api/me/folders/{folderId}",
             "/api/me/folders/{folderId}/rooms/{roomId}",
             "/api/rooms", "/api/rooms/{roomId}", "/api/rooms/{roomId}/archive",

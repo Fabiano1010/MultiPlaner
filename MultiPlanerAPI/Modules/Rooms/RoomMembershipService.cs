@@ -18,6 +18,7 @@ public sealed class RoomMembershipService(RoomMutationService mutations, Current
                 throw new ApiException(409, "owner_cannot_leave", "The owner cannot leave their room.");
             if (member.LeftAtUtc is not null) return true;
             member.LeftAtUtc = clock.GetUtcNow();
+            member.IsAdmin = false;
             member.IsFavourite = false;
             if (userId is not null)
                 await db.UserFolderRooms.Where(a => a.OwnerUserId == userId && a.RoomId == roomId)

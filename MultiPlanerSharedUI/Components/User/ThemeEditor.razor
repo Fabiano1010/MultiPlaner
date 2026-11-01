@@ -1,0 +1,65 @@
+@using MultiPlanerSharedModels.Contracts.Users
+@using System.Net.Http.Json
+@inject ApiClient Api
+@inject ThemeService Theme
+@implements IAsyncDisposable
+<div class="settings-form">
+    <h3>Wygląd</h3>
+    <p>Zmiany są widoczne w podglądzie. Zapisz je, aby używać palety na swoim koncie.</p>
+    @foreach (var field in Fields) {
+        <div class="theme-field">
+            <label for="@field.Key">@field.Label</label>
+            <input type="color" aria-label="@field.Label" value="@Get(field.Key)" @oninput="e => Change(field.Key, e.Value?.ToString())" />
+            <input id="@field.Key" class="input-main" maxlength="7" value="@Get(field.Key)" @onchange="e => Change(field.Key, e.Value?.ToString())" />
+        </div>
+    }
+    @if (_error != null) { <p role="alert">@_error</p> }
+    <div class="settings-actions">
+        <button disabled="@_busy" @onclick="Reset">Domyślne kolory</button>
+        <button disabled="@_busy" @onclick="Cancel">Anuluj</button>
+        <button disabled="@(_busy || _invalid.Count > 0)" @onclick="Save">Zapisz paletę</button>
+    </div>
+</div>
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    private ThemePalette _draft = new(), _saved = new();
+    private byte[] _version = [];
+    private readonly HashSet<string> _invalid = [];
+    private bool _busy = true;
+    private string? _error;
+    private static readonly (string Key, string Label)[] Fields = [
+        ("Primary", "Kolor główny"), ("PanelBackground", "Jasne tło paneli"), ("ControlBackground", "Tło kart i pól"),
+        ("Secondary", "Kolor kontrastowy"), ("Background", "Tło aplikacji"), ("RoomSelection", "Zaznaczenie pokoju"),
+        ("DaySelection", "Zaznaczenie dnia"), ("DaySelectionBackground", "Tło zaznaczonego dnia") ];
+    protected override async Task OnInitializedAsync() {
+        try { await Reload(); } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    private async Task Reload() {
+        var value = (await Api.GetAsync<ThemeResponse>("api/me/theme"))!;
+        _saved = value.Palette; _draft = _saved with {}; _version = value.RowVersion;
+        await Theme.ApplyAsync(_saved);
+    }
+    private string Get(string key) => (string)typeof(ThemePalette).GetProperty(key)!.GetValue(_draft)!;
+    private async Task Change(string key, string? value) {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(value ?? "", ThemePalette.HexPattern)) { _invalid.Add(key); _error = "Podaj kolor w formacie #RRGGBB."; return; }
+        _invalid.Remove(key);
+        typeof(ThemePalette).GetProperty(key)!.SetValue(_draft, value!.ToUpperInvariant());
+        _error = null; await Theme.ApplyAsync(_draft);
+    }
+    private async Task Reset() { _draft = new(); _invalid.Clear(); _error = null; await Theme.ApplyAsync(_draft); }
+    private async Task Cancel() { await Theme.ApplyAsync(_saved); await OnClose.InvokeAsync(); }
+    private async Task Save() {
+        _busy = true; _error = null;
+        try {
+            using var response = await Api.SendAsync(HttpMethod.Put, "api/me/theme", new SaveThemeRequest { Palette = _draft, RowVersion = _version });
+            await ApiClient.EnsureSuccessAsync(response);
+            var result = (await response.Content.ReadFromJsonAsync<ThemeResponse>())!;
+            _saved = result.Palette; _version = result.RowVersion;
+            await Theme.ApplyAsync(_saved); await OnClose.InvokeAsync();
+        } catch (ApiException ex) when (ex.Status == 409) { await Reload(); _error = "Paleta zmieniła się na innym urządzeniu. Wczytano aktualne kolory."; }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    public async ValueTask DisposeAsync() { await Theme.ApplyAsync(_saved); }
+}

@@ -1,5 +1,12 @@
 # MultiPlaner - Dev Guide
 
+## Ustawienia konta i kalendarza
+
+Gałąź `settings-api-ui` dodaje API i UI ustawień, role administratorów, avatary,
+palety konta i typy wydarzeń per pokój. Wymaga **nowej pustej bazy**; nie jest
+aktualizacją poprzedniej historii migracji. Kontrakty i uruchomienie:
+[Ustawienia API/UI](docs/settings-api-ui.md).
+
 ## API — fundament i etapy 1–4
 
 Serwer ma schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,

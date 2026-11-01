@@ -100,7 +100,7 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
             Assert.Equal(room.InitialInvitation!.JoinUrl,
                 (await owner.GetFromJsonAsync<RoomInvitationResponse>(
                     $"/api/rooms/{room.Id}/invitations/current"))!.JoinUrl);
-            Assert.Equal(HttpStatusCode.Forbidden,
+            Assert.Equal(HttpStatusCode.NotFound,
                 (await other.GetAsync($"/api/rooms/{room.Id}/invitations/current")).StatusCode);
             var updatedResponse = await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}",
                 new UpdateRoomRequest { Name = "Changed", RowVersion = room.RowVersion! });
@@ -132,7 +132,7 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==");
             using var multipart = new MultipartFormDataContent();
             multipart.Add(new ByteArrayContent(png), "file", "cover.png");
-            Assert.Equal(HttpStatusCode.Forbidden,
+            Assert.Equal(HttpStatusCode.NotFound,
                 (await other.PutAsync($"/api/rooms/{room.Id}/cover", multipart)).StatusCode);
             Assert.Equal(HttpStatusCode.NoContent,
                 (await owner.PutAsync($"/api/rooms/{room.Id}/cover", multipart)).StatusCode);

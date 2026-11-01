@@ -58,7 +58,7 @@ public sealed class SchemaTests(ApiFixture fixture)
         var second = await CreateRoomAsync();
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.CalendarEvents.Add(Event(second.RoomId, first.MemberId));
+        db.CalendarEvents.Add(Event(second.RoomId, first.MemberId, second.TypeId));
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 
@@ -69,7 +69,7 @@ public sealed class SchemaTests(ApiFixture fixture)
         var second = await CreateRoomAsync();
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var entry = Event(first.RoomId, first.MemberId);
+        var entry = Event(first.RoomId, first.MemberId, first.TypeId);
         db.CalendarEvents.Add(entry);
         await db.SaveChangesAsync();
         db.EventParticipants.Add(new EventParticipant { EventId = entry.Id, RoomId = first.RoomId, MemberId = second.MemberId });
@@ -82,7 +82,7 @@ public sealed class SchemaTests(ApiFixture fixture)
         var data = await CreateRoomAsync();
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var entry = Event(data.RoomId, data.MemberId);
+        var entry = Event(data.RoomId, data.MemberId, data.TypeId);
         entry.EndsAtUtc = entry.StartsAtUtc;
         db.CalendarEvents.Add(entry);
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
@@ -96,7 +96,7 @@ public sealed class SchemaTests(ApiFixture fixture)
         await using var scope2 = fixture.Factory.Services.CreateAsyncScope();
         var first = scope1.ServiceProvider.GetRequiredService<AppDbContext>();
         var second = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
-        var entry = Event(data.RoomId, data.MemberId);
+        var entry = Event(data.RoomId, data.MemberId, data.TypeId);
         first.CalendarEvents.Add(entry);
         await first.SaveChangesAsync();
         var stale = await second.CalendarEvents.SingleAsync(e => e.Id == entry.Id);
@@ -144,7 +144,7 @@ public sealed class SchemaTests(ApiFixture fixture)
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 
-    private async Task<(int UserId, int RoomId, int MemberId)> CreateRoomAsync()
+    private async Task<(int UserId, int RoomId, int MemberId, int TypeId)> CreateRoomAsync()
     {
         var (client, user, _) = await fixture.RegisterAndLoginAsync();
         client.Dispose();
@@ -156,12 +156,14 @@ public sealed class SchemaTests(ApiFixture fixture)
         var member = new RoomMember { RoomId = room.Id, UserId = user.UserId, DisplayName = "Owner" };
         db.RoomMembers.Add(member);
         await db.SaveChangesAsync();
-        return (user.UserId.Value, room.Id, member.Id);
+        var type = new RoomEventType { RoomId = room.Id, Name = "Meeting", NormalizedName = "MEETING" };
+        db.RoomEventTypes.Add(type); await db.SaveChangesAsync();
+        return (user.UserId.Value, room.Id, member.Id, type.Id);
     }
 
-    private static CalendarEvent Event(int roomId, int authorMemberId) => new()
+    private static CalendarEvent Event(int roomId, int authorMemberId, int typeId) => new()
     {
-        RoomId = roomId, AuthorMemberId = authorMemberId, Title = "Meeting",
+        EventTypeId = typeId, RoomId = roomId, AuthorMemberId = authorMemberId, Title = "Meeting",
         StartsAtUtc = DateTimeOffset.UtcNow, EndsAtUtc = DateTimeOffset.UtcNow.AddHours(1)
     };
 }

@@ -1,24 +1,126 @@
-﻿@using MultiPlanerSharedModels.Contracts.Rooms
-
-<Popup Title="Settings" IsVisible="IsVisible" OnClose="HandleClose">
-    <div>
-        
-    </div>
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedModels.Contracts.Events
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inject ApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+<Popup Title="Ustawienia kalendarza" IsVisible="IsVisible" OnClose="OnClose">
+    @if (_room != null) {
+        <div class="settings-form">
+            @if (Manage) {
+                <form @onsubmit="SaveRoom" @onsubmit:preventDefault>
+                    <label>Nazwa kalendarza<input class="input-main" @bind="_name" minlength="2" maxlength="128" required /></label>
+                    @if (_room.IsOwner) {
+                        <label>Strefa czasowa (IANA)<input class="input-main" @bind="_zone" required /></label>
+                        <label>Wygaśnięcie (UTC)<input type="datetime-local" @bind="_expiry" required /></label>
+                    }
+                    <button disabled="@_busy">Zapisz ustawienia</button>
+                </form>
+                <label>Okładka (JPEG, PNG, WebP; do 10 MB)<InputFile OnChange="Cover" accept="image/jpeg,image/png,image/webp" disabled="@_busy" /></label>
+                @if (_room.HasCover) { <button disabled="@_busy" @onclick="RemoveCover">Usuń okładkę</button> }
+                <h3>Link zaproszenia</h3>
+                @if (_invitation != null) {
+                    <label>Link<input class="input-main" value="@_invitation.JoinUrl" readonly /></label>
+                    <span>Ważny do @_invitation.ExpiresAtUtc.ToLocalTime().ToString("g")</span>
+                    <div class="settings-actions"><button disabled="@_busy" @onclick="Copy">Kopiuj</button><button disabled="@_busy" @onclick="Revoke">Unieważnij</button></div>
+                } else { <p>Brak aktywnego zaproszenia.</p> }
+                <button disabled="@_busy" @onclick='() => _confirm = "invitation"'>@(_invitation == null ? "Utwórz zaproszenie" : "Zastąp nowym zaproszeniem")</button>
+            } else { <p>@_room.Name · @_room.TimeZoneId</p> }
+            <h3>Typy wydarzeń</h3>
+            @foreach (var type in _types) {
+                <div class="event-type-row" @key="type.Id">
+                    <span style="background: #@type.Color; width: 1rem; height: 1rem; border: 1px solid black"></span>
+                    <span>@type.Name @(type.IsArchived ? "(archiwalny)" : "")</span>
+                    @if (Manage) {
+                        <button disabled="@_busy" @onclick="() => EditType(type)">Edytuj</button>
+                        <button disabled="@_busy" @onclick="() => ArchiveType(type)">@(type.IsArchived ? "Przywróć" : "Archiwizuj")</button>
+                    }
+                </div>
+            }
+            @if (Manage) {
+                <form @onsubmit="SaveType" @onsubmit:preventDefault>
+                    <h4>@(_editingType == null ? "Nowy typ" : "Edycja typu")</h4>
+                    <label>Nazwa typu<input class="input-main" @bind="_typeName" maxlength="64" required /></label>
+                    <label>Domyślny kolor wydarzeń<input type="color" @bind="_typeColor" /></label>
+                    <div class="settings-actions"><button disabled="@_busy">Zapisz typ</button><button type="button" @onclick="ClearType">Anuluj</button></div>
+                </form>
+            }
+            @if (_room.IsOwner) {
+                <div class="settings-actions">
+                    @if (Active) { <button disabled="@_busy" @onclick='() => _confirm = "archive"'>Archiwizuj kalendarz</button> }
+                    <button disabled="@_busy" @onclick='() => _confirm = "delete"'>Usuń kalendarz</button>
+                </div>
+            }
+            @if (_error != null) { <p role="alert">@_error</p> }
+            @if (_message != null) { <p role="status">@_message</p> }
+        </div>
+    }
 </Popup>
-
-
+<ConfirmPopup IsVisible="@(_confirm != null)" Title="Potwierdź operację" Message="@ConfirmMessage" Danger="@(_confirm == "delete")" ConfirmText="Potwierdź" OnConfirm="Confirm" OnClose="() => _confirm = null" />
 @code {
     [Parameter] public bool IsVisible { get; set; }
-    [Parameter] [EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
-    
-    
-    private string? _errorMessage;
-    
-    private Task HandleClose() {
-        _errorMessage = "";
-        return OnClose.InvokeAsync();
+    private RoomResponse? _room;
+    private RoomInvitationResponse? _invitation;
+    private IReadOnlyList<EventTypeResponse> _types = [];
+    private EventTypeResponse? _editingType;
+    private string _name = "", _zone = "", _typeName = "", _typeColor = "#999999";
+    private DateTime _expiry;
+    private string? _error, _message, _confirm;
+    private bool _wasVisible, _busy;
+    private bool Active => _room is { ArchivedAtUtc: null } && _room.ExpiresAtUtc > DateTimeOffset.UtcNow;
+    private bool Manage => Active && (_room!.IsOwner || _room.IsAdmin);
+    private string ConfirmMessage => _confirm switch { "delete" => "Trwale usunąć kalendarz wraz z wydarzeniami?", "archive" => "Archiwizować kalendarz? Zostanie dostępny do odczytu.", _ => "Utworzyć nowe zaproszenie? Poprzedni link przestanie działać." };
+    protected override async Task OnParametersSetAsync() {
+        var load = IsVisible && (!_wasVisible || _room?.Id != Room.Id); _wasVisible = IsVisible;
+        if (load) { ClearType(); await Run(Load); }
     }
-    
+    private async Task Load() {
+        _room = await Api.GetAsync<RoomResponse>($"api/rooms/{Room.Id}");
+        _name = _room!.Name; _zone = _room.TimeZoneId; _expiry = _room.ExpiresAtUtc.UtcDateTime;
+        _types = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{Room.Id}/event-types") ?? [];
+        _invitation = null;
+        if (Manage) {
+            try { _invitation = await Api.GetAsync<RoomInvitationResponse>($"api/rooms/{Room.Id}/invitations/current"); }
+            catch (ApiException ex) when (ex.Status == 404) { }
+        }
+    }
+    private async Task Run(Func<Task> action) {
+        if (_busy) return;
+        _busy = true; _error = _message = null;
+        try { await action(); }
+        catch (ApiException ex) when (ex.Status is 409 or 403) { _error = ex.Message; await Load(); ClearType(); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or IOException or JSException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    private async Task Send(HttpMethod method, string suffix, object? body = null) {
+        using var response = await Api.SendAsync(method, $"api/rooms/{Room.Id}{suffix}", body);
+        await ApiClient.EnsureSuccessAsync(response);
+    }
+    private async Task Refresh() { await Load(); await OnSaved.InvokeAsync(); }
+    private Task SaveRoom() => Run(async () => {
+        await Send(HttpMethod.Patch, "", new UpdateRoomRequest { Name = _name, TimeZoneId = _room!.IsOwner ? _zone : null,
+            ExpiresAtUtc = _room.IsOwner ? new DateTimeOffset(DateTime.SpecifyKind(_expiry, DateTimeKind.Utc)) : null, RowVersion = _room.RowVersion! });
+        await Refresh(); _message = "Ustawienia zapisane.";
+    });
+    private Task Cover(InputFileChangeEventArgs e) => Run(async () => { await Api.UploadAsync($"api/rooms/{Room.Id}/cover", e.File, 10 * 1024 * 1024); await Refresh(); });
+    private Task RemoveCover() => Run(async () => { await Send(HttpMethod.Delete, "/cover"); await Refresh(); });
+    private Task Copy() => Run(async () => { await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/settings.js"); await module.InvokeVoidAsync("copyText", _invitation!.JoinUrl); _message = "Link skopiowany."; });
+    private Task Revoke() => Run(async () => { await Send(HttpMethod.Delete, $"/invitations/{_invitation!.Id}"); await Refresh(); });
+    private void EditType(EventTypeResponse type) { _editingType = type; _typeName = type.Name; _typeColor = "#" + type.Color; }
+    private void ClearType() { _editingType = null; _typeName = ""; _typeColor = "#999999"; }
+    private Task SaveType() => Run(async () => {
+        if (_editingType == null) await Send(HttpMethod.Post, "/event-types", new CreateEventTypeRequest { Name = _typeName, Color = _typeColor.TrimStart('#') });
+        else await Send(HttpMethod.Patch, $"/event-types/{_editingType.Id}", new UpdateEventTypeRequest { Name = _typeName, Color = _typeColor.TrimStart('#'), RowVersion = _editingType.RowVersion });
+        ClearType(); await Refresh();
+    });
+    private Task ArchiveType(EventTypeResponse type) => Run(async () => { await Send(HttpMethod.Patch, $"/event-types/{type.Id}", new UpdateEventTypeRequest { IsArchived = !type.IsArchived, RowVersion = type.RowVersion }); ClearType(); await Refresh(); });
+    private Task Confirm() => Run(async () => {
+        if (_confirm == "delete") { await Send(HttpMethod.Delete, ""); await OnClose.InvokeAsync(); Nav.NavigateTo("/rooms"); }
+        else { await Send(HttpMethod.Post, _confirm == "archive" ? "/archive" : "/invitations", _confirm == "invitation" ? new CreateRoomInvitationRequest() : null); await Refresh(); }
+        _confirm = null;
+    });
 }

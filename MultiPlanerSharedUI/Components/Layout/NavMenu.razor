@@ -4,12 +4,12 @@
 @inject AuthService Auth
 @inject NavigationManager Nav
 
-<div class="nav-user" @onclick="OpenUserSettingsPopup">
+<button type="button" class="nav-user" aria-label="Ustawienia konta" @onclick="OpenUserSettingsPopup">
     <div class="user-img-div">
-        <img src="_content/MultiPlanerSharedUI/images/user.svg" alt="" class="user-img">
+        <AvatarImage Url="_avatar" />
     </div>
     <div class="nav-user-name nav-text">@_displayName</div>
-</div>
+</button>
 <div class="nav-links">
     <div class="nav-items">
         <NavLink href="dashboard" class="nav-item" ActiveClass="nav-item-current" @onclick="OnNavigate">
@@ -33,33 +33,27 @@
     </div>
 </div>
 
-<UserSettingsPopup
-    IsVisible="_showUserSettings"
-    Title="User Settings"
-    OnClose="() => _showUserSettings = false"
-
-/>
-
 @code {
     [Parameter] public EventCallback OnNavigate { get; set; }
+    [Parameter] public EventCallback OnOpenSettings { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     private string _displayName = "User";
-    private bool _showUserSettings;
-    private bool _isOpen;
+    private string? _avatar;
 
 
     protected override async Task OnParametersSetAsync() {
         if (AuthState is not null) {
             var user = (await AuthState).User;
             var name = user.Identity?.Name;
+            _avatar = user.FindFirst("avatar")?.Value;
             if (!string.IsNullOrWhiteSpace(name)) _displayName = name;
         }
     }
 
     private async Task OpenUserSettingsPopup() {
-        _showUserSettings = true;
+        await OnOpenSettings.InvokeAsync();
     }
 
     private async Task LogoutAsync() {

@@ -41,15 +41,15 @@ public sealed class UserValidationTests
     public void ProfilePatchRequiresAChange() => Assert.NotEmpty(Validate(new UpdateProfileRequest()));
 
     [Theory]
-    [InlineData("http://example.com/avatar.png")]
-    [InlineData("javascript:alert(1)")]
-    [InlineData("file:///etc/passwd")]
-    public void AvatarRequiresHttps(string value) =>
-        Assert.NotEmpty(Validate(new UpdateProfileRequest { AvatarUrl = value }));
+    [InlineData("red")]
+    [InlineData("#abc")]
+    [InlineData("#000000; background: red")]
+    public void ThemeRejectsNonHexColors(string value) =>
+        Assert.NotEmpty(Validate(new ThemePalette { Primary = value }));
 
     [Fact]
     public void OptionalProfileFieldsCanBeCleared() =>
-        Assert.Empty(Validate(new UpdateProfileRequest { AvatarUrl = "", ContactDetails = "" }));
+        Assert.Empty(Validate(new UpdateProfileRequest { ContactDetails = "" }));
 
     [Fact]
     public void GuestCannotBeMistakenForRegisteredAccount()

@@ -182,11 +182,6 @@ public sealed class UserService(
             user.TimeZoneId = request.TimeZoneId;
         }
 
-        if (request.AvatarUrl is not null)
-        {
-            user.AvatarUrl = EmptyToNull(request.AvatarUrl);
-        }
-
         if (request.ContactDetails is not null)
         {
             user.ContactDetails = EmptyToNull(request.ContactDetails.Trim());
@@ -196,11 +191,19 @@ public sealed class UserService(
         return ToResponse(user);
     }
 
+    public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken ct)
+    {
+        var id = actor.RequireUserId();
+        var user = await db.Users.SingleAsync(u => u.Id == id, ct);
+        EnsureSuccess(await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword));
+        await signIn.RefreshSignInAsync(user);
+    }
+
     private static string? EmptyToNull(string value) => value.Length == 0 ? null : value;
 
     private static SessionResponse ToResponse(ApplicationUser user) =>
         new("user", user.Id, null, user.DisplayName, user.Email, user.CountryCode,
-            user.TimeZoneId, user.AvatarUrl, user.ContactDetails, null);
+            user.TimeZoneId, user.AvatarStorageKey == null ? user.AvatarUrl : $"/api/users/{user.Id}/avatar?v={user.AvatarStorageKey}", user.ContactDetails, null);
 
     private static void EnsureSuccess(IdentityResult result)
     {

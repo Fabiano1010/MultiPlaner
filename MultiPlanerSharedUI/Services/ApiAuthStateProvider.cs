@@ -23,7 +23,8 @@ public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider>
 
             var claims = new List<Claim> {
                 new(ClaimTypes.Name, me.DisplayName ?? ""),
-                new("kind", me.Kind)
+                new("kind", me.Kind),
+                new("avatar", me.AvatarUrl ?? "")
             };
             return new AuthenticationState(
                 new ClaimsPrincipal(new ClaimsIdentity(claims, "cookie")));
@@ -39,4 +40,4 @@ public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider>
     }
 }
 
-public record MeResponse(string Kind, string? DisplayName);
+public record MeResponse(string Kind, string? DisplayName, string? AvatarUrl);

@@ -16,8 +16,8 @@
                     <span class="event-details-title">@Event.Author.DisplayName</span>
                 </div>
                 <div class="event-details-row">
-                    <span class="event-details-label">Category</span>
-                    <span class="event-details-title">@Event.Category</span>
+                    <span class="event-details-label">Typ wydarzenia</span>
+                    <span class="event-details-title">@Event.EventTypeName</span>
                 </div>
 
                 @{ var span = EventDays.Span(Event); }
@@ -100,10 +100,10 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Category</label>
-                        <select class="input-main" @bind="_category">
-                            @foreach (var c in Enum.GetValues<EventCategory>()) {
-                                <option value="@c">@c</option>
+                        <label>Typ wydarzenia</label>
+                        <select class="input-main" @bind="_eventTypeId">
+                            @foreach (var c in _types) {
+                                <option value="@c.Id">@c.Name @(c.IsArchived ? "(archiwalny)" : "")</option>
                             }
                         </select>
                     </div>
@@ -168,7 +168,8 @@
     private DateOnly _end;
     private TimeOnly _startTime;
     private TimeOnly _endTime;
-    private EventCategory _category;
+    private int _eventTypeId;
+    private List<EventTypeResponse> _types = [];
 
     private string EventUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
 
@@ -181,13 +182,15 @@
         _wasVisible = IsVisible;
     }
 
-    private void StartEdit() {
+    private async Task StartEdit() {
         if (Event is null) return;
         var e = Event;
+        try { _types = (await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? []).Where(t => !t.IsArchived || t.Id == e.EventTypeId).ToList(); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _errorMessage = ex.Message; return; }
 
         _title = e.Title;
         _description = e.Description;
-        _category = e.Category;
+        _eventTypeId = e.EventTypeId;
         _highPriority = e.IsHighPriority;
         _allDay = e.IsAllDay;
         _defaultColor = e.CustomColor is null;
@@ -263,7 +266,7 @@
                 Title = title,
                 Description = _description?.Trim(),
                 Time = time,
-                Category = _category,
+                EventTypeId = _eventTypeId,
                 Color = _defaultColor ? "" : _color.TrimStart('#'),
                 IsHighPriority = _highPriority,
                 RowVersion = Event.RowVersion

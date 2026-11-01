@@ -1,24 +1,61 @@
-﻿@using MultiPlanerSharedModels.Contracts.Rooms
-
-<Popup Title="Members" IsVisible="IsVisible" OnClose="HandleClose">
-    <div>
-        
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedModels.Contracts.Common
+@using MultiPlanerSharedUI.Components.User
+@inject ApiClient Api
+<Popup Title="Członkowie kalendarza" IsVisible="IsVisible" OnClose="OnClose">
+    @if (_error != null) { <p role="alert">@_error</p> }
+    @foreach (var member in _members) {
+        <div class="member-row" @key="member.Id">
+            <AvatarImage Url="member.AvatarUrl" />
+            <strong>@member.DisplayName</strong>
+            <span>@(member.IsOwner ? "Właściciel" : member.IsAdmin ? "Administrator" : member.IsGuest ? "Gość" : "Członek")</span>
+            @if (member.CanPromote) { <button disabled="@_busy" @onclick="() => Role(member, true)">Nadaj admina</button> }
+            @if (member.CanDemote) { <button disabled="@_busy" @onclick="() => Role(member, false)">Odbierz admina</button> }
+            @if (member.CanRemove) { <button disabled="@_busy" @onclick="() => _remove = member">Usuń</button> }
+        </div>
+    }
+    <div class="settings-actions">
+        <button disabled="@(_busy || _page == 1)" @onclick="Previous">Poprzednia</button>
+        <span>Strona @_page · @_total członków</span>
+        <button disabled="@(_busy || _page * 25 >= _total)" @onclick="Next">Następna</button>
     </div>
 </Popup>
-
-
+<ConfirmPopup IsVisible="@(_remove != null)" Title="Usuń członka" Message="@($"Usunąć {_remove?.DisplayName}? Jego wydarzenia pozostaną w kalendarzu.")" Danger="true" ConfirmText="Usuń" OnConfirm="Remove" OnClose="() => _remove = null" />
 @code {
     [Parameter] public bool IsVisible { get; set; }
-    [Parameter] [EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
-
-    
-    
-    private string? _errorMessage;
-    
-    private Task HandleClose() {
-        _errorMessage = "";
-        return OnClose.InvokeAsync();
+    private IReadOnlyList<RoomMemberResponse> _members = [];
+    private RoomMemberResponse? _remove;
+    private int _page = 1, _total, _roomId;
+    private bool _wasVisible, _busy;
+    private string? _error;
+    protected override async Task OnParametersSetAsync() {
+        var load = IsVisible && (!_wasVisible || _roomId != Room.Id); _wasVisible = IsVisible; _roomId = Room.Id;
+        if (load) { _page = 1; await Run(Load); }
     }
-    
+    private async Task Load() {
+        var result = (await Api.GetAsync<PagedResponse<RoomMemberResponse>>($"api/rooms/{Room.Id}/members?page={_page}&pageSize=25"))!;
+        _members = result.Items; _total = result.TotalCount;
+        if (_members.Count == 0 && _page > 1) { _page--; await Load(); }
+    }
+    private async Task Run(Func<Task> action) {
+        if (_busy) return;
+        _busy = true; _error = null;
+        try { await action(); }
+        catch (ApiException ex) when (ex.Status is 409 or 403) { _error = ex.Message; await Load(); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    private Task Role(RoomMemberResponse member, bool admin) => Run(async () => {
+        using var response = await Api.PatchAsync($"api/rooms/{Room.Id}/members/{member.Id}/role", new ChangeMemberRoleRequest { IsAdmin = admin, RowVersion = member.RowVersion! });
+        await ApiClient.EnsureSuccessAsync(response); await Load();
+    });
+    private Task Remove() => Run(async () => {
+        if (_remove == null) return;
+        using var response = await Api.SendAsync(HttpMethod.Delete, $"api/rooms/{Room.Id}/members/{_remove.Id}", new RemoveMemberRequest { RowVersion = _remove.RowVersion! });
+        await ApiClient.EnsureSuccessAsync(response); _remove = null; await Load();
+    });
+    private async Task Previous() { _page--; await Run(Load); }
+    private async Task Next() { _page++; await Run(Load); }
 }

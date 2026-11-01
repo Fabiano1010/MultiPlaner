@@ -8,6 +8,8 @@ public sealed class ApplicationUser : IdentityUser<int>, ITimestamped
     public string CountryCode { get; set; } = "PL";
     public string TimeZoneId { get; set; } = "Europe/Warsaw";
     public string? AvatarUrl { get; set; }
+    public string? AvatarStorageKey { get; set; }
+    public string? AvatarContentType { get; set; }
     public string? ContactDetails { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }

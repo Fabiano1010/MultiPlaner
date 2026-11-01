@@ -114,7 +114,7 @@
     font-size: var(--font-size-small);
     font-weight: bold;
     text-align: center;
-    color: var(--color-primary);
+    color: var(--text-muted);
     display: flex;
     flex-direction: row;
     justify-content: space-between;

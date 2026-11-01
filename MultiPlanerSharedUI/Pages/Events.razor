@@ -1,6 +1,62 @@
-﻿@page "/Events"
-<h3>Events</h3>
-
+@page "/Events"
+@layout MainLayout
+@attribute [Authorize]
+@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedModels.Contracts.Common
+@using MultiPlanerSharedUI.Components.Events
+@inject ApiClient Api
+<h2>Wydarzenia</h2>
+<form class="settings-form" @onsubmit="Filter" @onsubmit:preventDefault>
+    <label>Od<input type="date" @bind="_from" /></label>
+    <label>Do (włącznie)<input type="date" @bind="_to" /></label>
+    <label>Kalendarz<select @bind="_roomId" @bind:after="RoomChanged"><option value="0">Wszystkie kalendarze</option>@foreach (var room in _rooms) { <option value="@room.Id">@room.Name</option> }</select></label>
+    <label>Typ wydarzenia<select @bind="_typeId" disabled="@(_roomId == 0)"><option value="0">Wszystkie typy</option>@foreach (var type in _types) { <option value="@type.Id">@type.Name @(type.IsArchived ? "(archiwalny)" : "")</option> }</select></label>
+    <label>Status<select @bind="_status"><option value="active">Aktywne kalendarze</option><option value="archived">Archiwalne kalendarze</option><option value="all">Wszystkie</option></select></label>
+    <button disabled="@_busy">Filtruj</button>
+</form>
+@if (_error != null) { <p role="alert">@_error</p> }
+@foreach (var ev in _events) {
+    <div class="member-row" style="border-left: 5px solid #@ev.Color; padding-left: 1rem">
+        <button @onclick="() => _selected = ev">@ev.Title</button><span>@ev.RoomName · @ev.EventTypeName · @ev.StartsAtUtc.ToLocalTime().ToString("g")</span>
+    </div>
+}
+@if (!_busy && _events.Count == 0) { <p>Brak wydarzeń w wybranym zakresie.</p> }
+<div class="settings-actions"><button disabled="@(_busy || _page == 1)" @onclick="Previous">Poprzednia</button><span>Strona @_page</span><button disabled="@(_busy || _page * 25 >= _total)" @onclick="Next">Następna</button></div>
+<EventDetails IsVisible="@(_selected != null)" Event="_selected" RoomId="@(_selected?.RoomId ?? 0)" OnClose="() => _selected = null" OnChanged="Load" />
 @code {
-
+    private List<RoomResponse> _rooms = [];
+    private List<EventTypeResponse> _types = [];
+    private IReadOnlyList<EventResponse> _events = [];
+    private EventResponse? _selected;
+    private DateOnly _from = DateOnly.FromDateTime(DateTime.Today), _to = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+    private int _roomId, _typeId, _page = 1, _total;
+    private string _status = "active";
+    private string? _error;
+    private bool _busy;
+    protected override async Task OnInitializedAsync() {
+        try { _rooms = await Api.GetAsync<List<RoomResponse>>("api/rooms?status=all") ?? []; await Load(); }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
+    }
+    private async Task RoomChanged() {
+        _typeId = 0; _types = [];
+        try { if (_roomId > 0) _types = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{_roomId}/event-types") ?? []; }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
+    }
+    private async Task Filter() { _page = 1; await Load(); }
+    private async Task Previous() { _page--; await Load(); }
+    private async Task Next() { _page++; await Load(); }
+    private async Task Load() {
+        _busy = true; _error = null;
+        try {
+            if (_to < _from || _to == DateOnly.MaxValue) { _error = "Nieprawidłowy zakres dat."; return; }
+            var from = new DateTimeOffset(_from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local)).ToUniversalTime();
+            var to = new DateTimeOffset(_to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local)).ToUniversalTime();
+            var url = $"api/me/events?from={Uri.EscapeDataString(from.ToString("O"))}&to={Uri.EscapeDataString(to.ToString("O"))}&status={_status}&page={_page}&pageSize=25";
+            if (_roomId > 0) url += $"&roomId={_roomId}";
+            if (_typeId > 0) url += $"&eventTypeId={_typeId}";
+            var result = (await Api.GetAsync<PagedResponse<EventResponse>>(url))!; _events = result.Items; _total = result.TotalCount;
+        } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
 }
