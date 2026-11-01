@@ -3,13 +3,13 @@
 @using System.ComponentModel.DataAnnotations
 @inject ApiClient Api
 @inject ThemeService Theme
-@if (_loading) { <p role="status">Wczytywanie schematów…</p> }
-@if (_error != null) { <div role="alert" class="form-error">@_error <button class="btn-main btn-cancel" @onclick="ReloadSafe">Ponów</button></div> }
+@if (_loading) { <p role="status">Loading themes…</p> }
+@if (_error != null) { <div role="alert" class="form-error">@_error <button class="btn-main btn-cancel" @onclick="ReloadSafe">Retry</button></div> }
 @if (_editing) {
-    <h3>@(_editId == null ? "Nowy schemat" : "Edycja schematu")</h3>
+    <h3>@(_editId == null ? "New theme" : "Edit theme")</h3>
     <div class="settings-grid">
         <div class="settings-fields">
-            <div class="form-group"><label for="scheme-name">Nazwa schematu</label><input id="scheme-name" class="input-main" maxlength="64" @bind="_name" @bind:event="oninput" /></div>
+            <div class="form-group"><label for="scheme-name">Theme name</label><input id="scheme-name" class="input-main" maxlength="64" @bind="_name" @bind:event="oninput" /></div>
             @foreach (var field in Fields) {
                 <div class="form-group"><label for="@field.Key">@field.Label</label><div class="settings-color">
                     <input class="input-main" type="color" aria-label="@field.Label" value="@Get(field.Key)" @oninput="e => Change(field.Key, e.Value?.ToString())" />
@@ -17,29 +17,29 @@
                 </div></div>
             }
         </div>
-        <section><h4>Podgląd</h4><SchemePreview Palette="_draft" /><p class="settings-note">Podgląd nie zmienia aktywnego wyglądu aplikacji.</p></section>
+        <section><h4>Preview</h4><SchemePreview Palette="_draft" /><p class="settings-note">The preview does not change the active theme.</p></section>
     </div>
-    <div class="settings-actions"><button class="btn-main btn-cancel" disabled="@_busy" @onclick="Cancel">Anuluj</button><button class="btn-main btn-cancel" disabled="@(!Valid || _busy)" @onclick="() => Save(false)">Zapisz</button><button class="btn-main btn-save" disabled="@(!Valid || _busy)" @onclick="() => Save(true)">Zapisz i zastosuj</button></div>
+    <div class="settings-actions"><button class="btn-main btn-cancel" disabled="@_busy" @onclick="Cancel">Cancel</button><button class="btn-main btn-cancel" disabled="@(!Valid || _busy)" @onclick="() => Save(false)">Save</button><button class="btn-main btn-save" disabled="@(!Valid || _busy)" @onclick="() => Save(true)">Save and apply</button></div>
 } else {
-    <h3>Schematy kolorystyczne</h3>
+    <h3>Colour themes</h3>
     <div class="settings-grid">
         @foreach (var item in _schemes) {
             <article class="settings-tile" @key="item.Id">
                 <SchemePreview Palette="item.Palette" />
-                <div class="settings-tile-heading"><h4>@item.Name</h4>@if (_active?.ThemeId == item.Id) { <span>✓ Aktywny</span> }</div>
+                <div class="settings-tile-heading"><h4>@item.Name</h4>@if (_active?.ThemeId == item.Id) { <span>✓ Active</span> }</div>
                 <div class="settings-actions">
-                    <button class="btn-main btn-save" disabled="@_busy" @onclick="() => Apply(item)">Zastosuj</button>
-                    @if (!item.IsBuiltIn) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, false)">Edytuj</button> }
-                    <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, true)">Duplikuj</button>
-                    @if (!item.IsBuiltIn) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _delete = item">Usuń</button> }
+                    <button class="btn-main btn-save" disabled="@_busy" @onclick="() => Apply(item)">Apply</button>
+                    @if (!item.IsBuiltIn) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, false)">Edit</button> }
+                    <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, true)">Duplicate</button>
+                    @if (!item.IsBuiltIn) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _delete = item">Delete</button> }
                 </div>
             </article>
         }
     </div>
-    <div class="settings-actions"><button class="btn-main btn-save" disabled="@(_loading || _busy)" @onclick="New">Nowy schemat</button></div>
+    <div class="settings-actions"><button class="btn-main btn-save" disabled="@(_loading || _busy)" @onclick="New">New theme</button></div>
 }
-<ConfirmPopup IsVisible="@(_delete != null)" Title="Usuń schemat" Message="Usunąć ten schemat? Jeśli jest aktywny, aplikacja wróci do schematu Domyślny." Danger="true" OnConfirm="Delete" OnClose="() => _delete = null" />
-<ConfirmPopup IsVisible="_discard" Title="Niezapisane zmiany" Message="Odrzucić niezapisane zmiany schematu?" ConfirmText="Odrzuć" OnConfirm="Discard" OnClose="() => _discard = false" />
+<ConfirmPopup IsVisible="@(_delete != null)" Title="Delete theme" Message="Delete this theme? If it is active, the app will switch to the Default theme." Danger="true" OnConfirm="Delete" OnClose="() => _delete = null" />
+<ConfirmPopup IsVisible="_discard" Title="Unsaved changes" Message="Discard unsaved changes to this theme?" ConfirmText="Discard" OnConfirm="Discard" OnClose="() => _discard = false" />
 @code {
     private List<SavedThemeResponse> _schemes = [];
     private ThemeResponse? _active;
@@ -53,7 +53,7 @@
     private bool _loading, _busy, _editing, _discard;
     private Func<Task>? _afterDiscard;
     private string? _error;
-    private static readonly (string Key, string Label)[] Fields = [("Background", "Tło aplikacji"), ("Surface", "Powierzchnie"), ("Accent", "Akcent"), ("Border", "Obramowania")];
+    private static readonly (string Key, string Label)[] Fields = [("Background", "App background"), ("Surface", "Surfaces"), ("Accent", "Accent"), ("Border", "Borders")];
     private bool Valid => !string.IsNullOrWhiteSpace(_name) && Fields.All(f => System.Text.RegularExpressions.Regex.IsMatch(_raw.GetValueOrDefault(f.Key) ?? Get(f.Key), ThemePalette.HexPattern));
     public bool Dirty => _editing && (_draft != _original || _name != _originalName || _raw.Any(v => v.Value != Get(v.Key)));
     public async Task RequestLeave(Func<Task> action) { if (_busy) return; if (Dirty) { _afterDiscard = action; _discard = true; } else { _editing = false; await action(); } }
@@ -62,11 +62,11 @@
     private async Task ReloadSafe() { _loading = true; _error = null; try { await Reload(); } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; } finally { _loading = false; } }
     private string Get(string key) => (string)typeof(ThemePalette).GetProperty(key)!.GetValue(_draft)!;
     private void Change(string key, string? value) { _raw[key] = value ?? ""; if (System.Text.RegularExpressions.Regex.IsMatch(value ?? "", ThemePalette.HexPattern)) typeof(ThemePalette).GetProperty(key)!.SetValue(_draft, value!.ToUpperInvariant()); }
-    private void New() => Edit(new(0, "Nowy schemat", new(), []), true);
-    private void Edit(SavedThemeResponse item, bool copy) { _editId = copy ? null : item.Id; _name = copy && item.Id != 0 ? item.Name + " — kopia" : item.Name; _draft = item.Palette with {}; _original = _draft with {}; _originalName = _name; _version = item.RowVersion; _raw.Clear(); _editing = true; _error = null; }
+    private void New() => Edit(new(0, "New theme", new(), []), true);
+    private void Edit(SavedThemeResponse item, bool copy) { _editId = copy ? null : item.Id; _name = copy && item.Id != 0 ? item.Name + " — copy" : item.Name; _draft = item.Palette with {}; _original = _draft with {}; _originalName = _name; _version = item.RowVersion; _raw.Clear(); _editing = true; _error = null; }
     private Task Cancel() => RequestLeave(() => { _editing = false; return Task.CompletedTask; });
     private async Task Discard() { _editing = false; _discard = false; var action = _afterDiscard; _afterDiscard = null; if (action != null) await action(); }
-    private async Task Run(Func<Task> action) { if (_busy) return; _busy = true; _error = null; try { await action(); } catch (ApiException ex) when (ex.Status == 409) { _error = "Dane zmieniły się na innym urządzeniu. Odśwież listę; Twoja edycja pozostaje w formularzu."; } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; } finally { _busy = false; } }
+    private async Task Run(Func<Task> action) { if (_busy) return; _busy = true; _error = null; try { await action(); } catch (ApiException ex) when (ex.Status == 409) { _error = "The data changed on another device. Reload the list; your edits remain in the form."; } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; } finally { _busy = false; } }
     private Task Apply(SavedThemeResponse item) => Run(async () => { await ApplyCore(item); await Reload(); });
     private async Task ApplyCore(SavedThemeResponse item) { using var response = await Api.SendAsync(HttpMethod.Put, "api/me/theme", new ApplyThemeRequest { ThemeId = item.Id, RowVersion = item.RowVersion, ActiveRowVersion = _active?.RowVersion ?? [] }); await ApiClient.EnsureSuccessAsync(response); _active = (await response.Content.ReadFromJsonAsync<ThemeResponse>())!; await Theme.ApplyAsync(_active.Palette); }
     private Task Save(bool apply) => Run(async () => {

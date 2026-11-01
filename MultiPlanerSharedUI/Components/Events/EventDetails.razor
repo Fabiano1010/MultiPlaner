@@ -16,7 +16,7 @@
                     <span class="event-details-title">@Event.Author.DisplayName</span>
                 </div>
                 <div class="event-details-row">
-                    <span class="event-details-label">Typ wydarzenia</span>
+                    <span class="event-details-label">Event type</span>
                     <span class="event-details-title">@Event.EventTypeName</span>
                 </div>
 
@@ -25,13 +25,13 @@
                 <div class="event-details-row">
                     <span class="event-details-label">Start</span>
                     <span class="event-details-value">
-                        @span.StartDate.ToString("dd.MM.yyyy")@(span.StartTime is { } st ? $" at {st:HH:mm}" : "")
+                        @span.StartDate.ToString("dd/MM/yyyy")@(span.StartTime is { } st ? $" at {st:HH:mm}" : "")
                     </span>
                 </div>
                 <div class="event-details-row">
                     <span class="event-details-label">End</span>
                     <span class="event-details-value">
-                        @span.EndDate.ToString("dd.MM.yyyy")@(span.EndTime is { } et ? $" at {et:HH:mm}" : "")
+                        @span.EndDate.ToString("dd/MM/yyyy")@(span.EndTime is { } et ? $" at {et:HH:mm}" : "")
                     </span>
                 </div>
 
@@ -100,10 +100,10 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Typ wydarzenia</label>
+                        <label>Event type</label>
                         <select class="input-main" @bind="_eventTypeId">
                             @foreach (var c in _types) {
-                                <option value="@c.Id">@c.Name @(c.IsArchived ? "(archiwalny)" : "")</option>
+                                <option value="@c.Id">@c.Name @(c.IsArchived ? "(archived)" : "")</option>
                             }
                         </select>
                     </div>

@@ -18,6 +18,7 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        AppCulture.Apply();
         var builder = MauiApp.CreateBuilder();
 
         // Hosting MAUI / Blazor Hybrid

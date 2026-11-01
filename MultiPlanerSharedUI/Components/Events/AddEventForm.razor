@@ -33,10 +33,10 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>Typ wydarzenia</label>
+                <label>Event type</label>
                 <select class="input-main" @bind="_eventTypeId">
                     @foreach (var c in _types) {
-                        <option value="@c.Id">@c.Name @(c.IsArchived ? "(archiwalny)" : "")</option>
+                        <option value="@c.Id">@c.Name @(c.IsArchived ? "(archived)" : "")</option>
                     }
                 </select>
             </div>
@@ -96,7 +96,7 @@
             try {
                 _types = (await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? []).Where(t => !t.IsArchived).ToList();
                 _eventTypeId = _types.FirstOrDefault()?.Id ?? 0;
-                if (_eventTypeId == 0) _error = "Brak aktywnych typów. Poproś administratora o utworzenie typu.";
+                if (_eventTypeId == 0) _error = "No active event types. Ask an administrator to create one.";
             } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _types = []; _eventTypeId = 0; _error = ex.Message; }
         }
 

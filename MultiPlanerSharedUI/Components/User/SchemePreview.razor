@@ -1,6 +1,6 @@
 @using MultiPlanerSharedModels.Contracts.Users
-<div class="scheme-mini" style="@Style" aria-label="Podgląd schematu kalendarza">
-    <aside></aside><div class="scheme-mini-content"><strong>Listopad 2026</strong><div class="scheme-mini-days">@for (var i = 1; i <= 14; i++) { <span></span> }</div><div class="scheme-mini-event">Spotkanie zespołu</div></div>
+<div class="scheme-mini" style="@Style" aria-label="Calendar theme preview">
+    <aside></aside><div class="scheme-mini-content"><strong>November 2026</strong><div class="scheme-mini-days">@for (var i = 1; i <= 14; i++) { <span></span> }</div><div class="scheme-mini-event">Team meeting</div></div>
 </div>
 @code {
     [Parameter] public ThemePalette Palette { get; set; } = new();

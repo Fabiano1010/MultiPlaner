@@ -32,10 +32,10 @@
                         OnNotifications="ToggleNotifications"
                         NotificationsState="_notificationsState"
                         />
-        <label class="calendar-type-filter">Typ wydarzenia
+        <label class="calendar-type-filter">Event type
             <select @bind="_typeFilter" @bind:after="LoadEventsAsync">
                 <option value="0">Wszystkie typy</option>
-                @foreach (var type in _eventTypes) { <option value="@type.Id">@type.Name @(type.IsArchived ? "(archiwalny)" : "")</option> }
+                @foreach (var type in _eventTypes) { <option value="@type.Id">@type.Name @(type.IsArchived ? "(archived)" : "")</option> }
             </select>
         </label>
         <CalendarGrid CurrentMonth="_month"

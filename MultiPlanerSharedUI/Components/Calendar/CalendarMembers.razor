@@ -2,30 +2,30 @@
 @using MultiPlanerSharedModels.Contracts.Common
 @using MultiPlanerSharedUI.Components.User
 @inject ApiClient Api
-<Popup IsSettings="true" Title="Członkowie kalendarza" IsVisible="IsVisible" OnClose="OnClose">
+<Popup IsSettings="true" Title="Calendar members" IsVisible="IsVisible" OnClose="OnClose">
     <div class="settings-content">
-    @if (_error != null) { <p role="alert">@_error</p><button class="btn-main btn-cancel" @onclick="() => Run(Load)">Ponów</button> }
-    @if (_busy) { <p role="status">Wczytywanie członków…</p> }
+    @if (_error != null) { <p role="alert">@_error</p><button class="btn-main btn-cancel" @onclick="() => Run(Load)">Retry</button> }
+    @if (_busy) { <p role="status">Loading members…</p> }
     @foreach (var member in _members) {
         <div class="member-row" @key="member.Id">
             <AvatarImage Url="@member.AvatarUrl" />
             <div><strong>@member.DisplayName</strong>
-            <span>@(member.IsOwner ? "Właściciel" : member.IsAdmin ? "Administrator" : member.IsGuest ? "Gość" : "Członek")</span></div>
+            <span>@(member.IsOwner ? "Owner" : member.IsAdmin ? "Administrator" : member.IsGuest ? "Guest" : "Member")</span></div>
             <div class="settings-actions">
-            @if (member.CanPromote) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Role(member, true)">Nadaj admina</button> }
-            @if (member.CanDemote) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Role(member, false)">Odbierz admina</button> }
-            @if (member.CanRemove) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _remove = member">Usuń</button> }
+            @if (member.CanPromote) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Role(member, true)">Make administrator</button> }
+            @if (member.CanDemote) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Role(member, false)">Remove administrator role</button> }
+            @if (member.CanRemove) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _remove = member">Delete</button> }
             </div>
         </div>
     }
     <div class="settings-actions">
-        <button class="btn-main btn-cancel" disabled="@(_busy || _page == 1)" @onclick="Previous">Poprzednia</button>
-        <span>Strona @_page · @_total członków</span>
-        <button class="btn-main btn-cancel" disabled="@(_busy || _page * 25 >= _total)" @onclick="Next">Następna</button>
+        <button class="btn-main btn-cancel" disabled="@(_busy || _page == 1)" @onclick="Previous">Previous</button>
+        <span>Page @_page · @_total members</span>
+        <button class="btn-main btn-cancel" disabled="@(_busy || _page * 25 >= _total)" @onclick="Next">Next</button>
     </div>
 </div>
 </Popup>
-<ConfirmPopup IsVisible="@(_remove != null)" Title="Usuń członka" Message="@($"Usunąć {_remove?.DisplayName}? Jego wydarzenia pozostaną w kalendarzu.")" Danger="true" ConfirmText="Usuń" OnConfirm="Remove" OnClose="() => _remove = null" />
+<ConfirmPopup IsVisible="@(_remove != null)" Title="Remove member" Message="@($"Remove {_remove?.DisplayName}? Their events will remain in the calendar.")" Danger="true" ConfirmText="Delete" OnConfirm="Remove" OnClose="() => _remove = null" />
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;

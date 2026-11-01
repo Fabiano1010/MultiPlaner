@@ -33,8 +33,11 @@ public sealed class SettingsTests(ApiFixture fixture)
         var (otherClient, _, _) = await fixture.RegisterAndLoginAsync(); using var other = otherClient;
         var initial = (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!;
         Assert.Equal(-1, initial.ThemeId);
-        Assert.Equal(2, (await owner.GetFromJsonAsync<List<SavedThemeResponse>>("/api/me/themes"))!.Count);
-        var saved = await Read<SavedThemeResponse>(await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "Work", Palette = new() { Accent = "#123456" } }), HttpStatusCode.Created);
+        var builtIns = (await owner.GetFromJsonAsync<List<SavedThemeResponse>>("/api/me/themes"))!;
+        Assert.Equal(new[] { "Default", "Dark" }, builtIns.Select(t => t.Name));
+        var saved = await Read<SavedThemeResponse>(await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "Mój schemat", Palette = new() { Accent = "#123456" } }), HttpStatusCode.Created);
+        Assert.Equal("Mój schemat", saved.Name);
+        Assert.Equal("Mój schemat", (await owner.GetFromJsonAsync<List<SavedThemeResponse>>("/api/me/themes"))!.Single(t => t.Id == saved.Id).Name);
         var second = await Read<SavedThemeResponse>(await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "Evening", Palette = new() { Background = "#111111" } }), HttpStatusCode.Created);
         Assert.Equal(-1, (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!.ThemeId);
         Assert.Equal(2, (await other.GetFromJsonAsync<List<SavedThemeResponse>>("/api/me/themes"))!.Count);

@@ -7,9 +7,9 @@ namespace MultiPlanerAPI.Modules.Users;
 public sealed class UserSettingsService(AppDbContext db, DbContextOptions<AppDbContext> options, CurrentActor actor, TimeProvider clock)
 {
     private static SavedThemeResponse BuiltIn(int id) => id switch {
-        -1 => new(-1, "Domyślny", new(), [], true),
-        -2 => new(-2, "Ciemny", new() { Background = "#161616", Surface = "#303030", Accent = "#A78BFA", Border = "#666666" }, [], true),
-        _ => throw new ApiException(404, "theme_not_found", "Scheme not found.")
+        -1 => new(-1, "Default", new(), [], true),
+        -2 => new(-2, "Dark", new() { Background = "#161616", Surface = "#303030", Accent = "#A78BFA", Border = "#666666" }, [], true),
+        _ => throw new ApiException(404, "theme_not_found", "Theme not found.")
     };
     public async Task<ThemeResponse> GetAsync(CancellationToken ct) {
         var id = actor.RequireUserId();
@@ -65,9 +65,9 @@ public sealed class UserSettingsService(AppDbContext db, DbContextOptions<AppDbC
     }, ct);
     private static async Task<SavedTheme> Find(AppDbContext context, int userId, int id, CancellationToken ct) =>
         await context.SavedThemes.SingleOrDefaultAsync(t => t.Id == id && t.UserId == userId, ct)
-            ?? throw new ApiException(404, "theme_not_found", "Scheme not found or is protected.");
+            ?? throw new ApiException(404, "theme_not_found", "Theme not found or is protected.");
     private static void Check(byte[] actual, byte[] expected) {
-        if (!actual.AsSpan().SequenceEqual(expected)) throw new ApiException(409, "concurrency_conflict", "Scheme changed. Reload and retry.");
+        if (!actual.AsSpan().SequenceEqual(expected)) throw new ApiException(409, "concurrency_conflict", "Theme changed. Reload and retry.");
     }
     private static SavedThemeResponse Map(SavedTheme t) => new(t.Id, t.Name, t.Palette, t.RowVersion);
 }
