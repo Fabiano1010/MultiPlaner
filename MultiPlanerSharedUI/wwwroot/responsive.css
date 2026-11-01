@@ -196,13 +196,6 @@
         overflow-wrap: anywhere;
     }
 
-    .logo-img-large {
-        display: block;
-        max-width: min(100%, 11rem);
-        max-height: 10rem;
-        margin-inline: auto;
-    }
-
     .home-btn-group {
         gap: 0.75rem;
     }
