@@ -418,3 +418,9 @@
 .password-wrapper:focus-within .search-img-btn img {
     opacity: 1;
 }
+
+/* Membership colors are independent of the page theme. */
+.room { background:var(--room-background,var(--field-background)); color:var(--room-text,var(--field-text)); }
+.room .room-header, .room .room-footer { color:inherit; }
+.room .favourite-icon, .room .room-symbol { filter:var(--room-icon-filter,brightness(0)); }
+.folder .favourite-icon { filter:var(--field-icon-filter,brightness(0)); }

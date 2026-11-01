@@ -96,11 +96,22 @@ function run_api {
 
 function run_api_background {
     configure_dev_https
-    echo "▶ Sprawdzanie / Uruchamianie Web API w tle..."
-    dotnet run --project "$API_PROJECT" --launch-profile https &
+    # SharedModels is also referenced by Web. Finish this build before any
+    # other frontend build starts, then keep runtime processes build-free.
+    if [[ "${1:-}" != "--prebuilt" ]]; then
+        echo "▶ Kompilowanie Web API..."
+        dotnet build "$API_PROJECT" --nologo
+    fi
+    echo "▶ Uruchamianie Web API w tle..."
+    dotnet run --no-build --project "$API_PROJECT" --launch-profile https &
     API_PID=$!
     trap 'exit_status=$?; echo "Zatrzymywanie API..."; kill "$API_PID" 2>/dev/null || true; exit "$exit_status"' EXIT
     sleep 3
+    if ! kill -0 "$API_PID" 2>/dev/null; then
+        echo "❌ API zakończyło pracę podczas startu; przerywam uruchamianie klienta." >&2
+        wait "$API_PID" || return $?
+        return 1
+    fi
 }
 
 case "$COMMAND" in
@@ -132,9 +143,16 @@ case "$COMMAND" in
         run_api
         ;;
     "web")
-        run_api_background
+        # Build both projects before launching either process. Rebuild Web so
+        # fingerprinted WASM/PDB files and static-asset manifests come from
+        # the same build, including after API/MAUI builds of shared projects.
+        echo "▶ Kompilowanie Web API..."
+        dotnet build "$API_PROJECT" --nologo
+        echo "▶ Przebudowywanie aplikacji Blazor Web..."
+        dotnet build "$WEB_PROJECT" --nologo -t:Rebuild
+        run_api_background --prebuilt
         echo "▶ Uruchamianie aplikacji Blazor Web..."
-        dotnet run --project "$WEB_PROJECT" --launch-profile https
+        dotnet run --no-build --project "$WEB_PROJECT" --launch-profile https
         ;;
     "android")
         run_api_background

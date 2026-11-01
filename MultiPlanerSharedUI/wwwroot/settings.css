@@ -65,3 +65,13 @@
 .btn-main:disabled { opacity:.55; cursor:default; transform:none; filter:none; }
 
 .input-main { color-scheme:var(--native-color-scheme,light); }
+
+/* Navigation chrome is deliberately independent of saved color schemes. */
+.sidebar, .mobile-nav-bar { background:#000000; color:#ffffff; }
+.nav-item, .nav-user, .mobile-nav-toggle, .mobile-nav-close { color:#ffffff; }
+.sidebar .nav-item-img, .mobile-nav-toggle img { filter:brightness(0) invert(1); }
+.nav-item-current { background:var(--accent); color:var(--accent-text); }
+.sidebar .nav-item-current .nav-item-img { filter:var(--accent-icon-filter,brightness(0) invert(1)); }
+.sidebar .nav-item:hover { background:var(--app-background); color:var(--app-text); }
+.sidebar .nav-item:hover .nav-item-img { filter:var(--icon-filter,brightness(0)); }
+.mobile-nav-banner { display:block; width:auto; height:32px; max-width:180px; object-fit:contain; flex:none; }

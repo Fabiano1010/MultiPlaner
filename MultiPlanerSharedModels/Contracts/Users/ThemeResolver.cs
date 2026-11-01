@@ -13,9 +13,10 @@ public static class ThemeResolver
         var luminance = .2126 * Linear(c.R) + .7152 * Linear(c.G) + .0722 * Linear(c.B);
         return luminance > .179 ? "#000000" : "#FFFFFF";
     }
+    public static string IconFilter(string background) => Text(background) == "#FFFFFF" ? "brightness(0) invert(1)" : "brightness(0)";
     public static IReadOnlyDictionary<string,string> Resolve(ThemePalette p) {
         var surfaceText = Text(p.Surface);
-        var sidebar = Mix(p.Surface, "#000000", .95);
+        const string sidebar = "#000000";
         var field = Mix(p.Surface, p.Background, .6);
         return new Dictionary<string,string> {
             ["--icon-filter"] = Text(p.Background) == "#FFFFFF" ? "brightness(0) invert(1)" : "brightness(0)",
@@ -26,6 +27,7 @@ public static class ThemeResolver
             ["--surface"] = p.Surface, ["--surface-text"] = surfaceText,
             ["--sidebar-background"] = sidebar, ["--sidebar-text"] = Text(sidebar),
             ["--native-color-scheme"] = Text(field) == "#FFFFFF" ? "dark" : "light",
+            ["--field-icon-filter"] = IconFilter(field),
             ["--field-background"] = field, ["--field-text"] = Text(field),
             ["--accent"] = p.Accent, ["--accent-text"] = Text(p.Accent),
             ["--border"] = p.Border, ["--hover-background"] = Mix(p.Surface, surfaceText, .12),
