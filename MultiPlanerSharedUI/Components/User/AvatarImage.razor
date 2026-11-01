@@ -1,6 +1,7 @@
 @inject ApiClient Api
-<img src="@_source" alt="@Alt" class="settings-avatar" />
+<img src="@_source" alt="@Alt" class="settings-avatar @Class @(_source == Placeholder ? "is-placeholder" : "")" />
 @code {
+    [Parameter] public string? Class { get; set; }
     [Parameter] public string? Url { get; set; }
     [Parameter] public string Alt { get; set; } = "Avatar";
     private const string Placeholder = "_content/MultiPlanerSharedUI/images/user.svg";

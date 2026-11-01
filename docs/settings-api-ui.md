@@ -76,3 +76,23 @@ Profil i wygląd są dostępne z przycisku użytkownika. Kalendarz ma okna czło
 - `dotnet build MultiPlanerWeb/MultiPlanerWeb.csproj`.
 - `dotnet build MultiPlanerApp/MultiPlanerApp.csproj -f net10.0-android` (wymaga workloadu i Android SDK).
 - Testy SettingsTests obejmują wersjonowanie palety, sesje po zmianie hasła, macierz uprawnień, powrót usuniętego członka, izolację typów, archiwizację i kolory, dostęp do avatarów oraz niezależność nicków.
+
+
+## Aktualizacja: nazwane schematy i spójne ustawienia
+
+Ustawienia konta i kalendarza mają duży wariant istniejącego popupu, nawigację sekcji, grid oraz widok mobilny. Pozostałe popupy zachowują rozmiary. Style ustawień są w `settings.css`. Avatar bocznego menu skaluje oba wymiary, a adresy zdjęć są przekazywane jako wartości parametrów Razor.
+
+Schemat obejmuje `background`, `surface`, `accent`, `border` w formacie `#RRGGBB`. Wspólny `ThemeResolver` wylicza odcienie, teksty i ikony dla aplikacji oraz miniatury podglądu. Zapis szkicu nie zmienia wyglądu; aktywna paleta jest osobną kopią w bazie. Wbudowane schematy mają identyfikatory -1 (Domyślny) i -2 (Ciemny), są prywatnymi wyborami konta i nie mogą być edytowane/usuwane.
+
+- GET `/api/me/themes`: lista wbudowanych i własnych schematów.
+- POST `/api/me/themes`: `{ name, palette, rowVersion: [] }` tworzy schemat.
+- PUT `/api/me/themes/{themeId}`: `{ name, palette, rowVersion }` edytuje zapisany schemat, bez aktywacji.
+- DELETE `/api/me/themes/{themeId}`: `{ rowVersion }`. Usunięcie aktywnego schematu atomowo przełącza na Domyślny.
+- GET `/api/me/theme`: aktywna kopia `{ palette, rowVersion, themeId }`.
+- PUT `/api/me/theme`: `{ themeId, rowVersion, activeRowVersion }` stosuje zapisaną wersję. `rowVersion` odnosi się do wybranego schematu (pusta dla wbudowanego), `activeRowVersion` do aktualnego wyboru konta (pusta przed pierwszą aktywacją).
+
+Wcześniejsze PUT/DELETE pojedynczej palety zostały zastąpione powyższymi kontraktami. Klient i API wymagają jednoczesnej aktualizacji. Wszystkie mutacje wymagają CSRF; 409 oznacza konflikt wersji, 404 brak własnego schematu lub próbę zmiany chronionego schematu.
+
+Migracja `NamedThemeSchemes` rozszerza zastaną lokalną historię `AutoMigration_20261101123442`; nie resetuje bazy. Wcześniejsza sekcja o nowej pustej bazie dotyczy pierwszej wersji tej gałęzi. Przed aktualizacją sprawdź `dotnet ef migrations list --project MultiPlanerAPI` i zgodność historii swojej bazy. Istniejąca paleta staje się aktywnym schematem „Mój schemat”: Background → Background, ControlBackground → Surface, DaySelection → Accent, Primary → Border. Utrata części starych odcieni jest zamierzona; odtworzenie dokładnych ośmiu kolorów po downgrade nie jest możliwe.
+
+Zmiany wdrożono w głównym checkoutcie `settings-api-ui`. Nie trzeba przełączać się do worktree. Ponowne uruchomienie API/Web ładuje nowe komponenty i kontrakty. Testy używają osobnej bazy o losowej nazwie; baza aplikacji nie jest resetowana.

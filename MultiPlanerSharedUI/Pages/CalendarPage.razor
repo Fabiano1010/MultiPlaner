@@ -30,7 +30,6 @@
                         GoToToday="GoToTodayAsync"
                         OnBack="GoBack"
                         OnNotifications="ToggleNotifications"
-                        OnLinkCreate="CreateLinkAsync"
                         NotificationsState="_notificationsState"
                         />
         <label class="calendar-type-filter">Typ wydarzenia
@@ -284,7 +283,6 @@
         await LoadEventsAsync();
     }
 
-    private Task CreateLinkAsync() { _showSettings = true; return Task.CompletedTask; }
 
     private async Task ToggleNotifications() {
         _notificationsState = !_notificationsState;

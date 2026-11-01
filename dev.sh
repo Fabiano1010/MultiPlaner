@@ -46,24 +46,28 @@ show_database_failure() {
 }
 
 start_database() {
-    local port="${DB_PORT:-1433}"
-
     require_docker
     echo "▶ Uruchamianie bazy SQL Server..."
     "${COMPOSE[@]}" up -d
     for _ in {1..60}; do
         show_database_failure
-        if [[ "$("${DOCKER[@]}" inspect --format '{{.State.Running}}' MultiPlanerSQLDb 2>/dev/null || true)" == "true" ]] \
-            && (: >"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
-            echo "✅ SQL Server przyjmuje połączenia na porcie $port."
+        # An open Docker port does not mean SQL Server has finished starting.
+        # Read the password inside the container, including Compose .env overrides.
+        if "${COMPOSE[@]}" exec -T sqlserver sh -c '
+            sqlcmd=/opt/mssql-tools18/bin/sqlcmd
+            [ -x "$sqlcmd" ] || sqlcmd=/opt/mssql-tools/bin/sqlcmd
+            SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" "$sqlcmd" \
+                -S localhost -U sa -d master -C -l 2 -t 2 -b -Q "SELECT 1"
+        ' >/dev/null 2>&1; then
+            echo "✅ SQL Server jest gotowy (logowanie i SELECT 1 zakończone pomyślnie)."
             "${COMPOSE[@]}" ps
             return
         fi
         sleep 1
     done
-    echo "❌ SQL Server nie zaczął przyjmować połączeń na porcie $port w ciągu 60 sekund." >&2
+    echo "❌ SQL Server nie jest gotowy po 60 próbach logowania i wykonania SELECT 1." >&2
     "${COMPOSE[@]}" ps >&2 || true
-    show_database_failure
+    "${DOCKER[@]}" logs --tail 80 MultiPlanerSQLDb >&2 || true
     exit 1
 }
 

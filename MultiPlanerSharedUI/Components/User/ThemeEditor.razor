@@ -1,65 +1,80 @@
 @using MultiPlanerSharedModels.Contracts.Users
 @using System.Net.Http.Json
+@using System.ComponentModel.DataAnnotations
 @inject ApiClient Api
 @inject ThemeService Theme
-@implements IAsyncDisposable
-<div class="settings-form">
-    <h3>Wygląd</h3>
-    <p>Zmiany są widoczne w podglądzie. Zapisz je, aby używać palety na swoim koncie.</p>
-    @foreach (var field in Fields) {
-        <div class="theme-field">
-            <label for="@field.Key">@field.Label</label>
-            <input type="color" aria-label="@field.Label" value="@Get(field.Key)" @oninput="e => Change(field.Key, e.Value?.ToString())" />
-            <input id="@field.Key" class="input-main" maxlength="7" value="@Get(field.Key)" @onchange="e => Change(field.Key, e.Value?.ToString())" />
+@if (_loading) { <p role="status">Wczytywanie schematów…</p> }
+@if (_error != null) { <div role="alert" class="form-error">@_error <button class="btn-main btn-cancel" @onclick="ReloadSafe">Ponów</button></div> }
+@if (_editing) {
+    <h3>@(_editId == null ? "Nowy schemat" : "Edycja schematu")</h3>
+    <div class="settings-grid">
+        <div class="settings-fields">
+            <div class="form-group"><label for="scheme-name">Nazwa schematu</label><input id="scheme-name" class="input-main" maxlength="64" @bind="_name" @bind:event="oninput" /></div>
+            @foreach (var field in Fields) {
+                <div class="form-group"><label for="@field.Key">@field.Label</label><div class="settings-color">
+                    <input class="input-main" type="color" aria-label="@field.Label" value="@Get(field.Key)" @oninput="e => Change(field.Key, e.Value?.ToString())" />
+                    <input id="@field.Key" class="input-main" maxlength="7" value="@(_raw.GetValueOrDefault(field.Key) ?? Get(field.Key))" @oninput="e => Change(field.Key, e.Value?.ToString())" />
+                </div></div>
+            }
         </div>
-    }
-    @if (_error != null) { <p role="alert">@_error</p> }
-    <div class="settings-actions">
-        <button disabled="@_busy" @onclick="Reset">Domyślne kolory</button>
-        <button disabled="@_busy" @onclick="Cancel">Anuluj</button>
-        <button disabled="@(_busy || _invalid.Count > 0)" @onclick="Save">Zapisz paletę</button>
+        <section><h4>Podgląd</h4><SchemePreview Palette="_draft" /><p class="settings-note">Podgląd nie zmienia aktywnego wyglądu aplikacji.</p></section>
     </div>
-</div>
+    <div class="settings-actions"><button class="btn-main btn-cancel" disabled="@_busy" @onclick="Cancel">Anuluj</button><button class="btn-main btn-cancel" disabled="@(!Valid || _busy)" @onclick="() => Save(false)">Zapisz</button><button class="btn-main btn-save" disabled="@(!Valid || _busy)" @onclick="() => Save(true)">Zapisz i zastosuj</button></div>
+} else {
+    <h3>Schematy kolorystyczne</h3>
+    <div class="settings-grid">
+        @foreach (var item in _schemes) {
+            <article class="settings-tile" @key="item.Id">
+                <SchemePreview Palette="item.Palette" />
+                <div class="settings-tile-heading"><h4>@item.Name</h4>@if (_active?.ThemeId == item.Id) { <span>✓ Aktywny</span> }</div>
+                <div class="settings-actions">
+                    <button class="btn-main btn-save" disabled="@_busy" @onclick="() => Apply(item)">Zastosuj</button>
+                    @if (!item.IsBuiltIn) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, false)">Edytuj</button> }
+                    <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, true)">Duplikuj</button>
+                    @if (!item.IsBuiltIn) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _delete = item">Usuń</button> }
+                </div>
+            </article>
+        }
+    </div>
+    <div class="settings-actions"><button class="btn-main btn-save" disabled="@(_loading || _busy)" @onclick="New">Nowy schemat</button></div>
+}
+<ConfirmPopup IsVisible="@(_delete != null)" Title="Usuń schemat" Message="Usunąć ten schemat? Jeśli jest aktywny, aplikacja wróci do schematu Domyślny." Danger="true" OnConfirm="Delete" OnClose="() => _delete = null" />
+<ConfirmPopup IsVisible="_discard" Title="Niezapisane zmiany" Message="Odrzucić niezapisane zmiany schematu?" ConfirmText="Odrzuć" OnConfirm="Discard" OnClose="() => _discard = false" />
 @code {
-    [Parameter] public EventCallback OnClose { get; set; }
-    private ThemePalette _draft = new(), _saved = new();
+    private List<SavedThemeResponse> _schemes = [];
+    private ThemeResponse? _active;
+    private SavedThemeResponse? _delete;
+    private ThemePalette _draft = new();
+    private ThemePalette _original = new();
+    private string _name = "", _originalName = "";
+    private readonly Dictionary<string,string> _raw = [];
     private byte[] _version = [];
-    private readonly HashSet<string> _invalid = [];
-    private bool _busy = true;
+    private int? _editId;
+    private bool _loading, _busy, _editing, _discard;
+    private Func<Task>? _afterDiscard;
     private string? _error;
-    private static readonly (string Key, string Label)[] Fields = [
-        ("Primary", "Kolor główny"), ("PanelBackground", "Jasne tło paneli"), ("ControlBackground", "Tło kart i pól"),
-        ("Secondary", "Kolor kontrastowy"), ("Background", "Tło aplikacji"), ("RoomSelection", "Zaznaczenie pokoju"),
-        ("DaySelection", "Zaznaczenie dnia"), ("DaySelectionBackground", "Tło zaznaczonego dnia") ];
-    protected override async Task OnInitializedAsync() {
-        try { await Reload(); } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
-        finally { _busy = false; }
-    }
-    private async Task Reload() {
-        var value = (await Api.GetAsync<ThemeResponse>("api/me/theme"))!;
-        _saved = value.Palette; _draft = _saved with {}; _version = value.RowVersion;
-        await Theme.ApplyAsync(_saved);
-    }
+    private static readonly (string Key, string Label)[] Fields = [("Background", "Tło aplikacji"), ("Surface", "Powierzchnie"), ("Accent", "Akcent"), ("Border", "Obramowania")];
+    private bool Valid => !string.IsNullOrWhiteSpace(_name) && Fields.All(f => System.Text.RegularExpressions.Regex.IsMatch(_raw.GetValueOrDefault(f.Key) ?? Get(f.Key), ThemePalette.HexPattern));
+    public bool Dirty => _editing && (_draft != _original || _name != _originalName || _raw.Any(v => v.Value != Get(v.Key)));
+    public async Task RequestLeave(Func<Task> action) { if (_busy) return; if (Dirty) { _afterDiscard = action; _discard = true; } else { _editing = false; await action(); } }
+    protected override Task OnInitializedAsync() => ReloadSafe();
+    private async Task Reload() { _schemes = await Api.GetAsync<List<SavedThemeResponse>>("api/me/themes") ?? []; _active = await Api.GetAsync<ThemeResponse>("api/me/theme"); }
+    private async Task ReloadSafe() { _loading = true; _error = null; try { await Reload(); } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; } finally { _loading = false; } }
     private string Get(string key) => (string)typeof(ThemePalette).GetProperty(key)!.GetValue(_draft)!;
-    private async Task Change(string key, string? value) {
-        if (!System.Text.RegularExpressions.Regex.IsMatch(value ?? "", ThemePalette.HexPattern)) { _invalid.Add(key); _error = "Podaj kolor w formacie #RRGGBB."; return; }
-        _invalid.Remove(key);
-        typeof(ThemePalette).GetProperty(key)!.SetValue(_draft, value!.ToUpperInvariant());
-        _error = null; await Theme.ApplyAsync(_draft);
-    }
-    private async Task Reset() { _draft = new(); _invalid.Clear(); _error = null; await Theme.ApplyAsync(_draft); }
-    private async Task Cancel() { await Theme.ApplyAsync(_saved); await OnClose.InvokeAsync(); }
-    private async Task Save() {
-        _busy = true; _error = null;
-        try {
-            using var response = await Api.SendAsync(HttpMethod.Put, "api/me/theme", new SaveThemeRequest { Palette = _draft, RowVersion = _version });
-            await ApiClient.EnsureSuccessAsync(response);
-            var result = (await response.Content.ReadFromJsonAsync<ThemeResponse>())!;
-            _saved = result.Palette; _version = result.RowVersion;
-            await Theme.ApplyAsync(_saved); await OnClose.InvokeAsync();
-        } catch (ApiException ex) when (ex.Status == 409) { await Reload(); _error = "Paleta zmieniła się na innym urządzeniu. Wczytano aktualne kolory."; }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; }
-        finally { _busy = false; }
-    }
-    public async ValueTask DisposeAsync() { await Theme.ApplyAsync(_saved); }
+    private void Change(string key, string? value) { _raw[key] = value ?? ""; if (System.Text.RegularExpressions.Regex.IsMatch(value ?? "", ThemePalette.HexPattern)) typeof(ThemePalette).GetProperty(key)!.SetValue(_draft, value!.ToUpperInvariant()); }
+    private void New() => Edit(new(0, "Nowy schemat", new(), []), true);
+    private void Edit(SavedThemeResponse item, bool copy) { _editId = copy ? null : item.Id; _name = copy && item.Id != 0 ? item.Name + " — kopia" : item.Name; _draft = item.Palette with {}; _original = _draft with {}; _originalName = _name; _version = item.RowVersion; _raw.Clear(); _editing = true; _error = null; }
+    private Task Cancel() => RequestLeave(() => { _editing = false; return Task.CompletedTask; });
+    private async Task Discard() { _editing = false; _discard = false; var action = _afterDiscard; _afterDiscard = null; if (action != null) await action(); }
+    private async Task Run(Func<Task> action) { if (_busy) return; _busy = true; _error = null; try { await action(); } catch (ApiException ex) when (ex.Status == 409) { _error = "Dane zmieniły się na innym urządzeniu. Odśwież listę; Twoja edycja pozostaje w formularzu."; } catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = ex.Message; } finally { _busy = false; } }
+    private Task Apply(SavedThemeResponse item) => Run(async () => { await ApplyCore(item); await Reload(); });
+    private async Task ApplyCore(SavedThemeResponse item) { using var response = await Api.SendAsync(HttpMethod.Put, "api/me/theme", new ApplyThemeRequest { ThemeId = item.Id, RowVersion = item.RowVersion, ActiveRowVersion = _active?.RowVersion ?? [] }); await ApiClient.EnsureSuccessAsync(response); _active = (await response.Content.ReadFromJsonAsync<ThemeResponse>())!; await Theme.ApplyAsync(_active.Palette); }
+    private Task Save(bool apply) => Run(async () => {
+        using var response = await Api.SendAsync(_editId == null ? HttpMethod.Post : HttpMethod.Put, _editId == null ? "api/me/themes" : $"api/me/themes/{_editId}", new SaveThemeRequest { Name = _name, Palette = _draft, RowVersion = _version });
+        await ApiClient.EnsureSuccessAsync(response); var saved = (await response.Content.ReadFromJsonAsync<SavedThemeResponse>())!;
+        _editId = saved.Id; _version = saved.RowVersion; _original = _draft with {}; _originalName = _name; _raw.Clear();
+        if (apply) await ApplyCore(saved);
+        _editing = false; await Reload();
+    });
+    private Task Delete() => Run(async () => { using var response = await Api.SendAsync(HttpMethod.Delete, $"api/me/themes/{_delete!.Id}", new ResetThemeRequest { RowVersion = _delete.RowVersion }); await ApiClient.EnsureSuccessAsync(response); _delete = null; await Reload(); await Theme.ApplyAsync(_active!.Palette); });
 }

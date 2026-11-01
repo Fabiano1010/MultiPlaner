@@ -3,8 +3,8 @@
     width: 4rem;
     height: 4rem;
 
-    background-color: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background-color: var(--accent);
+    color: var(--accent-text);
 
     display: flex;
     justify-content: center;
@@ -19,14 +19,16 @@
 
 .add-room-button:hover {
     transform: translateY(-3px);
-    filter: drop-shadow(0px 2px 6px var(--color-secondary));
+    filter: drop-shadow(0px 2px 6px var(--accent));
 }
 
 .add-room-button:active, .fab-item:active {
-    background-color: var(--color-primary);
-    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    background-color: var(--surface);
+    filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;
+
+    color:var(--surface-text);
 }
 
 .add-room-button img {
@@ -57,8 +59,8 @@
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background: var(--accent);
+    color: var(--accent-text);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -92,16 +94,18 @@
 }
 
 .fab-item:hover {
-    filter: drop-shadow(0px 3px 5px var(--color-secondary));
+    filter: drop-shadow(0px 3px 5px var(--accent));
     transform: translateY(-2px) scale(1.05);
 }
 
 .fab-item:active {
-    background-color: var(--color-primary);
-    filter: drop-shadow(0px 2px 6px var(--color-primary));
+    background-color: var(--surface);
+    filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;
 
+
+    color:var(--surface-text);
 }
 
 .main-content-rooms {
@@ -144,12 +148,14 @@
     aspect-ratio: 4 / 3;
     margin-top: 1.4rem;
     box-sizing: border-box;
-    border: 2px solid var(--color-secondary);
+    border: 2px solid var(--accent);
     border-radius: 0 var(--border-radius) var(--border-radius) var(--border-radius);
-    background: var(--color-primary-dim-light);
+    background: var(--field-background);
     transition: 0.2s ease-in-out;
     cursor: pointer;
     user-select: none;
+
+    color:var(--field-text);
 }
 
 .room {
@@ -166,7 +172,7 @@
     width: 1.2rem;
     height: 1.2rem;
     cursor: pointer;
-    accent-color: var(--color-secondary);
+    accent-color: var(--accent);
     z-index: 1;
 }
 
@@ -178,14 +184,16 @@
     width: 45%;
     height: 1.4rem;
     box-sizing: border-box;
-    border: 2px solid var(--color-secondary);
+    border: 2px solid var(--accent);
     border-bottom: none;
     border-radius: 10px 10px 0 0;
-    background: var(--color-primary-dim-light);
+    background: var(--field-background);
+
+    color:var(--field-text);
 }
 
 .folder:hover, .room:hover {
-    filter: drop-shadow(0px 6px 8px var(--color-secondary));
+    filter: drop-shadow(0px 6px 8px var(--accent));
     transform: translateY(-2px) scale(1);
 }
 
@@ -225,7 +233,7 @@
 }
 
 .folder-footer img:hover, .room-footer img:hover {
-    filter: drop-shadow(0px 2px 5px var(--color-secondary));
+    filter: drop-shadow(0px 2px 5px var(--accent));
     transform: translateY(-1px) scale(1.05);
 }
 
@@ -352,8 +360,8 @@
 }
 
 .room-selected {
-    border: 3px solid var(--selected-color);
-    filter: drop-shadow(0px 2px 6px var(--selected-color));
+    border: 3px solid var(--accent);
+    filter: drop-shadow(0px 2px 6px var(--accent));
 }
 
 .folder-add-btn {
@@ -374,8 +382,10 @@
 }
 
 .input-search {
-    background-color: var(--color-primary-dim-light);
+    background-color: var(--field-background);
     padding-left: 35px;
+
+    color:var(--field-text);
 }
 
 .search-wrapper {

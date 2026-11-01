@@ -28,24 +28,30 @@ public sealed class SettingsTests(ApiFixture fixture)
     private static Task<HttpResponseMessage> Delete(HttpClient client, string url, object body) =>
         client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, url) { Content = JsonContent.Create(body) });
 
-    [Fact] public async Task ThemePersistsValidatesConflictsAndResetsPerAccount() {
+    [Fact] public async Task NamedThemesArePrivateVersionedAndSavingDoesNotApply() {
         var (client, _, _) = await fixture.RegisterAndLoginAsync(); using var owner = client;
         var (otherClient, _, _) = await fixture.RegisterAndLoginAsync(); using var other = otherClient;
         var initial = (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!;
-        Assert.Equal("#999999", initial.Palette.Primary); Assert.Empty(initial.RowVersion);
-        var saved = await Read<ThemeResponse>(await owner.PutAsJsonAsync("/api/me/theme", new SaveThemeRequest { Palette = new() { Primary = "#123456" } }));
-        Assert.Equal("#123456", (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!.Palette.Primary);
-        Assert.Equal("#999999", (await other.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!.Palette.Primary);
-        Assert.Equal(HttpStatusCode.Conflict, (await owner.PutAsJsonAsync("/api/me/theme", new SaveThemeRequest())).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PutAsJsonAsync("/api/me/theme", new SaveThemeRequest { Palette = new() { Primary = "red" }, RowVersion = saved.RowVersion })).StatusCode);
-        var concurrent = await Task.WhenAll(owner.PutAsJsonAsync("/api/me/theme", new SaveThemeRequest { Palette = new() { Primary = "#111111" }, RowVersion = saved.RowVersion }),
-            owner.PutAsJsonAsync("/api/me/theme", new SaveThemeRequest { Palette = new() { Primary = "#222222" }, RowVersion = saved.RowVersion }));
-        Assert.Single(concurrent, r => r.StatusCode == HttpStatusCode.OK); Assert.Single(concurrent, r => r.StatusCode == HttpStatusCode.Conflict);
-        var current = (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!;
-        var reset = await Read<ThemeResponse>(await Delete(owner, "/api/me/theme", new ResetThemeRequest { RowVersion = current.RowVersion }));
-        Assert.Equal("#999999", reset.Palette.Primary);
+        Assert.Equal(-1, initial.ThemeId);
+        Assert.Equal(2, (await owner.GetFromJsonAsync<List<SavedThemeResponse>>("/api/me/themes"))!.Count);
+        var saved = await Read<SavedThemeResponse>(await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "Work", Palette = new() { Accent = "#123456" } }), HttpStatusCode.Created);
+        var second = await Read<SavedThemeResponse>(await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "Evening", Palette = new() { Background = "#111111" } }), HttpStatusCode.Created);
+        Assert.Equal(-1, (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!.ThemeId);
+        Assert.Equal(2, (await other.GetFromJsonAsync<List<SavedThemeResponse>>("/api/me/themes"))!.Count);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.PutAsJsonAsync("/api/me/theme", new ApplyThemeRequest { ThemeId = saved.Id, RowVersion = saved.RowVersion })).StatusCode);
+        var active = await Read<ThemeResponse>(await owner.PutAsJsonAsync("/api/me/theme", new ApplyThemeRequest { ThemeId = saved.Id, RowVersion = saved.RowVersion }));
+        Assert.Equal("#123456", active.Palette.Accent);
+        var updated = await Read<SavedThemeResponse>(await owner.PutAsJsonAsync($"/api/me/themes/{saved.Id}", new SaveThemeRequest { Name = "Renamed", Palette = new() { Accent = "#654321" }, RowVersion = saved.RowVersion }));
+        Assert.Equal("#123456", (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!.Palette.Accent);
+        Assert.Equal(HttpStatusCode.Conflict, (await owner.PutAsJsonAsync("/api/me/theme", new ApplyThemeRequest { ThemeId = saved.Id, RowVersion = saved.RowVersion, ActiveRowVersion = active.RowVersion })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.PutAsJsonAsync("/api/me/themes/-1", new SaveThemeRequest { Name = "Protected" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "Invalid", Palette = new() { Accent = "red" } })).StatusCode);
+        var edits = await Task.WhenAll(owner.PutAsJsonAsync($"/api/me/themes/{second.Id}", new SaveThemeRequest { Name = "A", RowVersion = second.RowVersion }), owner.PutAsJsonAsync($"/api/me/themes/{second.Id}", new SaveThemeRequest { Name = "B", RowVersion = second.RowVersion }));
+        Assert.Single(edits, r => r.StatusCode == HttpStatusCode.OK); Assert.Single(edits, r => r.StatusCode == HttpStatusCode.Conflict);
+        Assert.Equal(HttpStatusCode.NoContent, (await Delete(owner, $"/api/me/themes/{saved.Id}", new ResetThemeRequest { RowVersion = updated.RowVersion })).StatusCode);
+        Assert.Equal(-1, (await owner.GetFromJsonAsync<ThemeResponse>("/api/me/theme"))!.ThemeId);
         owner.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
-        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PutAsJsonAsync("/api/me/theme", new SaveThemeRequest { RowVersion = reset.RowVersion })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PostAsJsonAsync("/api/me/themes", new SaveThemeRequest { Name = "No CSRF" })).StatusCode);
     }
 
     [Fact] public async Task PasswordChangeKeepsCurrentSessionInvalidatesOthersAndChecksOldPassword() {

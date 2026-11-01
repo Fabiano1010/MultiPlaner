@@ -9,8 +9,13 @@ namespace MultiPlanerAPI.Controllers;
 public sealed class UserSettingsController(UserSettingsService settings, AvatarService avatars, UserService users) : ControllerBase
 {
     [HttpGet("theme")] public async Task<ActionResult<ThemeResponse>> Theme(CancellationToken ct) => Ok(await settings.GetAsync(ct));
-    [HttpPut("theme")] public async Task<ActionResult<ThemeResponse>> SaveTheme(SaveThemeRequest request, CancellationToken ct) => Ok(await settings.SaveAsync(request.Palette, request.RowVersion, ct));
-    [HttpDelete("theme")] public async Task<ActionResult<ThemeResponse>> ResetTheme([FromBody] ResetThemeRequest request, CancellationToken ct) => Ok(await settings.SaveAsync(new(), request.RowVersion, ct));
+    [HttpPut("theme")] public async Task<ActionResult<ThemeResponse>> Apply(ApplyThemeRequest request, CancellationToken ct) => Ok(await settings.ApplyAsync(request, ct));
+    [HttpGet("themes")] public async Task<ActionResult<IReadOnlyList<SavedThemeResponse>>> Themes(CancellationToken ct) => Ok(await settings.ListAsync(ct));
+    [HttpPost("themes")] public async Task<ActionResult<SavedThemeResponse>> CreateTheme(SaveThemeRequest request, CancellationToken ct) {
+        var value = await settings.SaveAsync(null, request, ct); return Created($"/api/me/themes/{value.Id}", value);
+    }
+    [HttpPut("themes/{themeId:int}")] public async Task<ActionResult<SavedThemeResponse>> SaveTheme(int themeId, SaveThemeRequest request, CancellationToken ct) => Ok(await settings.SaveAsync(themeId, request, ct));
+    [HttpDelete("themes/{themeId:int}")] public async Task<IActionResult> DeleteTheme(int themeId, [FromBody] ResetThemeRequest request, CancellationToken ct) { await settings.DeleteAsync(themeId, request.RowVersion, ct); return NoContent(); }
     [HttpPut("avatar"), RequestSizeLimit(AvatarService.MaxBytes + 1024 * 1024)]
     public async Task<IActionResult> Avatar(IFormFile file, CancellationToken ct) { await avatars.SaveAsync(file, ct); return NoContent(); }
     [HttpDelete("avatar")] public async Task<IActionResult> RemoveAvatar(CancellationToken ct) { await avatars.DeleteAsync(ct); return NoContent(); }

@@ -1,6 +1,6 @@
 ﻿@if (IsVisible) {
-    <div class="popup-overlay">
-        <div class="popup-container" role="dialog" aria-modal="true" aria-label="@Title"
+    <div class="popup-overlay @(IsSettings ? "settings-overlay" : "")">
+        <div class="popup-container @(IsSettings ? "settings-popup" : "")" role="dialog" aria-modal="true" aria-label="@Title"
              @ref="_container"
              tabindex="-1"
              @onclick:stopPropagation="true"
@@ -17,6 +17,7 @@
 }
 
 @code {
+    [Parameter] public bool IsSettings { get; set; }
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string Title { get; set; } = "";
     [Parameter] public RenderFragment? ChildContent { get; set; }

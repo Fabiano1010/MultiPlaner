@@ -223,7 +223,7 @@ public sealed class AccountTests(ApiFixture fixture)
             "/api/auth/register", "/api/auth/reset-password",
             "/api/invitations/join", "/api/invitations/preview",
             "/api/invitations/{token}", "/api/invitations/{token}/join", "/api/me",
-            "/api/me/events", "/api/me/theme", "/api/me/avatar", "/api/me/change-password",
+            "/api/me/events", "/api/me/theme", "/api/me/themes", "/api/me/themes/{themeId}", "/api/me/avatar", "/api/me/change-password",
             "/api/users/{userId}/avatar", "/api/rooms/{roomId}/event-types", "/api/rooms/{roomId}/event-types/{typeId}",
             "/api/rooms/{roomId}/members/{memberId}", "/api/rooms/{roomId}/members/{memberId}/role",
             "/api/me/folders", "/api/me/folders/{folderId}",

@@ -51,7 +51,9 @@ Windows (PowerShell):
 ```
 
 `db-migrate` odtwarza lokalne narzędzie EF w wersji zapisanej w repo,
-uruchamia SQL Server i stosuje istniejące migracje. Na pustej bazie tworzy
+uruchamia SQL Server i stosuje istniejące migracje. Skrypt `dev.sh` czeka na
+udane logowanie i wykonanie `SELECT 1`, ponieważ samo otwarcie portu TCP
+nie oznacza jeszcze gotowości bazy. Na pustej bazie tworzy
 schemat; przy kolejnym wywołaniu, jeśli nic się nie zmieniło, zgłasza brak
 migracji do zastosowania. Nie trzeba generować migracji po pobraniu repo.
 Pierwsze uruchomienie wymaga internetu do pobrania narzędzi, pakietów i obrazu SQL Server.

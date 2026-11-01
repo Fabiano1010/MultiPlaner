@@ -12,7 +12,7 @@
     margin-bottom: 1rem;
     letter-spacing: 5px;
     text-transform: uppercase;
-    color: var(--color-text);
+    color: var(--app-text);
 }
 
 .form-box {
@@ -25,7 +25,9 @@
     justify-content: center;
     align-items: center;
     border-radius: 15px;
-    background-color: var(--color-primary-dim);
+    background-color: var(--surface);
+
+    color:var(--surface-text);
 }
 
 .auth-form {
@@ -57,7 +59,7 @@ input[type="password"]::-ms-reveal {
 }
 
 .auth-input:hover {
-    box-shadow: 0 5px 5px var(--color-primary);
+    box-shadow: 0 5px 5px var(--border);
 
 }
 
@@ -75,7 +77,7 @@ input[type="password"]::-ms-reveal {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--color-text);
+    color: var(--app-text);
     padding-left: 0.5rem;
     user-select: none;
 }
@@ -101,7 +103,7 @@ input[type="password"]::-ms-reveal {
 
 .password-reset-direction a {
     text-decoration: none;
-    color: var(--text-muted);
+    color: var(--app-text);
     font-size: var(--font-size-small);
     font-weight: 600;
     transition: ease-in 0.1s;
@@ -110,7 +112,7 @@ input[type="password"]::-ms-reveal {
 
 .password-reset-direction a:hover {
     text-decoration: underline;
-    color: var(--color-text);
+    color: var(--app-text);
     font-size: var(--font-size-small);
     font-weight: 600;
 }
@@ -127,14 +129,14 @@ input[type="password"]::-ms-reveal {
 
 .register-direction a {
     text-decoration: none;
-    color: var(--text-muted);
+    color: var(--app-text);
     font-weight: 600;
     transition: ease-in 0.1s;
 }
 
 .register-direction a:hover {
     text-decoration: underline;
-    color: var(--color-text);
+    color: var(--app-text);
 }
 
 .auth-btn {
@@ -142,8 +144,8 @@ input[type="password"]::-ms-reveal {
     height: 40px;
     border-radius: 15px;
     border: none;
-    background-color: var(--color-primary);
-    color: var(--color-text-reversed);
+    background-color: var(--surface);
+    color: var(--accent-text);
     font-size: var(--font-size-medium);
     cursor: pointer;
     user-select: none;
@@ -151,15 +153,15 @@ input[type="password"]::-ms-reveal {
 }
 
 .auth-btn:enabled {
-    background-color: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background-color: var(--accent);
+    color: var(--accent-text);
     transition: ease-in 0.20s;
 }
 
 .auth-btn:enabled:hover {
     background-color: white;
-    color: var(--color-text);
-    box-shadow: 0 10px 10px var(--color-primary);
+    color: var(--app-text);
+    box-shadow: 0 10px 10px var(--border);
     transform: translateY(-2px);
 
 }
@@ -182,7 +184,7 @@ input[type="password"]::-ms-reveal {
 }
 
 .password-wrapper:hover {
-    filter: drop-shadow(0 10px 10px var(--color-primary));
+    filter: drop-shadow(0 10px 10px var(--border));
 
 }
 
@@ -229,7 +231,7 @@ input[type="password"]::-ms-reveal {
 
 
 .auth-input:focus, .password-wrapper:focus-within {
-    filter: drop-shadow(0 10px 10px var(--color-primary));
+    filter: drop-shadow(0 10px 10px var(--border));
     animation: bounce-auth 0.5s;
 }
 
@@ -239,7 +241,7 @@ input[type="password"]::-ms-reveal {
     }
     50% {
         transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 10px 10px var(--color-primary);
+        box-shadow: 0 10px 10px var(--border);
     }
     100% {
         transform: translateY(0) scale(1);

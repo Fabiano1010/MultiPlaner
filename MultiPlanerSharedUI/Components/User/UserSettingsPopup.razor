@@ -3,48 +3,57 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject ApiClient Api
 @inject ApiAuthStateProvider Auth
-<Popup IsVisible="IsVisible" Title="Ustawienia konta" OnClose="Close">
-    @if (_me?.Kind == "user") {
-        @if (_appearance) { <ThemeEditor OnClose="() => _appearance = false" /> }
-        else {
-            <div class="settings-form">
-                <button @onclick="() => _appearance = true">Wygląd — kolory aplikacji</button>
-                <form @onsubmit="SaveProfile" @onsubmit:preventDefault>
-                    <label for="profile-name">Nick globalny</label>
-                    <input id="profile-name" class="input-main" @bind="_name" minlength="2" maxlength="64" required />
-                    <p>Nicki ustawione w poszczególnych pokojach pozostają bez zmian.</p>
-                    <button disabled="@_busy">Zapisz nick</button>
-                </form>
-                <AvatarImage Url="_me.AvatarUrl" />
-                <label>Zdjęcie profilowe (JPEG, PNG, WebP; do 5 MB)
-                    <InputFile OnChange="Upload" accept="image/jpeg,image/png,image/webp" disabled="@_busy" />
-                </label>
-                <button disabled="@_busy" @onclick="DeleteAvatar">Usuń zdjęcie</button>
-                <form @onsubmit="Password" @onsubmit:preventDefault>
-                    <h3>Zmiana hasła</h3>
-                    <label for="password-current">Obecne hasło</label><input id="password-current" type="password" autocomplete="current-password" @bind="_current" required />
-                    <label for="password-new">Nowe hasło</label><input id="password-new" type="password" autocomplete="new-password" @bind="_password" minlength="8" required />
-                    <label for="password-repeat">Powtórz nowe hasło</label><input id="password-repeat" type="password" autocomplete="new-password" @bind="_repeat" required />
-                    <button disabled="@_busy">Zmień hasło</button>
-                </form>
-            </div>
-        }
-    } else if (_me != null) { <p>Ustawienia konta są dostępne po zalogowaniu na zarejestrowane konto.</p> }
-    @if (_error != null) { <p role="alert">@_error</p> }
-    @if (_message != null) { <p role="status">@_message</p> }
+<Popup IsSettings="true" IsVisible="IsVisible" Title="Ustawienia konta" OnClose="Close">
+    <div class="settings-layout">
+        <nav class="settings-nav" aria-label="Ustawienia konta">
+            @foreach (var entry in new[] { (0, "Profil"), (1, "Hasło"), (2, "Wygląd") }) { <button type="button" aria-current="@(_tab == entry.Item1 ? "page" : null)" @onclick="() => SelectTab(entry.Item1)">@entry.Item2</button> }
+        </nav>
+        <div class="settings-content">
+            @if (_busy && _me == null) { <p role="status">Wczytywanie profilu…</p> }
+            @if (_error != null) { <p class="form-error" role="alert">@_error</p><button class="btn-main btn-cancel" @onclick="() => Run(Reload)">Ponów</button> }
+            @if (_message != null) { <p role="status">@_message</p> }
+            @if (_me?.Kind == "user") {
+                @if (_tab == 0) {
+                    <h3>Profil</h3><div class="settings-grid">
+                        <section><AvatarImage Url="@_me.AvatarUrl" Class="settings-profile-avatar" />
+                            <div class="settings-actions"><label class="btn-main btn-cancel settings-file">Zmień zdjęcie<InputFile aria-label="Zmień zdjęcie" OnChange="Upload" accept="image/jpeg,image/png,image/webp" disabled="@_busy" /></label><button class="btn-main btn-cancel" disabled="@_busy" @onclick="DeleteAvatar">Usuń zdjęcie</button></div>
+                            <p class="settings-note">@(_fileName ?? "JPEG, PNG lub WebP · do 5 MB")</p>
+                        </section>
+                        <form class="settings-fields" @onsubmit="SaveProfile" @onsubmit:preventDefault>
+                            <div class="form-group"><label for="profile-name">Nick globalny</label><input id="profile-name" class="input-main" @bind="_name" minlength="2" maxlength="64" required /></div>
+                            <p class="settings-note">Nicki ustawione w poszczególnych pokojach pozostają niezależne.</p>
+                            <div class="settings-actions"><button class="btn-main btn-save" disabled="@_busy">Zapisz profil</button></div>
+                        </form>
+                    </div>
+                } else if (_tab == 1) {
+                    <h3>Zmiana hasła</h3><form class="settings-grid" @onsubmit="Password" @onsubmit:preventDefault>
+                        <div class="form-group"><label for="password-current">Obecne hasło</label><input class="input-main" id="password-current" type="password" autocomplete="current-password" @bind="_current" required /></div><div></div>
+                        <div class="form-group"><label for="password-new">Nowe hasło</label><input class="input-main" id="password-new" type="password" autocomplete="new-password" @bind="_password" minlength="8" required /></div>
+                        <div class="form-group"><label for="password-repeat">Powtórz nowe hasło</label><input class="input-main" id="password-repeat" type="password" autocomplete="new-password" @bind="_repeat" required /></div>
+                        <p class="settings-note settings-wide">Po zmianie hasła pozostałe sesje zostaną wylogowane.</p><div class="settings-actions settings-wide"><button class="btn-main btn-save" disabled="@_busy">Zmień hasło</button></div>
+                    </form>
+                } else { <ThemeEditor @ref="_themeEditor" /> }
+            } else if (_me != null) { <p>Ustawienia konta są dostępne po zalogowaniu na zarejestrowane konto.</p> }
+        </div>
+    </div>
 </Popup>
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string? Title { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+    private int _tab;
+    private ThemeEditor? _themeEditor;
+    private string? _fileName;
+    private Task SelectTab(int value) => LeaveTheme(() => { _tab = value; return Task.CompletedTask; });
+    private Task LeaveTheme(Func<Task> action) => _tab == 2 && _themeEditor != null ? _themeEditor.RequestLeave(action) : action();
     private SessionResponse? _me;
     private string _name = "", _current = "", _password = "", _repeat = "";
     private string? _error, _message;
-    private bool _busy, _wasVisible, _appearance;
+    private bool _busy, _wasVisible;
     protected override async Task OnParametersSetAsync() {
         var opening = IsVisible && !_wasVisible; _wasVisible = IsVisible;
-        if (opening) await Run(Reload);
-        if (!IsVisible) _appearance = false;
+        if (opening) { _tab = 0; _me = null; await Run(Reload); }
+
     }
     private async Task Reload() { _me = await Api.GetAsync<SessionResponse>("api/me"); _name = _me?.DisplayName ?? ""; }
     private async Task Run(Func<Task> action) {
@@ -58,12 +67,13 @@
         using var response = await Api.PatchAsync("api/me", new UpdateProfileRequest { DisplayName = _name });
         await ApiClient.EnsureSuccessAsync(response); await Reload(); Auth.NotifyAuthChanged(); _message = "Nick zapisany.";
     });
-    private Task Upload(InputFileChangeEventArgs e) => Run(async () => { await Api.UploadAsync("api/me/avatar", e.File, 5 * 1024 * 1024); await Reload(); Auth.NotifyAuthChanged(); });
+    private Task Upload(InputFileChangeEventArgs e) => Run(async () => { _fileName = e.File.Name; await Api.UploadAsync("api/me/avatar", e.File, 5 * 1024 * 1024); await Reload(); Auth.NotifyAuthChanged(); });
     private Task DeleteAvatar() => Run(async () => { using var response = await Api.SendAsync(HttpMethod.Delete, "api/me/avatar"); await ApiClient.EnsureSuccessAsync(response); await Reload(); Auth.NotifyAuthChanged(); });
     private Task Password() => Run(async () => {
         if (_password != _repeat) { _error = "Nowe hasła muszą być identyczne."; return; }
         using var response = await Api.PostAsync("api/me/change-password", new ChangePasswordRequest { CurrentPassword = _current, NewPassword = _password });
         await ApiClient.EnsureSuccessAsync(response); _current = _password = _repeat = ""; _message = "Hasło zmienione. Pozostałe sesje zostały wylogowane.";
     });
-    private async Task Close() { _appearance = false; _current = _password = _repeat = ""; _error = _message = null; await OnClose.InvokeAsync(); }
+    private Task Close() => LeaveTheme(CloseCore);
+    private async Task CloseCore() { _current = _password = _repeat = ""; _error = _message = null; await OnClose.InvokeAsync(); }
 }

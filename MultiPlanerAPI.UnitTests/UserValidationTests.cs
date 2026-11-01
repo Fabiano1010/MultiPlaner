@@ -45,7 +45,7 @@ public sealed class UserValidationTests
     [InlineData("#abc")]
     [InlineData("#000000; background: red")]
     public void ThemeRejectsNonHexColors(string value) =>
-        Assert.NotEmpty(Validate(new ThemePalette { Primary = value }));
+        Assert.NotEmpty(Validate(new ThemePalette { Accent = value }));
 
     [Fact]
     public void OptionalProfileFieldsCanBeCleared() =>

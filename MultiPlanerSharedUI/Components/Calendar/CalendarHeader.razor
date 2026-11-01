@@ -23,15 +23,15 @@
         <div class="calendar-data-owner">@Room.OwnerDisplayName</div>
     </div>
     <div class="action-buttons">
-        <div class="action-button" @onclick="OnLinkCreate">
+        <button type="button" class="action-button" aria-label="Link">
             <img src="_content/MultiPlanerSharedUI/images/link.svg" alt="" class="action-button-img">
-        </div>
-        <div class="action-button" @onclick="OnOpenMembers">
+        </button>
+        <button type="button" class="action-button" aria-label="Członkowie" @onclick="OnOpenMembers">
             <img src="_content/MultiPlanerSharedUI/images/users.svg" alt="" class="action-button-img">
-        </div>
-        <div class="action-button"  @onclick="OnOpenSettings">
+        </button>
+        <button type="button" class="action-button" aria-label="Ustawienia kalendarza" @onclick="OnOpenSettings">
             <img src="_content/MultiPlanerSharedUI/images/settings.svg" alt="" class="action-button-img">
-        </div>
+        </button>
         <div class="action-button" @onclick="OnNotifications">
             <img src="_content/MultiPlanerSharedUI/images/@(NotificationsState ? "bell.svg" : "bell-off.svg") " alt="" class="action-button-img bell-btn">
         </div>
@@ -49,7 +49,6 @@
     [Parameter] public EventCallback GoToToday { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback OnNotifications { get; set; }
-    [Parameter] public EventCallback OnLinkCreate { get; set; }
     [Parameter] public bool NotificationsState { get; set; }
 
     
