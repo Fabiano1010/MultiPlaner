@@ -41,6 +41,15 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         return room;
     }
 
+    public async Task<Room> RequireManagerAsync(int roomId, CancellationToken ct)
+    {
+        actor.RequireUserId();
+        var (room, member) = await RequireMemberAsync(roomId, ct);
+        if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
+            throw new ApiException(403, "room_manager_required", "Only the owner or an administrator may manage this room.");
+        return await db.Rooms.SingleAsync(r => r.Id == roomId, ct);
+    }
+
     public void RequireActive(Room room)
     {
         if (room.ArchivedAtUtc is not null || room.ExpiresAtUtc <= clock.GetUtcNow())

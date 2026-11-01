@@ -18,7 +18,7 @@ public sealed class StageFourTests(ApiFixture fixture)
     private static string Events(int room) => $"/api/rooms/{room}/events";
     private static CreateEventRequest Request(string title = "Planning") => new()
     {
-        Title = title, Time = new() { StartsAtUtc = Start, EndsAtUtc = Start.AddHours(1) }, IsHighPriority = true
+        EventTypeId = 1, Title = title, Time = new() { StartsAtUtc = Start, EndsAtUtc = Start.AddHours(1) }, IsHighPriority = true
     };
     private static async Task<T> Read<T>(HttpResponseMessage response, HttpStatusCode expected = HttpStatusCode.OK)
     {
@@ -31,8 +31,12 @@ public sealed class StageFourTests(ApiFixture fixture)
     private static async Task<RoomResponse> Join(HttpClient client, RoomResponse room) =>
         await Read<RoomResponse>(await client.PostAsJsonAsync(room.InitialInvitation!.JoinPath + "/join",
             new JoinInvitationRequest { DisplayName = "Calendar Guest" }));
-    private static async Task<EventResponse> Create(HttpClient client, int room, CreateEventRequest? request = null) =>
-        await Read<EventResponse>(await client.PostAsJsonAsync(Events(room), request ?? Request()), HttpStatusCode.Created);
+    private static async Task<EventResponse> Create(HttpClient client, int room, CreateEventRequest? request = null) {
+        var types = (await client.GetFromJsonAsync<List<EventTypeResponse>>($"/api/rooms/{room}/event-types"))!;
+        var json = System.Text.Json.JsonSerializer.SerializeToNode(request ?? Request())!;
+        if (request == null || request.EventTypeId <= 1) json["EventTypeId"] = types[0].Id;
+        return await Read<EventResponse>(await client.PostAsJsonAsync(Events(room), json), HttpStatusCode.Created);
+    }
     private static Task<HttpResponseMessage> Delete(HttpClient client, int room, EventResponse ev) =>
         client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"{Events(room)}/{ev.Id}")
             { Content = JsonContent.Create(new EventVersionRequest { RowVersion = ev.RowVersion }) });
@@ -54,7 +58,7 @@ public sealed class StageFourTests(ApiFixture fixture)
         Assert.True(ev.Author.IsGuest);
         Assert.False(ev.Author.IsOwner);
         Assert.True(ev.Permissions.CanEdit);
-        Assert.Equal(joined.Membership!.Color.ToUpperInvariant(), ev.Color);
+        Assert.Equal("999999", ev.Color);
         Assert.Null(ev.CustomColor);
         Assert.True(ev.IsHighPriority);
         Assert.False(ev.IsPinned);
@@ -118,7 +122,7 @@ public sealed class StageFourTests(ApiFixture fixture)
         var (owner, _, _) = await fixture.RegisterAndLoginAsync();
         using var client = owner;
         var room = await Room(owner);
-        var overlap = await Create(owner, room.Id, new() { Title = "Across months", Category = EventCategory.Training,
+        var overlap = await Create(owner, room.Id, new() { Title = "Across months", EventTypeId = (await owner.GetFromJsonAsync<List<EventTypeResponse>>($"/api/rooms/{room.Id}/event-types"))![1].Id,
             Time = new() { StartsAtUtc = Start.AddDays(-3), EndsAtUtc = Start.AddHours(1) } });
         var sameStart = await Create(owner, room.Id);
         var second = await Create(owner, room.Id);
@@ -130,9 +134,9 @@ public sealed class StageFourTests(ApiFixture fixture)
         Assert.Equal(new[] { overlap.Id, sameStart.Id }, page.Items.Select(x => x.Id));
         var next = await Read<PagedResponse<EventResponse>>(await owner.GetAsync(Events(room.Id) + "?" + hour + "&pageSize=2&page=2"));
         Assert.Equal(second.Id, Assert.Single(next.Items).Id);
-        var training = await Read<PagedResponse<EventResponse>>(await owner.GetAsync(Events(room.Id) + "?" + hour + "&category=Training&isHighPriority=false&isPinned=false&authorMemberId=" + room.MemberId));
+        var training = await Read<PagedResponse<EventResponse>>(await owner.GetAsync(Events(room.Id) + "?" + hour + "&eventTypeId=" + overlap.EventTypeId + "&isHighPriority=false&isPinned=false&authorMemberId=" + room.MemberId));
         Assert.Equal(overlap.Id, Assert.Single(training.Items).Id);
-        foreach (var query in new[] { "", "?from=2026-11-01&to=2026-10-01", "?" + hour + "&category=Unknown", "?" + hour + "&status=unknown" })
+        foreach (var query in new[] { "", "?from=2026-11-01&to=2026-10-01", "?" + hour + "&eventTypeId=Unknown", "?" + hour + "&status=unknown" })
             Assert.Equal(HttpStatusCode.BadRequest, (await owner.GetAsync(Events(room.Id) + query)).StatusCode);
     }
 
@@ -224,7 +228,9 @@ public sealed class StageFourTests(ApiFixture fixture)
         await ApiFixture.CsrfAsync(guest);
         var joined = await Join(guest, room);
         await ApiFixture.CsrfAsync(guest);
-        var responses = await Task.WhenAll(guest.PostAsJsonAsync(Events(room.Id), Request()),
+        var typeId = (await guest.GetFromJsonAsync<List<EventTypeResponse>>($"/api/rooms/{room.Id}/event-types"))![0].Id;
+        var raceRequest = new CreateEventRequest { Title = "Race", EventTypeId = typeId, Time = Request().Time };
+        var responses = await Task.WhenAll(guest.PostAsJsonAsync(Events(room.Id), raceRequest),
             guest.DeleteAsync($"/api/rooms/{room.Id}/members/me"));
         Assert.Equal(HttpStatusCode.NoContent, responses[1].StatusCode);
         Assert.Contains(responses[0].StatusCode, new[] { HttpStatusCode.Created, HttpStatusCode.NotFound });

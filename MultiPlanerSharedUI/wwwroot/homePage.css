@@ -8,9 +8,11 @@
     justify-content: center;
     align-items: center;
     border-radius: 15px;
-    background-color: var(--color-primary-dim);
+    background-color: var(--surface);
     padding: 0 2rem 2rem 2rem;
     margin-top: 10vh;
+
+    color:var(--surface-text);
 }
 
 .home-box-notloggedin {
@@ -23,10 +25,12 @@
     justify-content: space-around;
     align-items: center;
     border-radius: 15px;
-    background-color: var(--color-primary-dim);
+    background-color: var(--surface);
     padding: 2rem;
     gap: 1.5rem;
     margin-top: 10vh;
+
+    color:var(--surface-text);
 }
 
 .logo-large {
@@ -80,7 +84,7 @@
     border-radius: 15px;
     border: none;
     background-color: white;
-    color: var(--color-text);
+    color: var(--app-text);
     font-size: var(--font-size-medium);
     cursor: pointer;
     user-select: none;
@@ -89,24 +93,24 @@
 }
 
 .home-btns:hover {
-    background-color: var(--color-text);
-    color: var(--color-text-reversed);
+    background-color: var(--app-text);
+    color: var(--accent-text);
     transform: translateY(-5px);
-    filter: drop-shadow(0 5px 10px var(--color-primary));
+    filter: drop-shadow(0 5px 10px var(--border));
 }
 
 .welcome-msg {
     font-size: var(--font-size-large);
     font-weight: bold;
     text-align: center;
-    color: var(--color-text);
+    color: var(--app-text);
 }
 
 .title-text {
     font-size: 3rem;
     font-weight: bold;
     text-align: center;
-    color: var(--color-text);
+    color: var(--app-text);
     text-transform: uppercase;
 }
 
@@ -114,7 +118,7 @@
     font-size: var(--font-size-small);
     font-weight: bold;
     text-align: center;
-    color: var(--color-primary);
+    color: var(--app-text);
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -128,7 +132,7 @@
 }
 
 .credits span:hover {
-    color: var(--color-text);
+    color: var(--app-text);
     transform: scale(1.2);
 }
 

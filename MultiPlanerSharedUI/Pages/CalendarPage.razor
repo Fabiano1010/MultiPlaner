@@ -30,7 +30,6 @@
                         GoToToday="GoToTodayAsync"
                         OnBack="GoBack"
                         OnNotifications="ToggleNotifications"
-                        OnLinkCreate="CreateLinkAsync"
                         NotificationsState="_notificationsState"
                         />
         <CalendarGrid CurrentMonth="_month"
@@ -59,7 +58,7 @@
                           OnSaved="HandleEventSaved"/>
         }
         @if (_roomData is not null) {
-            <CalendarSettings 
+            <CalendarSettings OnSaved="RefreshSettingsAsync"
                 IsVisible="_showSettings"
                 Room="_roomData"
                 OnClose="ClosePopup"
@@ -97,6 +96,8 @@
     private ElementReference _pageRef;
     private RoomResponse? _roomData;
     private List<EventResponse> _events = new();
+    private List<EventTypeResponse> _eventTypes = [];
+    private int _typeFilter;
     private CancellationTokenSource? _loadCts;
 
     protected override async Task OnParametersSetAsync() {
@@ -105,6 +106,12 @@
         await LoadRoomAsync();
     }
 
+    private async Task RefreshSettingsAsync() {
+        _roomData = await Api.GetRoomAsync(RoomId);
+            _eventTypes = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? [];
+            if (!_eventTypes.Any(t => t.Id == _typeFilter)) _typeFilter = 0;
+        await LoadEventsAsync();
+    }
     private async Task LoadRoomAsync() {
         _isLoading = true;
         _errorMessage = null;
@@ -112,6 +119,8 @@
 
         try {
             _roomData = await Api.GetRoomAsync(RoomId);
+            _eventTypes = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? [];
+            if (!_eventTypes.Any(t => t.Id == _typeFilter)) _typeFilter = 0;
             if (_roomData is null) _errorMessage = "Calendar not found.";
         }
         catch (ApiException e) when (e.Status is 403 or 404) {
@@ -231,6 +240,7 @@
 
             for (var page = 1;; page++) {
                 var url = $"api/rooms/{RoomId}/events?from={from}&to={to}&status=active&page={page}&pageSize={pageSize}";
+                if (_typeFilter > 0) url += $"&eventTypeId={_typeFilter}";
                 var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
                 if (result is null || result.Items.Count == 0) break;
 
@@ -267,9 +277,6 @@
         await LoadEventsAsync();
     }
 
-    private async Task CreateLinkAsync() {
-        
-    }
 
     private async Task ToggleNotifications() {
         _notificationsState = !_notificationsState;

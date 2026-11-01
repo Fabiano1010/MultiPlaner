@@ -29,7 +29,7 @@ public sealed class RoomTests(ApiFixture fixture)
             Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/rooms/{room.Id}")).StatusCode);
             await AccountTests.AssertProblem(
                 await other.PostAsJsonAsync($"/api/rooms/{room.Id}/invitations", new CreateRoomInvitationRequest()),
-                HttpStatusCode.Forbidden, "room_owner_required");
+                HttpStatusCode.NotFound, "room_not_found");
             await AccountTests.AssertProblem(await other.DeleteAsync($"/api/rooms/{room.Id}"),
                 HttpStatusCode.Forbidden, "room_owner_required");
 
@@ -71,7 +71,7 @@ public sealed class RoomTests(ApiFixture fixture)
                 HttpStatusCode.BadRequest, "validation_failed");
             await AccountTests.AssertProblem(
                 await other.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = "Wrong", RowVersion = updated.RowVersion! }),
-                HttpStatusCode.Forbidden, "room_owner_required");
+                HttpStatusCode.NotFound, "room_not_found");
             Assert.Equal(HttpStatusCode.NotFound,
                 (await other.GetAsync($"/api/rooms/{room.Id}/members")).StatusCode);
 
@@ -108,6 +108,7 @@ public sealed class RoomTests(ApiFixture fixture)
                     RoomId = room.Id, AuthorMemberId = room.MemberId,
                     Title = "Meeting", StartsAtUtc = now.AddHours(1), EndsAtUtc = now.AddHours(2)
                 };
+                entry.EventTypeId = await db.RoomEventTypes.Where(t => t.RoomId == room.Id).Select(t => t.Id).FirstAsync();
                 db.CalendarEvents.Add(entry);
                 await db.SaveChangesAsync();
                 eventId = entry.Id;

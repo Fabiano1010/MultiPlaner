@@ -14,7 +14,7 @@
     height: 10vh;
     min-height: 3.5rem;
     padding: 0.5rem 2rem;
-    border-bottom: 1px solid var(--color-primary);
+    border-bottom: 1px solid var(--border);
 }
 
 .date-controls-div {
@@ -73,8 +73,8 @@
     width: 80px;
     height: auto;
     padding: 5px;
-    background-color: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background-color: var(--accent);
+    color: var(--accent-text);
     border-radius: 10px;
     transition: 0.25s ease-in-out;
     cursor: pointer;
@@ -99,8 +99,8 @@
     width: 30px;
     height: 30px;
     padding: 3px;
-    background-color: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background-color: var(--accent);
+    color: var(--accent-text);
     border-radius: 10px;
     transition: 0.25s ease-in-out;
     cursor: pointer;
@@ -112,9 +112,9 @@
 }
 
 .date-control-move:hover, .date-controls-today:hover {
-    background-color: var(--color-primary);
-    color: var(--color-text);
-    filter: drop-shadow(0px 5px 5px var(--color-primary));
+    background-color: var(--surface);
+    color: var(--surface-text);
+    filter: drop-shadow(0px 5px 5px var(--border));
     transform: translateY(-2px);
 }
 
@@ -162,7 +162,7 @@
     font-weight: 600;
     font-size: 0.8rem;
     padding: 8px 0;
-    color: var(--color-primary);
+    color: var(--app-text);
 }
 
 .calendar-cell {
@@ -176,7 +176,7 @@
     cursor: pointer;
     position: relative;
     transition: background 0.15s;
-    border: 1px solid var(--color-secondary);
+    border: 1px solid var(--accent);
 }
 
 .day-number-div {
@@ -191,45 +191,49 @@
 
 
 .calendar-cell.sunday {
-    background: #FFDDDD;
+    background: var(--surface); color:var(--surface-text);
 }
 
 .calendar-cell.saturday {
-    background: #efefef;
+    background: var(--surface); color:var(--surface-text);
 }
 
 .calendar-cell:hover {
-    background: var(--color-primary);
+    background: var(--surface);
+
+    color:var(--surface-text);
 }
 
 .calendar-cell.other-month .day-number {
-    color: var(--color-primary);
+    color: var(--app-text);
 }
 
 .calendar-cell.today {
     font-weight: 700;
-    background: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background: var(--accent);
+    color: var(--accent-text);
 
 }
 
 .calendar-cell.selected {
-    background: var(--color-day-selected);
-    color: white;
+    background: var(--accent);
+    color: var(--accent-text);
 }
 
 .calendar-cell.selected .day-number {
-    color: white;
+    color: var(--accent-text);
 }
 
 .calendar-cell.in-range {
-    background: var(--color-day-selected-light);
+    background: var(--selection-background);
+
+    color:var(--selection-text);
 }
 
 .calendar-cell.range-start,
 .calendar-cell.range-end {
-    background: var(--color-day-selected);
-    color: white;
+    background: var(--accent);
+    color: var(--accent-text);
 }
 
 .dots {
@@ -278,9 +282,9 @@
     padding: 10px 5px 5px 5px;
     align-items: center;
     width: 100%;
-    border-top: 1px solid var(--color-primary);
+    border-top: 1px solid var(--border);
     box-sizing: border-box;
-    background: var(--background-color);
+    background: var(--app-background);
     z-index: 10000;
     position: relative;
 }
@@ -342,8 +346,8 @@
     min-width: 140px;
     height: auto;
     padding: 0.5rem 0.2rem 0.5rem 0.2rem;
-    background-color: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background-color: var(--accent);
+    color: var(--accent-text);
     border-radius: 10px;
     transition: 0.25s ease-in-out;
     cursor: pointer;
@@ -352,9 +356,9 @@
 }
 
 .events-button:hover {
-    background-color: var(--color-primary);
-    color: var(--color-text);
-    filter: drop-shadow(0px 5px 5px var(--color-primary));
+    background-color: var(--surface);
+    color: var(--surface-text);
+    filter: drop-shadow(0px 5px 5px var(--border));
     transform: translateY(-2px);
 }
 
@@ -363,8 +367,8 @@
 }
 
 .active {
-    background-color: var(--color-primary);
-    color: var(--color-text);
+    background-color: var(--surface);
+    color: var(--surface-text);
 }
 
 .chat-btn {
@@ -421,7 +425,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px;
-    background-color: var(--color-primary);
+    background-color: var(--surface);
     width: 100%;
     min-width: 0;
     min-height: 30px;
@@ -430,11 +434,13 @@
     border-radius: 10px;
     font-size: 1.2rem;
     transition: background-color 0.25s ease-in-out;
+
+    color:var(--surface-text);
 }
 
 .events-item:hover {
-    background-color: var(--color-secondary);
-    color: var(--color-text-reversed);
+    background-color: var(--accent);
+    color: var(--accent-text);
 }
 
 .events-item-details {
@@ -481,7 +487,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-primary);
+    border-bottom: 1px solid var(--border);
 }
 
 .event-details-row-column {
@@ -495,7 +501,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--color-primary-dark);
+    color: var(--app-text);
 }
 
 .event-details-value {
@@ -536,3 +542,7 @@
 }
 
 
+
+.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number { color:var(--accent-text); }
+.calendar-cell.in-range { color:var(--selection-text); }
+.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) { background:var(--hover-background); color:var(--surface-text); }

@@ -4,7 +4,7 @@ using MultiPlanerAPI.Infrastructure;
 
 namespace MultiPlanerAPI.Modules.Rooms;
 
-public sealed class RoomCoverService(AppDbContext db, RoomAccessService access, IRoomCoverStorage storage)
+public sealed class RoomCoverService(RoomAccessService access, IRoomCoverStorage storage, RoomMutationService mutations, MultiPlanerAPI.Modules.Users.CurrentActor actor, TimeProvider clock)
 {
     private const long MaximumBytes = 10 * 1024 * 1024;
 
@@ -19,7 +19,7 @@ public sealed class RoomCoverService(AppDbContext db, RoomAccessService access, 
 
     public async Task SaveAsync(int roomId, IFormFile file, CancellationToken cancellationToken)
     {
-        var room = await access.RequireOwnerAsync(roomId, cancellationToken);
+        var room = await access.RequireManagerAsync(roomId, cancellationToken);
         access.RequireActive(room);
         if (file.Length is <= 0 or > MaximumBytes)
             throw ApiException.Validation(new Dictionary<string, string[]> { ["file"] = ["Cover must be 1–10 MB."] });
@@ -32,32 +32,29 @@ public sealed class RoomCoverService(AppDbContext db, RoomAccessService access, 
             throw ApiException.Validation(new Dictionary<string, string[]> { ["file"] = ["Use JPEG, PNG or WebP."] });
         await using var upload = file.OpenReadStream();
         var key = await storage.SaveAsync(upload, cancellationToken);
-        var old = room.CoverStorageKey;
-        try
-        {
-            room.CoverStorageKey = key;
-            room.CoverContentType = contentType;
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        catch
-        {
-            await storage.DeleteAsync(key);
-            throw;
-        }
+        string? old;
+        try { old = await ReplaceAsync(roomId, key, contentType, cancellationToken); }
+        catch { await storage.DeleteAsync(key); throw; }
         if (old is not null) await storage.DeleteAsync(old);
     }
 
     public async Task DeleteAsync(int roomId, CancellationToken cancellationToken)
     {
-        var room = await access.RequireOwnerAsync(roomId, cancellationToken);
-        access.RequireActive(room);
-        var old = room.CoverStorageKey;
-        if (old is null) return;
-        room.CoverStorageKey = null;
-        room.CoverContentType = null;
-        await db.SaveChangesAsync(cancellationToken);
-        await storage.DeleteAsync(old);
+        var old = await ReplaceAsync(roomId, null, null, cancellationToken);
+        if (old is not null) await storage.DeleteAsync(old);
     }
+
+    private Task<string?> ReplaceAsync(int roomId, string? key, string? contentType, CancellationToken ct) =>
+        mutations.ExecuteAsync(roomId, async (context, room) => {
+            var roomAccess = new RoomAccessService(context, actor, clock);
+            await roomAccess.RequireManagerAsync(roomId, ct);
+            roomAccess.RequireActive(room);
+            var old = room.CoverStorageKey;
+            room.CoverStorageKey = key;
+            room.CoverContentType = contentType;
+            await context.SaveChangesAsync(ct);
+            return old;
+        }, ct);
 
     private static string? DetectType(ReadOnlySpan<byte> bytes)
     {

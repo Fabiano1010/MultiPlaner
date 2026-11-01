@@ -5,6 +5,22 @@ namespace MultiPlanerSharedUI.Services;
 
 public class ApiClient(HttpClient http)
 {
+    public async Task<string> ImageDataAsync(string url) {
+        using var response = await http.GetAsync(url);
+        await EnsureSuccessAsync(response);
+        var type = response.Content.Headers.ContentType?.MediaType;
+        if (type is not ("image/png" or "image/jpeg" or "image/webp")) throw new InvalidOperationException("Unsupported image format.");
+        return $"data:{type};base64,{Convert.ToBase64String(await response.Content.ReadAsByteArrayAsync())}";
+    }
+    public async Task UploadAsync(string url, Microsoft.AspNetCore.Components.Forms.IBrowserFile file, long maximumBytes) {
+        await using var stream = file.OpenReadStream(maximumBytes);
+        using var form = new MultipartFormDataContent();
+        form.Add(new StreamContent(stream), "file", file.Name);
+        using var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = form };
+        request.Headers.Add("X-CSRF-TOKEN", await GetCsrfAsync());
+        using var response = await http.SendAsync(request);
+        await EnsureSuccessAsync(response);
+    }
     private async Task<string> GetCsrfAsync() {
         var r = await http.GetFromJsonAsync<CsrfResponse>("api/auth/csrf");
         return r!.Token;

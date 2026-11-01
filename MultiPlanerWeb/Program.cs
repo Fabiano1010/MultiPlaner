@@ -1,7 +1,5 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.JSInterop;
 using MultiPlanerWeb;
 using MultiPlanerSharedModels.Services;
 using MultiPlanerSharedModels.Models;
@@ -29,27 +27,13 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<ApiAuthStateProvider>());
 builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<AuthService>();
+        builder.Services.AddScoped<ThemeService>();
 
 // Domain Services
 builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<RoomSelection>();
 var host = builder.Build();
 
-// Set culture based on browser settings
-try
-{
-    var js = host.Services.GetRequiredService<IJSInProcessRuntime>();
-    var browserCulture = js.Invoke<string>("eval", "navigator.language");
-    if (!string.IsNullOrWhiteSpace(browserCulture))
-    {
-        var culture = new CultureInfo(browserCulture);
-        CultureInfo.DefaultThreadCurrentCulture = culture;
-        CultureInfo.DefaultThreadCurrentUICulture = culture;
-    }
-}
-catch
-{
-    // default culture will be used
-}
+MultiPlanerSharedModels.Services.AppCulture.Apply();
 
 await host.RunAsync();

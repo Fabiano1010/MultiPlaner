@@ -1,0 +1,29 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using MultiPlanerSharedModels.Contracts.Users
+@inject AuthenticationStateProvider Auth
+@inject ThemeService Theme
+@inject ApiClient Api
+@implements IDisposable
+@code {
+    private int _generation;
+    private bool _disposed;
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (!firstRender) return;
+        Auth.AuthenticationStateChanged += Changed;
+        await Load(Auth.GetAuthenticationStateAsync());
+    }
+    private void Changed(Task<AuthenticationState> state) => _ = InvokeAsync(() => Load(state));
+    private async Task Load(Task<AuthenticationState> state) {
+        var generation = ++_generation;
+        try {
+            var user = (await state).User;
+            ThemePalette palette = new();
+            if (user.Identity?.IsAuthenticated == true && user.FindFirst("kind")?.Value == "user")
+                palette = (await Api.GetAsync<ThemeResponse>("api/me/theme"))!.Palette;
+            if (!_disposed && generation == _generation) await Theme.ApplyAsync(palette);
+        } catch (Exception ex) when (ex is ApiException or HttpRequestException or TaskCanceledException) {
+            if (!_disposed && generation == _generation) await Theme.ApplyAsync(new());
+        }
+    }
+    public void Dispose() { _disposed = true; Auth.AuthenticationStateChanged -= Changed; }
+}

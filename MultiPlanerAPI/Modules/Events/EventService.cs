@@ -15,6 +15,7 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
     private sealed class EventRow
     {
         public CalendarEvent Event { get; init; } = null!;
+        public RoomEventType Type { get; init; } = null!;
         public Room Room { get; init; } = null!;
         public RoomMember Author { get; init; } = null!;
         public int ViewerMemberId { get; init; }
@@ -26,13 +27,14 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
         var guestId = actor.GuestSessionId;
         var now = clock.GetUtcNow();
         return from ev in context.CalendarEvents.AsNoTracking()
+            join type in context.RoomEventTypes.AsNoTracking() on ev.EventTypeId equals type.Id
             join room in context.Rooms.AsNoTracking() on ev.RoomId equals room.Id
             join author in context.RoomMembers.AsNoTracking() on ev.AuthorMemberId equals author.Id
             join viewer in context.RoomMembers.AsNoTracking() on room.Id equals viewer.RoomId
             where viewer.LeftAtUtc == null &&
                   (userId != null && viewer.UserId == userId || guestId != null && viewer.GuestSessionId == guestId) &&
                   (room.ArchivedAtUtc != null || room.ExpiresAtUtc > now || room.ArchiveOnExpiry)
-            select new EventRow { Event = ev, Room = room, Author = author, ViewerMemberId = viewer.Id };
+            select new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = viewer.Id };
     }
 
     public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter, CancellationToken ct)
@@ -54,7 +56,7 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
                 x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now);
         }
         query = query.Where(x => x.Event.StartsAtUtc < filter.To && x.Event.EndsAtUtc > filter.From);
-        if (filter.Category is { } category) query = query.Where(x => x.Event.Category == category);
+        if (filter.EventTypeId is { } typeId) query = query.Where(x => x.Event.EventTypeId == typeId);
         if (filter.AuthorMemberId is { } authorId) query = query.Where(x => x.Event.AuthorMemberId == authorId);
         if (filter.IsPinned is { } pinned) query = query.Where(x => x.Event.IsPinned == pinned);
         if (filter.IsHighPriority is { } priority) query = query.Where(x => x.Event.IsHighPriority == priority);
@@ -81,10 +83,11 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
         mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var member = await RequireWriterAsync(context, room, ct);
+            await ValidateTypeAsync(context, roomId, request.EventTypeId, ct);
             var ev = new CalendarEvent
             {
                 RoomId = roomId, AuthorMemberId = member.Id, Title = Title(request.Title),
-                Description = EmptyToNull(request.Description), Category = request.Category,
+                Description = EmptyToNull(request.Description), EventTypeId = request.EventTypeId,
                 Color = request.Color?.ToUpperInvariant(), IsHighPriority = request.IsHighPriority, IsPinned = request.IsPinned
             };
             EventTime.Apply(ev, request.Time, room.TimeZoneId);
@@ -107,7 +110,10 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
             if (request.Title is not null) ev.Title = Title(request.Title);
             if (request.Description is not null) ev.Description = EmptyToNull(request.Description);
             if (request.Color is not null) ev.Color = EmptyToNull(request.Color)?.ToUpperInvariant();
-            if (request.Category is { } category) ev.Category = category;
+            if (request.EventTypeId is { } typeId && typeId != ev.EventTypeId) {
+                await ValidateTypeAsync(context, roomId, typeId, ct);
+                ev.EventTypeId = typeId;
+            }
             if (request.IsHighPriority is { } priority) ev.IsHighPriority = priority;
             if (request.IsPinned is { } pinned) ev.IsPinned = pinned;
             if (request.Time is not null) EventTime.Apply(ev, request.Time, room.TimeZoneId);
@@ -195,11 +201,17 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
         return new(ev.Id, ev.RoomId, row.Room.Name, row.Room.TimeZoneId,
             row.Room.GetArchivedAtUtc(clock.GetUtcNow()) is not null,
             ev.Title, ev.Description, ev.StartsAtUtc, ev.EndsAtUtc, ev.IsAllDay, ev.StartDate, ev.EndDateExclusive,
-            ev.TimeZoneId, ev.Category, (ev.Color ?? row.Author.Color).ToUpperInvariant(), ev.Color,
+            ev.TimeZoneId, ev.EventTypeId, row.Type.Name, row.Type.IsArchived, (ev.Color ?? row.Type.Color).ToUpperInvariant(), ev.Color,
             ev.IsHighPriority, ev.IsPinned,
             new(row.Author.Id, row.Author.DisplayName, row.Author.GuestSessionId != null,
                 row.Author.UserId == row.Room.OwnerUserId, row.Author.LeftAtUtc != null), participants, ev.RowVersion,
             new(active && own, active && own, active && (own || row.Room.OwnerUserId == actor.UserId)));
+    }
+
+    private static async Task ValidateTypeAsync(AppDbContext context, int roomId, int typeId, CancellationToken ct)
+    {
+        if (!await context.RoomEventTypes.AnyAsync(t => t.RoomId == roomId && t.Id == typeId && !t.IsArchived, ct))
+            throw ApiException.Validation(new Dictionary<string, string[]> { ["eventTypeId"] = ["Select an active event type from this room."] });
     }
 
     private static string Title(string value) => string.IsNullOrWhiteSpace(value)

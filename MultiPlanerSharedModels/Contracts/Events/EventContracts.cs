@@ -3,11 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace MultiPlanerSharedModels.Contracts.Events;
 
-[JsonConverter(typeof(EventCategoryConverter))]
-public enum EventCategory { Meeting, Training, Social, BusinessTrip, Leave, Shift }
-
-public sealed class EventCategoryConverter() : JsonStringEnumConverter<EventCategory>(allowIntegerValues: false);
-
 public sealed class EventTimeRequest
 {
     public bool IsAllDay { get; init; }
@@ -23,7 +18,7 @@ public sealed class CreateEventRequest
     public string Title { get; init; } = string.Empty;
     [StringLength(4000)] public string? Description { get; init; }
     [Required] public EventTimeRequest Time { get; init; } = null!;
-    [EnumDataType(typeof(EventCategory))] public EventCategory Category { get; init; } = EventCategory.Meeting;
+    [Range(1, int.MaxValue)] public int EventTypeId { get; init; }
     [RegularExpression("^[0-9A-Fa-f]{6}$")] public string? Color { get; init; }
     public bool IsHighPriority { get; init; }
     public bool IsPinned { get; init; }
@@ -36,7 +31,7 @@ public sealed class UpdateEventRequest
     // Null leaves optional values unchanged; empty strings clear description/color.
     [StringLength(4000)] public string? Description { get; init; }
     public EventTimeRequest? Time { get; init; }
-    [EnumDataType(typeof(EventCategory))] public EventCategory? Category { get; init; }
+    [Range(1, int.MaxValue)] public int? EventTypeId { get; init; }
     [RegularExpression("^([0-9A-Fa-f]{6})?$")] public string? Color { get; init; }
     public bool? IsHighPriority { get; init; }
     public bool? IsPinned { get; init; }
@@ -59,7 +54,7 @@ public sealed class EventListRequest : IValidatableObject
 {
     [Required] public DateTimeOffset? From { get; init; }
     [Required] public DateTimeOffset? To { get; init; }
-    [EnumDataType(typeof(EventCategory))] public EventCategory? Category { get; init; }
+    [Range(1, int.MaxValue)] public int? EventTypeId { get; init; }
     [Range(1, int.MaxValue)] public int? AuthorMemberId { get; init; }
     [Range(1, int.MaxValue)] public int? RoomId { get; init; }
     public bool? IsPinned { get; init; }
@@ -81,6 +76,6 @@ public sealed record EventResponse(
     int Id, int RoomId, string RoomName, string RoomTimeZoneId, bool RoomIsArchived,
     string Title, string? Description, DateTimeOffset StartsAtUtc, DateTimeOffset EndsAtUtc,
     bool IsAllDay, DateOnly? StartDate, DateOnly? EndDateExclusive, string? TimeZoneId,
-    EventCategory Category, string Color, string? CustomColor, bool IsHighPriority, bool IsPinned,
+    int EventTypeId, string EventTypeName, bool EventTypeIsArchived, string Color, string? CustomColor, bool IsHighPriority, bool IsPinned,
     EventAuthorResponse Author, IReadOnlyList<int> ParticipantMemberIds, byte[] RowVersion,
     EventPermissions Permissions);

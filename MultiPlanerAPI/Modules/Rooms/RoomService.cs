@@ -66,6 +66,7 @@ public sealed class RoomService(
         await operationDb.SaveChangesAsync(cancellationToken);
         var member = new RoomMember { RoomId = room.Id, UserId = user.Id, DisplayName = user.DisplayName };
         operationDb.RoomMembers.Add(member);
+        EventTypeService.AddDefaults(operationDb, room.Id);
         var token = InvitationTokens.Generate();
         var invitation = new RoomInvitation
         {
@@ -172,38 +173,51 @@ public sealed class RoomService(
     public async Task<PagedResponse<RoomMemberResponse>> ListMembersAsync(
         int roomId, PageRequest page, CancellationToken cancellationToken)
     {
-        var (room, _) = await access.RequireMemberAsync(roomId, cancellationToken);
+        var (room, viewer) = await access.RequireMemberAsync(roomId, cancellationToken);
         access.RequireReadable(room);
         var query = db.RoomMembers.AsNoTracking().Where(m => m.RoomId == roomId && m.LeftAtUtc == null);
         var count = await query.CountAsync(cancellationToken);
         var offset = (long)(page.Page - 1) * page.PageSize;
-        if (offset > int.MaxValue)
+        if (offset > int.MaxValue) return new([], count, page.Page, page.PageSize);
+        var rows = await (from m in query
+            join u in db.Users on m.UserId equals u.Id into users
+            from u in users.DefaultIfEmpty()
+            orderby m.Id
+            select new { Member = m, Avatar = u == null ? null : u.AvatarStorageKey != null
+                ? "/api/users/" + u.Id + "/avatar?v=" + u.AvatarStorageKey : u.AvatarUrl })
+            .Skip((int)offset).Take(page.PageSize).ToListAsync(cancellationToken);
+        var owner = room.OwnerUserId == actor.UserId;
+        var manage = owner || viewer.IsAdmin;
+        var active = room.ArchivedAtUtc == null && room.ExpiresAtUtc > clock.GetUtcNow();
+        var members = rows.Select(row => {
+            var m = row.Member;
+            var targetOwner = m.UserId == room.OwnerUserId;
+            return new RoomMemberResponse(m.Id, m.DisplayName, m.Color, m.GuestSessionId != null,
+                targetOwner, m.CreatedAtUtc, m.IsAdmin, row.Avatar, m.RowVersion,
+                active && manage && !targetOwner && (!m.IsAdmin || owner),
+                active && manage && !targetOwner && !m.IsAdmin && m.UserId != null,
+                active && owner && !targetOwner && m.IsAdmin);
+        }).ToArray();
+        return new(members, count, page.Page, page.PageSize);
+    }
+
+    public Task<RoomResponse> UpdateAsync(int roomId, UpdateRoomRequest request, CancellationToken ct) =>
+        new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
         {
-            return new PagedResponse<RoomMemberResponse>([], count, page.Page, page.PageSize);
-        }
-
-        var members = await query.OrderBy(m => m.Id)
-            .Skip((int)offset).Take(page.PageSize)
-            .Select(m => new RoomMemberResponse(m.Id, m.DisplayName, m.Color,
-                m.GuestSessionId != null, m.UserId == room.OwnerUserId, m.CreatedAtUtc))
-            .ToListAsync(cancellationToken);
-        return new PagedResponse<RoomMemberResponse>(members, count, page.Page, page.PageSize);
-    }
-
-    public async Task<RoomResponse> UpdateAsync(
-        int roomId, UpdateRoomRequest request, CancellationToken cancellationToken)
-    {
-        var room = await access.RequireOwnerAsync(roomId, cancellationToken);
-        access.RequireActive(room);
-        if (!room.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-            throw new ApiException(409, "concurrency_conflict", "Room settings changed. Reload and retry.");
-        ValidateUpdate(request, room, clock.GetUtcNow());
-        ApplyUpdate(request, room);
-        await db.SaveChangesAsync(cancellationToken);
-        var (_, member) = await access.RequireMemberAsync(roomId, cancellationToken);
-        return ToResponse(room, member, clock.GetUtcNow(),
-            await db.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName).SingleAsync(cancellationToken));
-    }
+            var roomAccess = new RoomAccessService(context, actor, clock);
+            await roomAccess.RequireManagerAsync(roomId, ct);
+            roomAccess.RequireActive(room);
+            if ((request.TimeZoneId != null || request.ExpiresAtUtc != null) && room.OwnerUserId != actor.UserId)
+                throw new ApiException(403, "room_owner_required", "Only the owner may change time zone or expiry.");
+            if (!room.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
+                throw new ApiException(409, "concurrency_conflict", "Room settings changed. Reload and retry.");
+            ValidateUpdate(request, room, clock.GetUtcNow());
+            ApplyUpdate(request, room);
+            await context.SaveChangesAsync(ct);
+            var (_, member) = await roomAccess.RequireMemberAsync(roomId, ct);
+            return ToResponse(room, member, clock.GetUtcNow(),
+                await context.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName).SingleAsync(ct));
+        }, ct);
 
     private static void ValidateUpdate(UpdateRoomRequest request, Room room, DateTimeOffset now)
     {
@@ -311,6 +325,7 @@ public sealed class RoomService(
             .ExecuteDeleteAsync(cancellationToken);
         await operationDb.CalendarEvents.Where(e => e.RoomId == roomId)
             .ExecuteDeleteAsync(cancellationToken);
+        await operationDb.RoomEventTypes.Where(t => t.RoomId == roomId).ExecuteDeleteAsync(cancellationToken);
         await operationDb.RoomInvitations.Where(i => i.RoomId == roomId)
             .ExecuteDeleteAsync(cancellationToken);
         await operationDb.UserFolderRooms.Where(a => a.RoomId == roomId)
@@ -327,7 +342,7 @@ public sealed class RoomService(
             room.OwnerUserId == member.UserId, room.ExpiresAtUtc, room.GetArchivedAtUtc(now),
             Membership: ToMembershipResponse(member), ArchiveOnExpiry: room.ArchiveOnExpiry,
             OwnerDisplayName: ownerDisplayName, RowVersion: room.RowVersion,
-            HasCover: room.CoverStorageKey is not null);
+            HasCover: room.CoverStorageKey is not null, IsAdmin: member.IsAdmin);
 
     private static RoomMembershipResponse ToMembershipResponse(RoomMember member) =>
         new(member.Id, member.DisplayName, member.Color, member.IsFavourite, member.RowVersion,

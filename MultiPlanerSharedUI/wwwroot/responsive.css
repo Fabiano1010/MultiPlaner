@@ -42,8 +42,8 @@
         flex: none;
         min-height: calc(3.5rem + env(safe-area-inset-top));
         padding: calc(0.4rem + env(safe-area-inset-top)) 1rem 0.4rem;
-        background: var(--color-secondary);
-        color: var(--color-text-reversed);
+        background: #000000;
+        color: #FFFFFF;
     }
 
     .mobile-nav-toggle,

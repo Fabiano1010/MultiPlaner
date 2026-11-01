@@ -8,6 +8,9 @@ namespace MultiPlanerAPI.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimeProvider timeProvider)
     : IdentityDbContext<ApplicationUser, IdentityRole<int>, int>(options)
 {
+    public DbSet<SavedTheme> SavedThemes => Set<SavedTheme>();
+    public DbSet<UserTheme> UserThemes => Set<UserTheme>();
+    public DbSet<RoomEventType> RoomEventTypes => Set<RoomEventType>();
     public DbSet<GuestSession> GuestSessions => Set<GuestSession>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<RoomMember> RoomMembers => Set<RoomMember>();
