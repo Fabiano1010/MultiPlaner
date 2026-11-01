@@ -9,7 +9,6 @@ using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Hosting;
 using Microsoft.Maui.Storage;
-using MultiPlanerSharedModels.Services;
 using MultiPlanerSharedUI.Services;
 
 namespace MultiPlanerApp;
@@ -47,7 +46,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<AuthService>();
 
         // Serwisy domenowe
-        builder.Services.AddSingleton<EventService>();
         builder.Services.AddSingleton<RoomSelection>();
 #if DEBUG
         // Narzędzia developerskie

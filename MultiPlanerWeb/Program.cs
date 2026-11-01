@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 using MultiPlanerWeb;
-using MultiPlanerSharedModels.Services;
-using MultiPlanerSharedModels.Models;
 using MultiPlanerSharedUI.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 
@@ -31,7 +29,6 @@ builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<AuthService>();
 
 // Domain Services
-builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<RoomSelection>();
 var host = builder.Build();
 
