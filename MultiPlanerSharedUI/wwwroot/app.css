@@ -472,7 +472,7 @@ button.nav-user { border:0; border-bottom:1px solid var(--border); background:tr
 .user-img-div { width:60%; aspect-ratio:1; flex:none; overflow:hidden; border-radius:50%; transition:width .35s ease-in-out; }
 .user-img-div .sidebar-avatar { display:block; width:100%; height:100%; aspect-ratio:1; flex:none; object-fit:cover; border-radius:50%; }
 .settings-avatar { width:48px; height:48px; aspect-ratio:1; object-fit:cover; border-radius:50%; flex:none; }
-.input-main, .form-group textarea { background:var(--field-background); color:var(--field-text); border-color:var(--border); }
+.input-main, .form-group textarea { background:var(--field-background); color:var(--field-text); border-color:var(--accent); }
 .btn-save, .btn-main:hover { background:var(--accent); color:var(--accent-text); }
 .btn-cancel { background:var(--surface); color:var(--surface-text); }
 .popup-container { background:var(--app-background); color:var(--app-text); }
@@ -496,24 +496,30 @@ button.nav-user { border:0; border-bottom:1px solid var(--border); background:tr
 }
 .user-img-div .sidebar-avatar.is-placeholder { width:70%; height:70%; object-fit:contain; filter:var(--surface-icon-filter,brightness(0)); }
 
-.info-popup{
-    position:fixed;
-    top: 10%;
-    right: 40%;
+.info-popup {
+    position: fixed;
+    top: 3%;
+    left: 50%;
     transform: translateX(-50%);
-   background: var(--app-background);
+
+    background: var(--app-background);
     color: var(--app-text);
     border: 1px solid var(--accent);
     border-radius: var(--border-radius);
     z-index: 10000000;
-    padding: 20px;
+    padding: 10px;
+
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 .info-popup-header{
-    
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
 }
 .info-popup-content{
     

@@ -125,7 +125,7 @@
         await Refresh();
     });
     private Task RemoveCover() => Run(async () => { await Send(HttpMethod.Delete, "/cover"); await Refresh(); });
-    private Task Copy() => Run(async () => { await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/settings.js"); await module.InvokeVoidAsync("copyText", _invitation!.JoinUrl); _message = "Link copied."; });
+    private Task Copy() => Run(async () => { await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/settings.js"); await module.InvokeVoidAsync("copyText", _invitation!.JoinUrl); _message = "Link copied."; });
     private Task Revoke() => Run(async () => { await Send(HttpMethod.Delete, $"/invitations/{_invitation!.Id}"); await Refresh(); });
     private void EditType(EventTypeResponse type) { _typeForm = true; _editingType = type; _typeName = type.Name; _typeColor = "#" + type.Color; }
     private void ClearType() { _typeForm = false; _editingType = null; _typeName = ""; _typeColor = "#999999"; }

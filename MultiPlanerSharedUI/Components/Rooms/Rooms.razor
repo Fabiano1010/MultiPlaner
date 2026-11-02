@@ -7,11 +7,11 @@
 
 @if (!_isLoading) {
     <div class="rooms-filter">
-        @* <select class="input-main" value="@_status" @onchange="OnStatusChanged"> *@
-        @*     <option value="active">Active</option> *@
-        @*     <option value="all">All</option> *@
-        @*     <option value="archived">Archive</option> *@
-        @* </select> *@
+        <select class="input-main" value="@_status" @onchange="OnStatusChanged">
+            <option value="active">Active</option>
+            <option value="all">All</option>
+            <option value="archived">Archive</option>
+        </select>
         <div class="password-wrapper search-wrapper">
             <button type="button" class="search-img-btn" @onclick="ApplySearchNow">
                 <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="search">
