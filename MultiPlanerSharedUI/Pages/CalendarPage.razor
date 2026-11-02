@@ -73,6 +73,7 @@
                 Room="_roomData"
                 OnClose="ClosePopup"
             />
+            <InformationPopup IsVisible="_isAddingEvent && _rangeEnd is null" Message="Adding event" OnClose="CloseInformationPopup"/>
         }
        
     }
@@ -191,6 +192,10 @@
         _showMembers = false;
         _showChat = false;
         _showSettings = false;
+    }
+    private void CloseInformationPopup() {
+        _isAddingEvent = false;
+        _rangeStart = _rangeEnd = null;
     }
 
     private async Task OpenSettingsAsync() {

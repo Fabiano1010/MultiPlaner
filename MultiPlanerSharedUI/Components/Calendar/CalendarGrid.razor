@@ -40,7 +40,7 @@
 
     private sealed record Cell(DateOnly Date, bool IsCurrentMonth);
 
-    private record EventDot(string Color, bool IsHighPriority);
+    private record EventDot(string Color, bool IsHighPriority, EventCategory Category);
 
     private const int MaxDots = 6;
 
@@ -95,7 +95,7 @@
                 .OrderByDescending(e => e.IsPinned)
                 .ThenByDescending(e => e.IsHighPriority)
                 .ThenBy(e => e.StartsAtUtc)
-                .Select(e => new EventDot(e.Color, e.IsHighPriority))
+                .Select(e => new EventDot(e.Color, e.IsHighPriority, e.Category))
                 .ToList());
     }
 

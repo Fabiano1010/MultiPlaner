@@ -9,7 +9,6 @@ using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Hosting;
 using Microsoft.Maui.Storage;
-using MultiPlanerSharedModels.Services;
 using MultiPlanerSharedUI.Services;
 
 namespace MultiPlanerApp;
