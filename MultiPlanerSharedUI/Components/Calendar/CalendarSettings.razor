@@ -5,6 +5,7 @@
 @inject ApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject ImageUploadService Images
 <Popup IsSettings="true" Title="Calendar settings" IsVisible="IsVisible" OnClose="OnClose">
     <div class="settings-layout">
         <nav class="settings-nav" aria-label="Calendar settings">
@@ -73,6 +74,10 @@
     private bool Active => _room is { ArchivedAtUtc: null } && _room.ExpiresAtUtc > DateTimeOffset.UtcNow;
     private bool Manage => Active && (_room!.IsOwner || _room.IsAdmin);
     private string ConfirmMessage => _confirm switch { "delete" => "Permanently delete this calendar and its events?", "archive" => "Archive this calendar? It will remain available as read-only.", _ => "Create a new invitation? The previous link will stop working." };
+    private const long MaxSourceBytes = 25 * 1024 * 1024;
+    private const int CoverMaxWidth = 1280, CoverMaxHeight = 720;
+    private const double CoverQuality = 0.8;
+    
     protected override async Task OnParametersSetAsync() {
         var load = IsVisible && (!_wasVisible || _room?.Id != Room.Id); _wasVisible = IsVisible;
         if (load) { _tab = 0; _room = null; _confirm = null; ClearType(); await Run(Load); }
@@ -113,7 +118,12 @@
             ExpiresAtUtc = _room.IsOwner ? new DateTimeOffset(DateTime.SpecifyKind(_expiry, DateTimeKind.Utc)) : null, RowVersion = _room.RowVersion! });
         await Refresh(); _message = "Settings saved.";
     });
-    private Task Cover(InputFileChangeEventArgs e) => Run(async () => { _fileName = e.File.Name; await Api.UploadAsync($"api/rooms/{Room.Id}/cover", e.File, 10 * 1024 * 1024); await Refresh(); });
+    private Task Cover(InputFileChangeEventArgs e) => Run(async () => {
+        _fileName = e.File.Name;
+        await Images.UploadAsWebpAsync($"api/rooms/{Room.Id}/cover", e.File,
+            maxSourceBytes: 25 * 1024 * 1024, maxWidth: 1280, maxHeight: 720);
+        await Refresh();
+    });
     private Task RemoveCover() => Run(async () => { await Send(HttpMethod.Delete, "/cover"); await Refresh(); });
     private Task Copy() => Run(async () => { await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/settings.js"); await module.InvokeVoidAsync("copyText", _invitation!.JoinUrl); _message = "Link copied."; });
     private Task Revoke() => Run(async () => { await Send(HttpMethod.Delete, $"/invitations/{_invitation!.Id}"); await Refresh(); });

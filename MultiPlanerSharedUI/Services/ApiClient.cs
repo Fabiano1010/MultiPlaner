@@ -12,10 +12,12 @@ public class ApiClient(HttpClient http)
         if (type is not ("image/png" or "image/jpeg" or "image/webp")) throw new InvalidOperationException("Unsupported image format.");
         return $"data:{type};base64,{Convert.ToBase64String(await response.Content.ReadAsByteArrayAsync())}";
     }
-    public async Task UploadAsync(string url, Microsoft.AspNetCore.Components.Forms.IBrowserFile file, long maximumBytes) {
-        await using var stream = file.OpenReadStream(maximumBytes);
+    public async Task UploadAsync(string url, Stream data, string fileName, string contentType)
+    {
         using var form = new MultipartFormDataContent();
-        form.Add(new StreamContent(stream), "file", file.Name);
+        var content = new StreamContent(data);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        form.Add(content, "file", fileName);
         using var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = form };
         request.Headers.Add("X-CSRF-TOKEN", await GetCsrfAsync());
         using var response = await http.SendAsync(request);

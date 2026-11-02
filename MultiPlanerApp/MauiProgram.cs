@@ -49,6 +49,7 @@ public static class MauiProgram
 
         // Serwisy domenowe
         builder.Services.AddSingleton<RoomSelection>();
+        builder.Services.AddSingleton<ImageUploadService>();
 #if DEBUG
         // Narzędzia developerskie
         builder.Services.AddBlazorWebViewDeveloperTools();

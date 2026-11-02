@@ -29,6 +29,7 @@ builder.Services.AddScoped<AuthService>();
         builder.Services.AddScoped<ThemeService>();
 
 // Domain Services
+builder.Services.AddScoped<ImageUploadService>();
 builder.Services.AddScoped<RoomSelection>();
 var host = builder.Build();
 

@@ -420,6 +420,12 @@
     opacity: 1;
 }
 
+.room-image{
+    width: 80%;
+    height: 100%;
+    border-radius: var(--border-radius);
+}
+
 /* Membership colors are independent of the page theme. */
 .room { background:var(--room-background,var(--field-background)); color:var(--room-text,var(--field-text)); }
 .room .room-header, .room .room-footer { color:inherit; }
