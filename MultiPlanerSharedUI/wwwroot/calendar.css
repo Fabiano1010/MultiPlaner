@@ -370,9 +370,7 @@
     transform: translateY(-2px);
 }
 
-.events-button:hover .plus-icon {
-    filter: invert(0);
-}
+
 .events-button:active {
     background-color: var(--surface);
     filter: drop-shadow(0px 2px 6px var(--border));

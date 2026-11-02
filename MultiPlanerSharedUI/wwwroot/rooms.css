@@ -150,7 +150,7 @@
     box-sizing: border-box;
     border: 2px solid var(--accent);
     border-radius: 0 var(--border-radius) var(--border-radius) var(--border-radius);
-    background: var(--field-background);
+    background: color-mix(in srgb, var(--field-background) 80%, var(--accent));
     transition: 0.2s ease-in-out;
     cursor: pointer;
     user-select: none;
@@ -187,7 +187,7 @@
     border: 2px solid var(--accent);
     border-bottom: none;
     border-radius: 10px 10px 0 0;
-    background: var(--field-background);
+    background: color-mix(in srgb, var(--field-background) 80%, var(--accent));
 
     color:var(--field-text);
 }
@@ -271,6 +271,7 @@
     justify-content: center;
     align-items: center;
     transition: transform 0.25s ease;
+    
 }
 
 .toggle-btn.down {

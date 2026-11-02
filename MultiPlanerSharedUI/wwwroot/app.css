@@ -269,6 +269,7 @@ html, body {
     border: none;
     outline: none;
     background: none;
+    
 }
 
 .action-button:hover {
@@ -479,7 +480,7 @@ button.nav-user { border:0; border-bottom:1px solid var(--border); background:tr
 .action-button-img, .nav-item-img, .mobile-nav-toggle img { filter:none; }
 .sidebar .nav-item-img, .mobile-nav-toggle img { filter:brightness(0) invert(1); }
 .btn-danger { background:#d90000; color:#ffffff; }
-
+.events-button:hover .plus-icon {filter:var(--icon-filter,brightness(0) invert(1));}
 .action-button-img, .popup-close img { filter:var(--icon-filter,brightness(0)); }
 .action-button:hover .action-button-img { filter:var(--accent-icon-filter,brightness(0) invert(1)); }
 .sidebar .nav-item-img, .mobile-nav-toggle img { filter:var(--sidebar-icon-filter,brightness(0) invert(1)); }
