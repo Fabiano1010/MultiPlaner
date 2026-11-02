@@ -554,8 +554,25 @@
     }
 }
 
+.action-buttons { position: relative; }
 
+.header-toast {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 5rem;
+    white-space: nowrap;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--border-radius);
+    background: var(--field-background);
+    color: var(--field-text);
+    font-size: var(--font-size-small);
+    z-index: 10;
+}
+
+.header-toast.error { background: #d90000; color: #fff; }
 
 .calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number { color:var(--accent-text); }
 .calendar-cell.in-range { color:var(--selection-text); }
 .calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) { background:var(--hover-background); color:var(--surface-text); }
+
+

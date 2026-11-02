@@ -121,7 +121,7 @@
     private Task Cover(InputFileChangeEventArgs e) => Run(async () => {
         _fileName = e.File.Name;
         await Images.UploadAsWebpAsync($"api/rooms/{Room.Id}/cover", e.File,
-            maxSourceBytes: 25 * 1024 * 1024, maxWidth: 1280, maxHeight: 720);
+            maxSourceBytes: MaxSourceBytes, maxWidth: CoverMaxWidth, maxHeight: CoverMaxHeight);
         await Refresh();
     });
     private Task RemoveCover() => Run(async () => { await Send(HttpMethod.Delete, "/cover"); await Refresh(); });
