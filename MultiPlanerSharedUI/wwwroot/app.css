@@ -495,3 +495,26 @@ button.nav-user { border:0; border-bottom:1px solid var(--border); background:tr
     color:var(--surface-text);
 }
 .user-img-div .sidebar-avatar.is-placeholder { width:70%; height:70%; object-fit:contain; filter:var(--surface-icon-filter,brightness(0)); }
+
+.info-popup{
+    position:fixed;
+    top: 10%;
+    right: 40%;
+    transform: translateX(-50%);
+   background: var(--app-background);
+    color: var(--app-text);
+    border: 1px solid var(--accent);
+    border-radius: var(--border-radius);
+    z-index: 10000000;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.info-popup-header{
+    
+}
+.info-popup-content{
+    
+}

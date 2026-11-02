@@ -576,3 +576,4 @@
 .calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) { background:var(--hover-background); color:var(--surface-text); }
 
 
+
