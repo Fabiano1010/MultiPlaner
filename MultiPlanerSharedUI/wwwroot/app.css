@@ -1,7 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Red+Hat+Display:wght@600&display=swap');
 
 :root {
-    --app-background:#ffffff; --app-text:#000000; --surface:#dddddd; --surface-text:#000000; --sidebar-background:#0b0b0b; --sidebar-text:#ffffff; --field-background:#f1f1f1; --field-text:#000000; --accent:#000000; --accent-text:#ffffff; --border:#999999; --hover-background:#c2c2c2; --selection-background:#d1d1d1; --selection-text:#000000; --shadow:#cccccc;
+    --app-background:#ffffff; 
+    --app-text:#000000; 
+    --surface:#dddddd; 
+    --surface-text:#000000; 
+    --sidebar-background:#0b0b0b; 
+    --sidebar-text:#ffffff; 
+    --field-background:#f1f1f1; 
+    --field-text:#000000; 
+    --accent:#000000; 
+    --accent-text:#ffffff; 
+    --border:#999999; 
+    --hover-background:#c2c2c2; 
+    --selection-background:#d1d1d1; 
+    --selection-text:#000000; 
+    --shadow:#cccccc;
     --border-radius: 10px;
     --font-sans: 'Red Hat Display', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-size-small: 12px;
@@ -258,7 +272,7 @@ html, body {
 }
 
 .action-button:hover {
-    background-color: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     transform: translateY(-2px);
     filter: drop-shadow(0px 5px 5px var(--border));
     color: var(--accent-text);
@@ -327,7 +341,7 @@ html, body {
 .btn-main:hover {
     filter: drop-shadow(0px 3px 5px var(--accent));
     transform: translateY(-2px);
-    background: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--accent-text);
 }
 
@@ -337,7 +351,6 @@ html, body {
     scale: 0.9;
     transform: translateY(-2px);
     transition-duration: 0.08s;
-
     color:var(--surface-text);
 }
 

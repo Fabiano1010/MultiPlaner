@@ -49,7 +49,6 @@ public static class MauiProgram
         builder.Services.AddScoped<ThemeService>();
 
         // Serwisy domenowe
-        builder.Services.AddSingleton<EventService>();
         builder.Services.AddSingleton<RoomSelection>();
 #if DEBUG
         // Narzędzia developerskie

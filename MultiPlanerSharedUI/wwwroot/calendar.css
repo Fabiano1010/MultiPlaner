@@ -81,6 +81,13 @@
     text-transform: uppercase;
     user-select: none;
 }
+.date-controls-today:active{
+    background-color: var(--surface);
+    filter: drop-shadow(0px 2px 6px var(--border));
+    scale: 0.9;
+    transform: translateY(-2px);
+    transition-duration: 0.08s;
+}
 
 .date-move {
     display: flex;
@@ -112,7 +119,7 @@
 }
 
 .date-control-move:hover, .date-controls-today:hover {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--surface-text);
     filter: drop-shadow(0px 5px 5px var(--border));
     transform: translateY(-2px);
@@ -191,7 +198,8 @@
 
 
 .calendar-cell.sunday {
-    background: var(--surface); color:var(--surface-text);
+    background: color-mix(in srgb, var(--surface) 85%, red) ; 
+    color:var(--surface-text);
 }
 
 .calendar-cell.saturday {
@@ -216,7 +224,7 @@
 }
 
 .calendar-cell.selected {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 85%, white);
     color: var(--accent-text);
 }
 
@@ -232,7 +240,7 @@
 
 .calendar-cell.range-start,
 .calendar-cell.range-end {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 85%, white);;
     color: var(--accent-text);
 }
 
@@ -356,7 +364,7 @@
 }
 
 .events-button:hover {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--surface-text);
     filter: drop-shadow(0px 5px 5px var(--border));
     transform: translateY(-2px);
@@ -364,6 +372,13 @@
 
 .events-button:hover .plus-icon {
     filter: invert(0);
+}
+.events-button:active {
+    background-color: var(--surface);
+    filter: drop-shadow(0px 2px 6px var(--border));
+    scale: 0.9;
+    transform: translateY(-2px);
+    transition-duration: 0.08s;
 }
 
 .active {
