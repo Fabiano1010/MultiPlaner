@@ -383,9 +383,9 @@
 }
 
 .input-search {
-    background-color: var(--field-background);
+    background-color: color-mix(in srgb, var(--field-background) 90%, var(--accent));
     padding-left: 35px;
-
+    border: var(--accent) 1px solid;
     color:var(--field-text);
 }
 
@@ -410,6 +410,7 @@
     width: 20px;
     opacity: 0.6;
     transition: opacity 0.2s ease-in-out;
+    filter:var(--icon-filter,brightness(0) invert(1));
 }
 
 .search-img-btn:hover img {
