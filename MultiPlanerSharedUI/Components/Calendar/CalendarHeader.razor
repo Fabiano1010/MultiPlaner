@@ -40,9 +40,12 @@
         <button type="button" class="action-button" aria-label="Members" @onclick="OnOpenMembers">
             <img src="_content/MultiPlanerSharedUI/images/users.svg" alt="" class="action-button-img">
         </button>
-        <button type="button" class="action-button" aria-label="Calendar settings" @onclick="OnOpenSettings">
-            <img src="_content/MultiPlanerSharedUI/images/settings.svg" alt="" class="action-button-img">
-        </button>
+        @if(CanEdit)
+        {
+            <button type="button" class="action-button" aria-label="Settings" @onclick="OnOpenSettings">
+                <img src="_content/MultiPlanerSharedUI/images/settings.svg" alt="" class="action-button-img">
+            </button>
+        }
         <button type="button" class="action-button" aria-label="Notifications" @onclick="OnNotifications">
             <img src="_content/MultiPlanerSharedUI/images/@(NotificationsState ? "bell.svg" : "bell-off.svg")"
                  alt="" class="action-button-img bell-btn">
@@ -78,6 +81,11 @@
         && Room.ExpiresAtUtc > DateTimeOffset.UtcNow
         && (Room.IsOwner || Room.IsAdmin);
 
+    private bool CanEdit =>
+        Room.ArchivedAtUtc is null
+        && Room.ExpiresAtUtc > DateTimeOffset.UtcNow
+        && (Room.IsOwner || Room.IsAdmin);
+    
     private async Task CopyLinkAsync()
     {
         if (_copying) return;
