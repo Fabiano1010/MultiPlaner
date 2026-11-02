@@ -1,5 +1,6 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedUI.Components.Events
+@using MultiPlanerSharedUI.Components.Polls
 <div class="events-container">
     <div class="events-controls">
         <button type="button" class="action-button events-toggle"
@@ -14,16 +15,17 @@
                 Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd/MM/yyyy") : DateTime.Today.ToString("dd/MM/yyyy"))
             </div>
             <div class="events-buttons-container">
-                <div class="events-button @(IsAddingEvent ? "active" : "")"
+                <button class="events-button @(IsAddingEvent ? "active" : "")"
                      @onclick="OnAddEvent">
                     <img src="/_content/MultiPlanerSharedUI/images/plus.svg" alt=""
                          class="plus-icon @(IsAddingEvent ? "plus-icon-active" : "")">
                     <div class="events-button-name">Add Event</div>
-                </div>
-                <div class="events-button">
-                    <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="" class="plus-icon">
-                    <div class="events-button-name">Add Poll</div>
-                </div>
+                </button>
+                <button class="events-button" @onclick="OnOpenPolls">
+                    <img src="/_content/MultiPlanerSharedUI/images/chart-pie.svg" alt=""
+                         class="plus-icon">
+                    <div class="events-button-name">Polls</div>
+                </button>
             </div>
         </div>
         <div class="chat-btn action-button" @onclick="OnOpenChat">
@@ -64,7 +66,7 @@
 
 <EventDetails IsVisible="_showDetails"
               Event="_selectedEvent"
-              OnClose="HandleCloseDetails"
+              OnClose="HandleClose"
               OnChanged="OnChanged"
               RoomId="RoomId"
 />
@@ -74,6 +76,7 @@
     [Parameter] public DateOnly? SelectedDate { get; set; }
     [Parameter] public EventCallback OnAddEvent { get; set; }
     [Parameter] public EventCallback OnOpenChat { get; set; }
+    [Parameter] public EventCallback OnOpenPolls { get; set; }
     [Parameter] public EventCallback<bool> OnCollapsedChanged { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public bool IsAddingEvent { get; set; }
@@ -86,7 +89,6 @@
     private DateOnly? _daySeen;
     private List<EventResponse> _dayEvents = new();
     private bool _collapsed = true;
-
 
     private async Task ToggleCollapsed() {
         _collapsed = !_collapsed;
@@ -116,10 +118,12 @@
     }
 
 
-    private void HandleCloseDetails() {
+    private void HandleClose() {
         _showDetails = false;
         _selectedEvent = null;
     }
+
+
 
 
 }

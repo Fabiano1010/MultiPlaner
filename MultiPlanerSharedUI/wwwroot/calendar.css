@@ -361,6 +361,8 @@
     cursor: pointer;
     text-transform: uppercase;
     user-select: none;
+    outline: none;
+    border: none;
 }
 
 .events-button:hover {
