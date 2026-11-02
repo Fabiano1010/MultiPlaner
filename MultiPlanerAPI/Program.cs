@@ -25,6 +25,9 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
         }));
+    options.AddPolicy("PasswordChange", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddHttpContextAccessor();
@@ -88,6 +91,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5)));
 builder.Services.AddUserSessions();
 builder.Services.AddScoped<RoomService>();
+builder.Services.AddScoped<EventTypeService>();
+builder.Services.AddScoped<MemberManagementService>();
+builder.Services.AddScoped<UserSettingsService>();
+builder.Services.AddSingleton<AvatarStorage>();
+builder.Services.AddScoped<AvatarService>();
 builder.Services.AddScoped<RoomMutationService>();
 builder.Services.AddScoped<RoomMembershipService>();
 builder.Services.AddScoped<EventService>();
@@ -128,8 +136,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors("BrowserClient");
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

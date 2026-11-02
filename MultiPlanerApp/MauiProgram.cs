@@ -18,6 +18,7 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        AppCulture.Apply();
         var builder = MauiApp.CreateBuilder();
 
         // Hosting MAUI / Blazor Hybrid
@@ -45,6 +46,7 @@ public static class MauiProgram
             sp.GetRequiredService<ApiAuthStateProvider>());
         builder.Services.AddSingleton<ApiClient>();
         builder.Services.AddSingleton<AuthService>();
+        builder.Services.AddScoped<ThemeService>();
 
         // Serwisy domenowe
         builder.Services.AddSingleton<EventService>();

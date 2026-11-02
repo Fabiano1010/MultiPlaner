@@ -14,4 +14,4 @@ public sealed record RoomResponse(
     bool ArchiveOnExpiry = false,
     string? OwnerDisplayName = null,
     byte[]? RowVersion = null,
-    bool HasCover = false);
+    bool HasCover = false, bool IsAdmin = false);

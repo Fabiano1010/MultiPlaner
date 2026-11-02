@@ -11,7 +11,7 @@
         </button>
         <div class="events-controls-div">
             <div class="events-control-date">
-                Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd.MM.yyyy") : DateTime.Today.ToString("dd.MM.yyyy"))
+                Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd/MM/yyyy") : DateTime.Today.ToString("dd/MM/yyyy"))
             </div>
             <div class="events-buttons-container">
                 <div class="events-button @(IsAddingEvent ? "active" : "")"
@@ -50,7 +50,7 @@
 
                                 @{ var span = EventDays.Span(ev); }
                                 <div class="events-item-date">
-                                    @span.StartDate.ToString("dd.MM.yyyy") - @span.EndDate.ToString("dd.MM.yyyy")
+                                    @span.StartDate.ToString("dd/MM/yyyy") - @span.EndDate.ToString("dd/MM/yyyy")
                                 </div>
                             </div>
                         }

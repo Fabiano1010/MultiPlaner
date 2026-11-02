@@ -15,7 +15,7 @@ public sealed class CalendarEvent : TrackedEntity
     public DateOnly? StartDate { get; set; }
     public DateOnly? EndDateExclusive { get; set; }
     public string? TimeZoneId { get; set; }
-    public EventCategory Category { get; set; }
+    public int EventTypeId { get; set; }
     public string? Color { get; set; }
     public bool IsPinned { get; set; }
     public bool IsHighPriority { get; set; }

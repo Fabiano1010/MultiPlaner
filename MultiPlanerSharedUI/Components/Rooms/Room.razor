@@ -1,4 +1,5 @@
 ﻿@using System.Net
+@using MultiPlanerSharedModels.Contracts.Users
 @using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Rooms
 @implements IDisposable
@@ -7,7 +8,7 @@
 @inject NavigationManager Nav
 
 <div class="room @(Selection.IsSelected(RoomData?.Id ?? -1) ? "room-selected" : "")"
-     style="background-color: @Background"
+     style="@CardStyle"
      @onclick="HandleRoomClickAsync"
      @oncontextmenu="e => _menu?.Show(e)"
      @oncontextmenu:preventDefault>
@@ -24,7 +25,7 @@
         <div class="room-content">
             <img src="@(_imagePath ?? "_content/MultiPlanerSharedUI/images/calendar.svg")"
                  alt="room image"
-                 class="room-image"/>
+                 class="room-image @(_imagePath == null ? "room-symbol" : "")"/>
         </div>
     </div>
     <div class="room-footer">
@@ -112,11 +113,16 @@
         Selection.Changed -= OnSelectionChanged;
     }
 
-    private string Background =>
-        string.IsNullOrWhiteSpace(RoomData?.Membership?.Color)
-            ? "var(--color-primary-dim-light)"
-            : "#" + RoomData!.Membership!.Color;
-
+    private string CardStyle {
+        get {
+            var color = RoomData?.Membership?.Color;
+            if (color != null && System.Text.RegularExpressions.Regex.IsMatch(color, "^[0-9A-Fa-f]{6}$")) {
+                var hex = "#" + color;
+                return $"--room-background:{hex};--room-text:{ThemeResolver.Text(hex)};--room-icon-filter:{ThemeResolver.IconFilter(hex)}";
+            }
+            return "--room-background:var(--field-background);--room-text:var(--field-text);--room-icon-filter:var(--field-icon-filter,brightness(0))";
+        }
+    }
 
     protected override async Task OnParametersSetAsync() {
         _isFavourite = RoomData?.Membership?.IsFavourite ?? false;

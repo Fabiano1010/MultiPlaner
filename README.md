@@ -1,5 +1,12 @@
 # MultiPlaner - Dev Guide
 
+## Ustawienia konta i kalendarza
+
+Gałąź `settings-api-ui` dodaje API i UI ustawień, role administratorów, avatary,
+palety konta i typy wydarzeń per pokój. Wymaga **nowej pustej bazy**; nie jest
+aktualizacją poprzedniej historii migracji. Kontrakty i uruchomienie:
+[Ustawienia API/UI](docs/settings-api-ui.md).
+
 ## API — fundament i etapy 1–4
 
 Serwer ma schemat SQL Server, ASP.NET Core Identity, rejestrację/logowanie,
@@ -44,7 +51,9 @@ Windows (PowerShell):
 ```
 
 `db-migrate` odtwarza lokalne narzędzie EF w wersji zapisanej w repo,
-uruchamia SQL Server i stosuje istniejące migracje. Na pustej bazie tworzy
+uruchamia SQL Server i stosuje istniejące migracje. Skrypt `dev.sh` czeka na
+udane logowanie i wykonanie `SELECT 1`, ponieważ samo otwarcie portu TCP
+nie oznacza jeszcze gotowości bazy. Na pustej bazie tworzy
 schemat; przy kolejnym wywołaniu, jeśli nic się nie zmieniło, zgłasza brak
 migracji do zastosowania. Nie trzeba generować migracji po pobraniu repo.
 Pierwsze uruchomienie wymaga internetu do pobrania narzędzi, pakietów i obrazu SQL Server.

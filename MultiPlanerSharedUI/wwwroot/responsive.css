@@ -42,8 +42,8 @@
         flex: none;
         min-height: calc(3.5rem + env(safe-area-inset-top));
         padding: calc(0.4rem + env(safe-area-inset-top)) 1rem 0.4rem;
-        background: var(--color-secondary);
-        color: var(--color-text-reversed);
+        background: #000000;
+        color: #FFFFFF;
     }
 
     .mobile-nav-toggle,
@@ -194,13 +194,6 @@
     .title-text {
         font-size: clamp(1.8rem, 8vw, 3rem);
         overflow-wrap: anywhere;
-    }
-
-    .logo-img-large {
-        display: block;
-        max-width: min(100%, 11rem);
-        max-height: 10rem;
-        margin-inline: auto;
     }
 
     .home-btn-group {

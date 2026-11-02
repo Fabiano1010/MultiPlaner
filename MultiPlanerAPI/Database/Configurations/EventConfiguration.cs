@@ -11,7 +11,6 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<CalendarEvent>
         b.ToTable("CalendarEvents", t =>
         {
             t.HasCheckConstraint("CK_CalendarEvent_Interval", "[EndsAtUtc] > [StartsAtUtc]");
-            t.HasCheckConstraint("CK_CalendarEvent_Category", "[Category] IN ('Meeting','Training','Social','BusinessTrip','Leave','Shift')");
             t.HasCheckConstraint("CK_CalendarEvent_Color", "[Color] IS NULL OR (LEN([Color]) = 6 AND [Color] NOT LIKE '%[^0-9A-Fa-f]%')");
         });
         b.HasAlternateKey(x => new { x.Id, x.RoomId });
@@ -19,12 +18,13 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<CalendarEvent>
         b.Property(x => x.Description).HasMaxLength(4000);
         b.Property(x => x.Color).HasMaxLength(6).IsUnicode(false);
         b.Property(x => x.TimeZoneId).HasMaxLength(128);
-        b.Property(x => x.Category).HasConversion<string>().HasMaxLength(32);
+        b.HasOne<RoomEventType>().WithMany().HasForeignKey(x => new { x.EventTypeId, x.RoomId })
+            .HasPrincipalKey(x => new { x.Id, x.RoomId }).OnDelete(DeleteBehavior.NoAction);
         b.HasOne<Room>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.NoAction);
         b.HasOne<RoomMember>().WithMany().HasForeignKey(x => new { x.AuthorMemberId, x.RoomId })
             .HasPrincipalKey(x => new { x.Id, x.RoomId }).OnDelete(DeleteBehavior.NoAction);
         b.HasIndex(x => new { x.RoomId, x.StartsAtUtc, x.EndsAtUtc });
-        b.HasIndex(x => new { x.RoomId, x.Category });
+        b.HasIndex(x => new { x.RoomId, x.EventTypeId });
         b.HasIndex(x => new { x.RoomId, x.IsPinned });
         b.HasIndex(x => new { x.RoomId, x.AuthorMemberId, x.StartsAtUtc });
     }

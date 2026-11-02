@@ -1,24 +1,133 @@
-﻿@using MultiPlanerSharedModels.Contracts.Rooms
-
-<Popup Title="Settings" IsVisible="IsVisible" OnClose="HandleClose">
-    <div class="settings-container">
-        
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedModels.Contracts.Events
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@inject ApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+<Popup IsSettings="true" Title="Calendar settings" IsVisible="IsVisible" OnClose="OnClose">
+    <div class="settings-layout">
+        <nav class="settings-nav" aria-label="Calendar settings">
+            @foreach (var entry in new[] { (0, "General"), (1, "Invitations"), (2, "Event types") }) { <button aria-current="@(_tab == entry.Item1 ? "page" : null)" @onclick="() => _tab = entry.Item1">@entry.Item2</button> }
+        </nav>
+        <div class="settings-content">
+            @if (_busy && _room == null) { <p role="status">Loading settings…</p> }
+            @if (_error != null) { <p role="alert" class="form-error">@_error</p><button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Run(Load)">Retry</button> }
+            @if (_message != null) { <p role="status">@_message</p> }
+            @if (_room != null) {
+                @if (_tab == 0) {
+                    <h3>General</h3><div class="settings-grid">
+                        <form class="settings-fields" @onsubmit="SaveRoom" @onsubmit:preventDefault>
+                            <div class="form-group"><label for="calendar-name">Calendar name</label><input id="calendar-name" class="input-main" @bind="_name" minlength="2" maxlength="128" required disabled="@(!Manage)" /></div>
+                            <div class="form-group"><label for="calendar-zone">Time zone</label><input id="calendar-zone" class="input-main" @bind="_zone" required disabled="@(!Manage || !_room.IsOwner)" /></div>
+                            <div class="form-group"><label for="calendar-expiry">Expires · UTC</label><input id="calendar-expiry" class="input-main" type="datetime-local" @bind="_expiry" required disabled="@(!Manage || !_room.IsOwner)" /></div>
+                            @if (Manage) { <div class="settings-actions"><button class="btn-main btn-save" disabled="@_busy">Save settings</button></div> }
+                        </form>
+                        <section><div class="form-group"><label>Cover</label>
+                            @if (_coverPreview != null) { <img class="settings-cover" src="@_coverPreview" alt="Calendar cover" /> } else { <div class="settings-cover" aria-label="No cover"></div> }
+                        </div>
+                        @if (Manage) { <div class="settings-actions"><label class="btn-main btn-cancel settings-file">Change cover<InputFile aria-label="Change cover" OnChange="Cover" accept="image/jpeg,image/png,image/webp" disabled="@_busy" /></label>@if (_room.HasCover) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick="RemoveCover">Delete</button> }</div> }
+                        <p class="settings-note">@(_fileName ?? "JPEG, PNG or WebP · up to 10 MB")</p></section>
+                        @if (_room.IsOwner) { <div class="settings-wide"><hr /><div class="settings-actions">@if (Active) { <button class="btn-main btn-cancel" disabled="@_busy" @onclick='() => _confirm = "archive"'>Archive calendar</button> }<button class="btn-main btn-danger" disabled="@_busy" @onclick='() => _confirm = "delete"'>Delete calendar</button></div></div> }
+                    </div>
+                } else if (_tab == 1) {
+                    <h3>Invitations</h3>
+                    @if (Manage) {
+                        @if (_invitation != null) { <div class="form-group"><label for="calendar-link">Invitation link</label><input id="calendar-link" class="input-main" value="@_invitation.JoinUrl" readonly /></div><p class="settings-note">Valid until @_invitation.ExpiresAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p><div class="settings-actions"><button class="btn-main btn-save" disabled="@_busy" @onclick="Copy">Copy link</button><button class="btn-main btn-cancel" disabled="@_busy" @onclick="Revoke">Revoke</button></div> }
+                        else { <p>There is no active invitation.</p> }
+                        <div class="settings-actions"><button class="btn-main btn-cancel" disabled="@_busy" @onclick='() => _confirm = "invitation"'>@(_invitation == null ? "Create invitation" : "Replace invitation")</button></div>
+                    } else { <p>Invitations are managed by the owner or an administrator of an active calendar.</p> }
+                } else {
+                    @if (_typeForm && Manage) {
+                        <h3>@(_editingType == null ? "New event type" : "Edit event type")</h3>
+                        <form @onsubmit="SaveType" @onsubmit:preventDefault><div class="settings-grid"><div class="form-group"><label for="type-name">Type name</label><input id="type-name" class="input-main" @bind="_typeName" maxlength="64" required /></div><div class="form-group"><label for="type-color">Default event colour</label><input id="type-color" class="input-main" type="color" @bind="_typeColor" /></div></div><div class="settings-actions"><button type="button" class="btn-main btn-cancel" disabled="@_busy" @onclick="ClearType">Cancel</button><button class="btn-main btn-save" disabled="@_busy">Save event type</button></div></form>
+                    } else {
+                        <h3>Event types</h3><div class="settings-grid">@foreach (var type in _types) {
+                            <article class="settings-tile" @key="type.Id"><div class="settings-tile-heading"><span class="settings-swatch" style="background:#@type.Color"></span><h4>@type.Name</h4>@if (type.IsArchived) { <span>Archived</span> }</div>
+                            @if (Manage) { <div class="settings-actions"><button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => EditType(type)">Edit</button><button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => ArchiveType(type)">@(type.IsArchived ? "Restore" : "Archive")</button></div> }</article>
+                        }</div>
+                        @if (Manage) { <div class="settings-actions"><button class="btn-main btn-save" @onclick="() => { ClearType(); _typeForm = true; }">Add event type</button></div> }
+                    }
+                }
+            }
+        </div>
     </div>
 </Popup>
-
-
+<ConfirmPopup IsVisible="@(_confirm != null)" Title="Confirm action" Message="@ConfirmMessage" Danger="@(_confirm == "delete")" ConfirmText="Confirm" OnConfirm="Confirm" OnClose="() => _confirm = null" />
 @code {
     [Parameter] public bool IsVisible { get; set; }
-    [Parameter] [EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
-    
-    
-    private string? _errorMessage;
-    
-    private Task HandleClose() {
-        _errorMessage = "";
-        return OnClose.InvokeAsync();
+    private int _tab;
+    private bool _typeForm;
+    private string? _coverPreview, _fileName;
+    private RoomResponse? _room;
+    private RoomInvitationResponse? _invitation;
+    private IReadOnlyList<EventTypeResponse> _types = [];
+    private EventTypeResponse? _editingType;
+    private string _name = "", _zone = "", _typeName = "", _typeColor = "#999999";
+    private DateTime _expiry;
+    private string? _error, _message, _confirm;
+    private bool _wasVisible, _busy;
+    private bool Active => _room is { ArchivedAtUtc: null } && _room.ExpiresAtUtc > DateTimeOffset.UtcNow;
+    private bool Manage => Active && (_room!.IsOwner || _room.IsAdmin);
+    private string ConfirmMessage => _confirm switch { "delete" => "Permanently delete this calendar and its events?", "archive" => "Archive this calendar? It will remain available as read-only.", _ => "Create a new invitation? The previous link will stop working." };
+    protected override async Task OnParametersSetAsync() {
+        var load = IsVisible && (!_wasVisible || _room?.Id != Room.Id); _wasVisible = IsVisible;
+        if (load) { _tab = 0; _room = null; _confirm = null; ClearType(); await Run(Load); }
     }
-    
+    private async Task Load() {
+        _room = await Api.GetAsync<RoomResponse>($"api/rooms/{Room.Id}");
+        _coverPreview = null;
+        if (_room!.HasCover) {
+            try { _coverPreview = await Api.ImageDataAsync($"api/rooms/{Room.Id}/cover"); }
+            catch (Exception ex) when (ex is ApiException or HttpRequestException) { _error = "Could not load the cover: " + ex.Message; }
+        }
+        _name = _room!.Name; _zone = _room.TimeZoneId; _expiry = _room.ExpiresAtUtc.UtcDateTime;
+        _types = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{Room.Id}/event-types") ?? [];
+        _invitation = null;
+        if (Manage) {
+            try { _invitation = await Api.GetAsync<RoomInvitationResponse>($"api/rooms/{Room.Id}/invitations/current"); }
+            catch (ApiException ex) when (ex.Status == 404) { }
+        }
+    }
+    private async Task Run(Func<Task> action) {
+        if (_busy) return;
+        _busy = true; _error = _message = null;
+        try { await action(); }
+        catch (ApiException ex) when (ex.Status is 409 or 403) {
+            _error = ex.Message;
+            try { await Load(); ClearType(); } catch (Exception reload) when (reload is ApiException or HttpRequestException) { _error += " " + reload.Message; }
+        }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or IOException or JSException) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+    private async Task Send(HttpMethod method, string suffix, object? body = null) {
+        using var response = await Api.SendAsync(method, $"api/rooms/{Room.Id}{suffix}", body);
+        await ApiClient.EnsureSuccessAsync(response);
+    }
+    private async Task Refresh() { await Load(); await OnSaved.InvokeAsync(); }
+    private Task SaveRoom() => Run(async () => {
+        await Send(HttpMethod.Patch, "", new UpdateRoomRequest { Name = _name, TimeZoneId = _room!.IsOwner ? _zone : null,
+            ExpiresAtUtc = _room.IsOwner ? new DateTimeOffset(DateTime.SpecifyKind(_expiry, DateTimeKind.Utc)) : null, RowVersion = _room.RowVersion! });
+        await Refresh(); _message = "Settings saved.";
+    });
+    private Task Cover(InputFileChangeEventArgs e) => Run(async () => { _fileName = e.File.Name; await Api.UploadAsync($"api/rooms/{Room.Id}/cover", e.File, 10 * 1024 * 1024); await Refresh(); });
+    private Task RemoveCover() => Run(async () => { await Send(HttpMethod.Delete, "/cover"); await Refresh(); });
+    private Task Copy() => Run(async () => { await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/settings.js"); await module.InvokeVoidAsync("copyText", _invitation!.JoinUrl); _message = "Link copied."; });
+    private Task Revoke() => Run(async () => { await Send(HttpMethod.Delete, $"/invitations/{_invitation!.Id}"); await Refresh(); });
+    private void EditType(EventTypeResponse type) { _typeForm = true; _editingType = type; _typeName = type.Name; _typeColor = "#" + type.Color; }
+    private void ClearType() { _typeForm = false; _editingType = null; _typeName = ""; _typeColor = "#999999"; }
+    private Task SaveType() => Run(async () => {
+        if (_editingType == null) await Send(HttpMethod.Post, "/event-types", new CreateEventTypeRequest { Name = _typeName, Color = _typeColor.TrimStart('#') });
+        else await Send(HttpMethod.Patch, $"/event-types/{_editingType.Id}", new UpdateEventTypeRequest { Name = _typeName, Color = _typeColor.TrimStart('#'), RowVersion = _editingType.RowVersion });
+        ClearType(); await Refresh();
+    });
+    private Task ArchiveType(EventTypeResponse type) => Run(async () => { await Send(HttpMethod.Patch, $"/event-types/{type.Id}", new UpdateEventTypeRequest { IsArchived = !type.IsArchived, RowVersion = type.RowVersion }); ClearType(); await Refresh(); });
+    private Task Confirm() => Run(async () => {
+        if (_confirm == "delete") { await Send(HttpMethod.Delete, ""); await OnClose.InvokeAsync(); Nav.NavigateTo("/rooms"); }
+        else { await Send(HttpMethod.Post, _confirm == "archive" ? "/archive" : "/invitations", _confirm == "invitation" ? new CreateRoomInvitationRequest() : null); await Refresh(); }
+        _confirm = null;
+    });
 }
