@@ -13,9 +13,15 @@ using MultiPlanerSharedModels.Contracts.Users;
 namespace MultiPlanerAPI.Modules.Users;
 
 public sealed class UserService(
-    AppDbContext db, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
-    CurrentActor actor, GuestSessionService guests, IHttpContextAccessor accessor,
-    IPasswordResetEmailSender emailSender, IConfiguration configuration, TimeProvider clock,
+    AppDbContext db,
+    UserManager<ApplicationUser> users,
+    SignInManager<ApplicationUser> signIn,
+    CurrentActor actor,
+    GuestSessionService guests,
+    IHttpContextAccessor accessor,
+    IPasswordResetEmailSender emailSender,
+    IConfiguration configuration,
+    TimeProvider clock,
     ILogger<UserService> logger)
 {
     public async Task<SessionResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
@@ -44,6 +50,7 @@ public sealed class UserService(
         {
             throw new ApiException(409, "email_already_registered", "An account with this email already exists.");
         }
+
         return ToResponse(user);
     }
 
@@ -52,9 +59,10 @@ public sealed class UserService(
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedEmail = users.NormalizeEmail(request.Email.Trim());
         var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
-        if (user is null || !(await signIn.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true)).Succeeded)
+        if (user is null || !(await signIn.CheckPasswordSignInAsync(user, request.Password, true)).Succeeded)
         {
-            throw new ApiException(401, "invalid_credentials", "Invalid email or password, or account temporarily locked.");
+            throw new ApiException(401, "invalid_credentials",
+                "Invalid email or password, or account temporarily locked.");
         }
 
         await ClearGuestIdentityAsync(cancellationToken);
@@ -71,7 +79,10 @@ public sealed class UserService(
     {
         var normalizedEmail = users.NormalizeEmail(request.Email.Trim());
         var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
-        if (user is null) return;
+        if (user is null)
+        {
+            return;
+        }
 
         try
         {
@@ -81,9 +92,14 @@ public sealed class UserService(
             if (!Uri.TryCreate(publicBase, UriKind.Absolute, out var baseUri) ||
                 baseUri.Scheme != Uri.UriSchemeHttps || baseUri.UserInfo.Length != 0 ||
                 baseUri.Query.Length != 0 || baseUri.Fragment.Length != 0)
-                throw new InvalidOperationException("Configure PasswordReset:PublicWebBaseUrl as the HTTPS web application address.");
-            var link = $"{baseUri.GetLeftPart(UriPartial.Authority)}{baseUri.AbsolutePath.TrimEnd('/')}/reset-password" +
-                       $"?email={Uri.EscapeDataString(user.Email!)}&token={encoded}";
+            {
+                throw new InvalidOperationException(
+                    "Configure PasswordReset:PublicWebBaseUrl as the HTTPS web application address.");
+            }
+
+            var link =
+                $"{baseUri.GetLeftPart(UriPartial.Authority)}{baseUri.AbsolutePath.TrimEnd('/')}/reset-password" +
+                $"?email={Uri.EscapeDataString(user.Email!)}&token={encoded}";
             await emailSender.SendAsync(user.Email!, link, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -97,14 +113,31 @@ public sealed class UserService(
         var normalizedEmail = users.NormalizeEmail(request.Email.Trim());
         var user = await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
         string token;
-        try { token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token)); }
+        try
+        {
+            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
         catch (Exception ex) when (ex is FormatException or ArgumentException)
-        { throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired."); }
-        if (user is null) throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
-        var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
-        if (result.Succeeded) return;
-        if (result.Errors.Any(e => e.Code == "InvalidToken"))
+        {
             throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+        }
+
+        if (user is null)
+        {
+            throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+        }
+
+        var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
+        if (result.Succeeded)
+        {
+            return;
+        }
+
+        if (result.Errors.Any(e => e.Code == "InvalidToken"))
+        {
+            throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+        }
+
         EnsureSuccess(result);
     }
 
@@ -126,6 +159,7 @@ public sealed class UserService(
             var user = await db.Users.SingleAsync(u => u.Id == userId, cancellationToken);
             EnsureSuccess(await users.UpdateSecurityStampAsync(user));
         }
+
         if (actor.GuestSessionId is { } guestId)
         {
             await guests.RevokeAsync(guestId, cancellationToken);
@@ -145,19 +179,23 @@ public sealed class UserService(
                 return ToResponse(user);
             }
         }
+
         if (actor.GuestSessionId is { } guestId)
         {
-            var guest = await db.GuestSessions.AsNoTracking().SingleOrDefaultAsync(s => s.Id == guestId, cancellationToken);
+            var guest = await db.GuestSessions.AsNoTracking()
+                .SingleOrDefaultAsync(s => s.Id == guestId, cancellationToken);
             if (guest is not null)
             {
                 return new SessionResponse("guest", null, guest.Id, guest.DisplayName,
                     null, null, null, null, null, guest.ExpiresAtUtc);
             }
         }
+
         throw new ApiException(401, "invalid_session", "The session is no longer valid.");
     }
 
-    public async Task<SessionResponse> UpdateProfileAsync(UpdateProfileRequest request, CancellationToken cancellationToken)
+    public async Task<SessionResponse> UpdateProfileAsync(UpdateProfileRequest request,
+        CancellationToken cancellationToken)
     {
         var errors = LocaleValidation.GetErrors(request.DisplayName, request.CountryCode, request.TimeZoneId);
         if (errors.Count != 0)
@@ -199,11 +237,18 @@ public sealed class UserService(
         await signIn.RefreshSignInAsync(user);
     }
 
-    private static string? EmptyToNull(string value) => value.Length == 0 ? null : value;
+    private static string? EmptyToNull(string value)
+    {
+        return value.Length == 0 ? null : value;
+    }
 
-    private static SessionResponse ToResponse(ApplicationUser user) =>
-        new("user", user.Id, null, user.DisplayName, user.Email, user.CountryCode,
-            user.TimeZoneId, user.AvatarStorageKey == null ? user.AvatarUrl : $"/api/users/{user.Id}/avatar?v={user.AvatarStorageKey}", user.ContactDetails, null);
+    private static SessionResponse ToResponse(ApplicationUser user)
+    {
+        return new SessionResponse("user", user.Id, null, user.DisplayName, user.Email, user.CountryCode,
+            user.TimeZoneId,
+            user.AvatarStorageKey == null ? user.AvatarUrl : $"/api/users/{user.Id}/avatar?v={user.AvatarStorageKey}",
+            user.ContactDetails, null);
+    }
 
     private static void EnsureSuccess(IdentityResult result)
     {

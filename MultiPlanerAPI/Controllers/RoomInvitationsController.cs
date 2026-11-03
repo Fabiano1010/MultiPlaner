@@ -15,8 +15,10 @@ public sealed class RoomInvitationsController(InvitationService invitations) : C
     [HttpGet("current")]
     [ProducesResponseType<RoomInvitationResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoomInvitationResponse>> Current(
-        int roomId, CancellationToken cancellationToken) =>
-        Ok(await invitations.GetCurrentAsync(roomId, cancellationToken));
+        int roomId, CancellationToken cancellationToken)
+    {
+        return Ok(await invitations.GetCurrentAsync(roomId, cancellationToken));
+    }
 
     [HttpPost]
     [ProducesResponseType<RoomInvitationResponse>(StatusCodes.Status201Created)]

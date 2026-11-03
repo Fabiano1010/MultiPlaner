@@ -8,7 +8,7 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    <RedirectTo Url="/login" />
+                    <RedirectTo Url="/login"/>
                 </NotAuthorized>
                 <Authorizing>
                     <div class="loading-spinner">

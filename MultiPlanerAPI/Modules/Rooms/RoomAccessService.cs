@@ -14,11 +14,11 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var userId = actor.UserId;
         var guestId = actor.GuestSessionId;
         var result = await (from member in db.RoomMembers.AsNoTracking()
-            join room in db.Rooms.AsNoTracking() on member.RoomId equals room.Id
-            where room.Id == roomId && member.LeftAtUtc == null &&
-                  (userId != null && member.UserId == userId ||
-                   guestId != null && member.GuestSessionId == guestId)
-            select new { Room = room, Member = member })
+                join room in db.Rooms.AsNoTracking() on member.RoomId equals room.Id
+                where room.Id == roomId && member.LeftAtUtc == null &&
+                      ((userId != null && member.UserId == userId) ||
+                       (guestId != null && member.GuestSessionId == guestId))
+                select new { Room = room, Member = member })
             .SingleOrDefaultAsync(cancellationToken);
         if (result is null)
         {
@@ -32,7 +32,7 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
     {
         var userId = actor.RequireUserId();
         var room = await db.Rooms.SingleOrDefaultAsync(r => r.Id == roomId, cancellationToken)
-            ?? throw new ApiException(404, "room_not_found", "Room not found.");
+                   ?? throw new ApiException(404, "room_not_found", "Room not found.");
         if (room.OwnerUserId != userId)
         {
             throw new ApiException(403, "room_owner_required", "Only the room owner may manage it.");
@@ -46,7 +46,11 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         actor.RequireUserId();
         var (room, member) = await RequireMemberAsync(roomId, ct);
         if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
-            throw new ApiException(403, "room_manager_required", "Only the owner or an administrator may manage this room.");
+        {
+            throw new ApiException(403, "room_manager_required",
+                "Only the owner or an administrator may manage this room.");
+        }
+
         return await db.Rooms.SingleAsync(r => r.Id == roomId, ct);
     }
 

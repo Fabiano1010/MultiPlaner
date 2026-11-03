@@ -12,7 +12,7 @@
     padding: 0 2rem 2rem 2rem;
     margin-top: 10vh;
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .home-box-notloggedin {
@@ -30,7 +30,7 @@
     gap: 1.5rem;
     margin-top: 10vh;
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .logo-large {
@@ -40,7 +40,7 @@
     box-sizing: border-box;
 }
 
-.logo-about{
+.logo-about {
     width: 100%;
     min-width: 0;
     flex: 0 0 auto;

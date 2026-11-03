@@ -13,13 +13,17 @@ public sealed class UserFoldersController(UserFolderService folders) : Controlle
 {
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<UserFolderResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<UserFolderResponse>>> List(CancellationToken cancellationToken) =>
-        Ok(await folders.ListAsync(cancellationToken));
+    public async Task<ActionResult<IReadOnlyList<UserFolderResponse>>> List(CancellationToken cancellationToken)
+    {
+        return Ok(await folders.ListAsync(cancellationToken));
+    }
 
     [HttpGet("{folderId:int}")]
     [ProducesResponseType<UserFolderResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<UserFolderResponse>> Get(int folderId, CancellationToken cancellationToken) =>
-        Ok(await folders.GetAsync(folderId, cancellationToken));
+    public async Task<ActionResult<UserFolderResponse>> Get(int folderId, CancellationToken cancellationToken)
+    {
+        return Ok(await folders.GetAsync(folderId, cancellationToken));
+    }
 
     [HttpPost]
     [ProducesResponseType<UserFolderResponse>(StatusCodes.Status201Created)]
@@ -33,7 +37,10 @@ public sealed class UserFoldersController(UserFolderService folders) : Controlle
     [HttpPatch("{folderId:int}")]
     [ProducesResponseType<UserFolderResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<UserFolderResponse>> Update(int folderId, UpdateUserFolderRequest request,
-        CancellationToken cancellationToken) => Ok(await folders.UpdateAsync(folderId, request, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        return Ok(await folders.UpdateAsync(folderId, request, cancellationToken));
+    }
 
     [HttpDelete("{folderId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

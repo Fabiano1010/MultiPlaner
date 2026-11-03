@@ -33,16 +33,16 @@ public static class SessionAuthentication
     private static void ConfigureIdentity(IServiceCollection services)
     {
         services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
-        {
-            options.User.RequireUniqueEmail = true;
-            options.User.AllowedUserNameCharacters = null!;
-            options.Password.RequiredLength = 8;
-            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-            options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.AllowedForNewUsers = true;
-        })
-        .AddEntityFrameworkStores<AppDbContext>()
-        .AddDefaultTokenProviders();
+            {
+                options.User.RequireUniqueEmail = true;
+                options.User.AllowedUserNameCharacters = null!;
+                options.Password.RequiredLength = 8;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.AllowedForNewUsers = true;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
 
         services.Configure<DataProtectionTokenProviderOptions>(options =>
             options.TokenLifespan = TimeSpan.FromHours(1));
@@ -58,21 +58,22 @@ public static class SessionAuthentication
     private static void ConfigureAuthentication(IServiceCollection services)
     {
         services.AddAuthentication(options =>
-        {
-            options.DefaultScheme = Scheme;
-            options.DefaultAuthenticateScheme = Scheme;
-            options.DefaultChallengeScheme = Scheme;
-            options.DefaultForbidScheme = Scheme;
-        })
-        .AddPolicyScheme(Scheme, Scheme, options =>
-            options.ForwardDefaultSelector = context => context.Request.Cookies.ContainsKey(UserCookie)
-                ? IdentityConstants.ApplicationScheme : GuestScheme)
-        .AddCookie(GuestScheme, options =>
-        {
-            ConfigureCookie(options, GuestCookie);
-            options.ExpireTimeSpan = TimeSpan.FromDays(30);
-            options.EventsType = typeof(GuestCookieEvents);
-        });
+            {
+                options.DefaultScheme = Scheme;
+                options.DefaultAuthenticateScheme = Scheme;
+                options.DefaultChallengeScheme = Scheme;
+                options.DefaultForbidScheme = Scheme;
+            })
+            .AddPolicyScheme(Scheme, Scheme, options =>
+                options.ForwardDefaultSelector = context => context.Request.Cookies.ContainsKey(UserCookie)
+                    ? IdentityConstants.ApplicationScheme
+                    : GuestScheme)
+            .AddCookie(GuestScheme, options =>
+            {
+                ConfigureCookie(options, GuestCookie);
+                options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                options.EventsType = typeof(GuestCookieEvents);
+            });
 
         services.AddOptions<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme)
             .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);

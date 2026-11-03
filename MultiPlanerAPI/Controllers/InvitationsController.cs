@@ -14,25 +14,33 @@ public sealed class InvitationsController(InvitationService invitations) : Contr
     [HttpPost("preview")]
     [ProducesResponseType<InvitationPreviewResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<InvitationPreviewResponse>> Preview(
-        PreviewInvitationRequest request, CancellationToken cancellationToken) =>
-        Ok(await invitations.PreviewAsync(request.Token, cancellationToken));
+        PreviewInvitationRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await invitations.PreviewAsync(request.Token, cancellationToken));
+    }
 
     [HttpPost("join")]
     [ProducesResponseType<RoomResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoomResponse>> Join(
-        JoinByTokenRequest request, CancellationToken cancellationToken) =>
-        Ok(await invitations.JoinAsync(request.Token,
+        JoinByTokenRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await invitations.JoinAsync(request.Token,
             new JoinInvitationRequest { DisplayName = request.DisplayName }, cancellationToken));
+    }
 
     [HttpGet("{token}")]
     [ProducesResponseType<InvitationPreviewResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<InvitationPreviewResponse>> PreviewByToken(
-        string token, CancellationToken cancellationToken) =>
-        Ok(await invitations.PreviewAsync(token, cancellationToken));
+        string token, CancellationToken cancellationToken)
+    {
+        return Ok(await invitations.PreviewAsync(token, cancellationToken));
+    }
 
     [HttpPost("{token}/join")]
     [ProducesResponseType<RoomResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoomResponse>> JoinByToken(
-        string token, JoinInvitationRequest request, CancellationToken cancellationToken) =>
-        Ok(await invitations.JoinAsync(token, request, cancellationToken));
+        string token, JoinInvitationRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await invitations.JoinAsync(token, request, cancellationToken));
+    }
 }

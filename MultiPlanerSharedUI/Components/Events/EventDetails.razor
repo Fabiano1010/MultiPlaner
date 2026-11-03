@@ -2,8 +2,10 @@
 @inject ApiClient Api
 
 <Popup IsVisible="IsVisible" Title="@(_editing ? "Edit event" : "Event details")" OnClose="HandleClose">
-    @if (Event is not null) {
-        @if (!_editing) {
+    @if (Event is not null)
+    {
+        @if (!_editing)
+        {
             <div class="event-details">
                 <div class="event-details-color-bar" style="background-color: #@Event.Color"></div>
 
@@ -35,7 +37,8 @@
                     </span>
                 </div>
 
-                @if (Event.IsAllDay) {
+                @if (Event.IsAllDay)
+                {
                     <div class="event-details-row">
                         <span class="event-details-label">Time</span>
                         <span class="event-details-value">All day</span>
@@ -47,7 +50,8 @@
                         @(Event.IsHighPriority ? "High" : "Normal")
                     </span>
                 </div>
-                @if (!string.IsNullOrEmpty(Event.Description)) {
+                @if (!string.IsNullOrEmpty(Event.Description))
+                {
                     <div class="event-details-row event-details-row-column">
                         <span class="event-details-label">Description</span>
                         <span class="event-details-value">@Event.Description</span>
@@ -56,22 +60,26 @@
 
 
 
-                @if (!string.IsNullOrEmpty(_errorMessage)) {
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
                     <div class="form-error">@_errorMessage</div>
                 }
 
                 <div class="form-actions">
-                    @if (Event.Permissions.CanDelete) {
+                    @if (Event.Permissions.CanDelete)
+                    {
                         <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">Delete
                         </button>
                     }
-                    @if (Event.Permissions.CanEdit) {
+                    @if (Event.Permissions.CanEdit)
+                    {
                         <button type="button" class="btn-main btn-save" @onclick="StartEdit">Edit</button>
                     }
                 </div>
             </div>
         }
-        else {
+        else
+        {
             <form class="add-event-form" @onsubmit="SaveAsync" @onsubmit:preventDefault>
                 <div class="form-group">
                     <label>Event name</label>
@@ -89,7 +97,8 @@
                     <label><input type="checkbox" @bind="_allDay"/> All day</label>
                 </div>
 
-                @if (!_allDay) {
+                @if (!_allDay)
+                {
                     <div class="form-row">
                         <div class="form-group"><label>From</label>
                             <input type="time" class="input-main" @bind="_startTime"/></div>
@@ -102,7 +111,8 @@
                     <div class="form-group">
                         <label>Event type</label>
                         <select class="input-main" @bind="_eventTypeId">
-                            @foreach (var c in _types) {
+                            @foreach (var c in _types)
+                            {
                                 <option value="@c.Id">@c.Name @(c.IsArchived ? "(archived)" : "")</option>
                             }
                         </select>
@@ -123,7 +133,8 @@
                     <label><input type="checkbox" @bind="_highPriority"/> High priority</label>
                 </div>
 
-                @if (!string.IsNullOrEmpty(_errorMessage)) {
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
                     <div class="form-error">@_errorMessage</div>
                 }
 
@@ -173,8 +184,10 @@
 
     private string EventUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
 
-    protected override void OnParametersSet() {
-        if (IsVisible && !_wasVisible) {
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && !_wasVisible)
+        {
             _editing = false;
             _errorMessage = "";
         }
@@ -182,11 +195,19 @@
         _wasVisible = IsVisible;
     }
 
-    private async Task StartEdit() {
+    private async Task StartEdit()
+    {
         if (Event is null) return;
         var e = Event;
-        try { _types = (await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? []).Where(t => !t.IsArchived || t.Id == e.EventTypeId).ToList(); }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException) { _errorMessage = ex.Message; return; }
+        try
+        {
+            _types = (await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? []).Where(t => !t.IsArchived || t.Id == e.EventTypeId).ToList();
+        }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException)
+        {
+            _errorMessage = ex.Message;
+            return;
+        }
 
         _title = e.Title;
         _description = e.Description;
@@ -196,13 +217,15 @@
         _defaultColor = e.CustomColor is null;
         _color = "#" + e.Color;
 
-        if (e.IsAllDay && e.StartDate is { } s && e.EndDateExclusive is { } x) {
+        if (e.IsAllDay && e.StartDate is { } s && e.EndDateExclusive is { } x)
+        {
             _start = s;
             _end = x.AddDays(-1) < s ? s : x.AddDays(-1);
             _startTime = new TimeOnly(9, 0);
             _endTime = new TimeOnly(10, 0);
         }
-        else {
+        else
+        {
             (_start, _startTime) = EventDays.ToLocal(e.StartsAtUtc, e.RoomTimeZoneId);
             (_end, _endTime) = EventDays.ToLocal(e.EndsAtUtc, e.RoomTimeZoneId);
         }
@@ -211,58 +234,71 @@
         _editing = true;
     }
 
-    private void CancelEdit() {
+    private void CancelEdit()
+    {
         _editing = false;
         _errorMessage = "";
     }
 
-    private async Task SaveAsync() {
+    private async Task SaveAsync()
+    {
         if (Event is null) return;
         var title = _title.Trim();
-        if (title.Length is < 1 or > 128) {
+        if (title.Length is < 1 or > 128)
+        {
             _errorMessage = "Event name is required (max 128 characters).";
             return;
         }
 
-        if (_end < _start) {
+        if (_end < _start)
+        {
             _errorMessage = "End date must not be before start date.";
             return;
         }
 
         EventTimeRequest time;
 
-        try {
-            if (_allDay) {
-                time = new EventTimeRequest {
+        try
+        {
+            if (_allDay)
+            {
+                time = new EventTimeRequest
+                {
                     IsAllDay = true,
                     StartDate = _start,
                     EndDateExclusive = _end.AddDays(1)
                 };
             }
-            else {
+            else
+            {
                 var from = EventDays.ToUtc(_start, _startTime, Event.RoomTimeZoneId);
                 var to = EventDays.ToUtc(_end, _endTime, Event.RoomTimeZoneId);
-                if (to <= from) {
+                if (to <= from)
+                {
                     _errorMessage = "End date must be before start date.";
                     return;
                 }
 
-                time = new EventTimeRequest {
+                time = new EventTimeRequest
+                {
                     IsAllDay = false,
                     StartsAtUtc = from,
                     EndsAtUtc = to
                 };
             }
         }
-        catch (TimeZoneNotFoundException) {
+        catch (TimeZoneNotFoundException)
+        {
             _errorMessage = "No time zone was found.";
             return;
         }
 
         _isSaving = true;
         _errorMessage = "";
-        try {
-            var res = await Api.PatchAsync(EventUrl, new UpdateEventRequest {
+        try
+        {
+            var res = await Api.PatchAsync(EventUrl, new UpdateEventRequest
+            {
                 Title = title,
                 Description = _description?.Trim(),
                 Time = time,
@@ -276,22 +312,27 @@
             await OnChanged.InvokeAsync();
             await OnClose.InvokeAsync();
         }
-        catch (ApiException e) when (e.Status == 409) {
+        catch (ApiException e) when (e.Status == 409)
+        {
             _errorMessage = "This event was changed by someone else. Reloading…";
             await OnChanged.InvokeAsync();
         }
-        catch (ApiException e) {
+        catch (ApiException e)
+        {
             _errorMessage = e.Message;
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _errorMessage = "Cannot reach the server. " + e.Message;
         }
-        finally {
+        finally
+        {
             _isSaving = false;
         }
     }
 
-    private async Task DeleteAsync() {
+    private async Task DeleteAsync()
+    {
         if (Event is null) return;
 
         var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
@@ -302,7 +343,8 @@
         await OnClose.InvokeAsync();
     }
 
-    private Task HandleClose() {
+    private Task HandleClose()
+    {
         _editing = false;
         _errorMessage = "";
         return OnClose.InvokeAsync();

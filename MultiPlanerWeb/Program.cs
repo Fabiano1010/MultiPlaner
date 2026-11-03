@@ -27,13 +27,13 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<ApiAuthStateProvider>());
 builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<AuthService>();
-        builder.Services.AddScoped<ThemeService>();
+builder.Services.AddScoped<ThemeService>();
 
 // Domain Services
 builder.Services.AddScoped<EventService>();
 builder.Services.AddScoped<RoomSelection>();
 var host = builder.Build();
 
-MultiPlanerSharedModels.Services.AppCulture.Apply();
+AppCulture.Apply();
 
 await host.RunAsync();

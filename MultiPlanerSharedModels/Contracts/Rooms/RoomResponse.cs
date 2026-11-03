@@ -1,17 +1,18 @@
 namespace MultiPlanerSharedModels.Contracts.Rooms;
 
 public sealed record RoomResponse(
-    int Id, 
-    string Name, 
-    string TimeZoneId, 
+    int Id,
+    string Name,
+    string TimeZoneId,
     int OwnerUserId,
     int MemberId,
-    bool IsOwner, 
-    DateTimeOffset ExpiresAtUtc, 
+    bool IsOwner,
+    DateTimeOffset ExpiresAtUtc,
     DateTimeOffset? ArchivedAtUtc,
     RoomInvitationResponse? InitialInvitation = null,
     RoomMembershipResponse? Membership = null,
     bool ArchiveOnExpiry = false,
     string? OwnerDisplayName = null,
     byte[]? RowVersion = null,
-    bool HasCover = false, bool IsAdmin = false);
+    bool HasCover = false,
+    bool IsAdmin = false);

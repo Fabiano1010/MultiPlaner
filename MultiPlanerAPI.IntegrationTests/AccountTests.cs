@@ -73,8 +73,11 @@ public sealed class AccountTests(ApiFixture fixture)
         await ApiFixture.CsrfAsync(second);
         var email = $"duplicate-{Guid.NewGuid():N}@example.com";
         var responses = await Task.WhenAll(
-            first.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = email, Password = ApiFixture.Password, DisplayName = "First User" }),
-            second.PostAsJsonAsync("/api/auth/register", new RegisterRequest { Email = email.ToUpperInvariant(), Password = ApiFixture.Password, DisplayName = "Second User" }));
+            first.PostAsJsonAsync("/api/auth/register",
+                new RegisterRequest { Email = email, Password = ApiFixture.Password, DisplayName = "First User" }),
+            second.PostAsJsonAsync("/api/auth/register",
+                new RegisterRequest
+                    { Email = email.ToUpperInvariant(), Password = ApiFixture.Password, DisplayName = "Second User" }));
         Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Created);
         await AssertProblem(Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict),
             HttpStatusCode.Conflict, "email_already_registered");
@@ -88,11 +91,13 @@ public sealed class AccountTests(ApiFixture fixture)
         var email = $"invalid-{Guid.NewGuid():N}@example.com";
         var response = await client.PostAsJsonAsync("/api/auth/register", new RegisterRequest
         {
-            Email = email, Password = ApiFixture.Password, DisplayName = "Person", CountryCode = "ZZ", TimeZoneId = "Mars/Olympus"
+            Email = email, Password = ApiFixture.Password, DisplayName = "Person", CountryCode = "ZZ",
+            TimeZoneId = "Mars/Olympus"
         });
         await AssertProblem(response, HttpStatusCode.BadRequest, "validation_failed");
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
-        Assert.False(await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.AnyAsync(u => u.Email == email));
+        Assert.False(await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users
+            .AnyAsync(u => u.Email == email));
     }
 
     [Fact]
@@ -122,13 +127,15 @@ public sealed class AccountTests(ApiFixture fixture)
             });
             await AssertProblem(response, HttpStatusCode.Unauthorized, "invalid_credentials");
         }
+
         var locked = await attacker.PostAsJsonAsync("/api/auth/login", new LoginRequest
         {
             Email = user.Email!, Password = ApiFixture.Password
         });
         await AssertProblem(locked, HttpStatusCode.Unauthorized, "invalid_credentials");
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
-        var account = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.SingleAsync(u => u.Id == user.UserId);
+        var account = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users
+            .SingleAsync(u => u.Id == user.UserId);
         Assert.True(account.LockoutEnd > DateTimeOffset.UtcNow);
     }
 
@@ -137,7 +144,7 @@ public sealed class AccountTests(ApiFixture fixture)
     {
         var (client, _, cookie) = await fixture.RegisterAndLoginAsync();
         using (client)
-        using (var copied = fixture.Client(handleCookies: false))
+        using (var copied = fixture.Client(false))
         {
             copied.DefaultRequestHeaders.Add("Cookie", cookie);
             Assert.Equal(HttpStatusCode.OK, (await copied.GetAsync("/api/me")).StatusCode);
@@ -178,7 +185,8 @@ public sealed class AccountTests(ApiFixture fixture)
         var (client, _, _) = await fixture.RegisterAndLoginAsync();
         using (client)
         {
-            await AssertProblem(await client.PatchAsJsonAsync("/api/me", new { displayName = "Attacker", userId = 1, role = "Owner" }),
+            await AssertProblem(
+                await client.PatchAsJsonAsync("/api/me", new { displayName = "Attacker", userId = 1, role = "Owner" }),
                 HttpStatusCode.BadRequest, "validation_failed");
             client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
             await AssertProblem(await client.PatchAsJsonAsync("/api/me", new { displayName = "Other Name" }),
@@ -204,7 +212,8 @@ public sealed class AccountTests(ApiFixture fixture)
         allowed.Headers.Add("Origin", "https://client.example");
         allowed.Headers.Add("Access-Control-Request-Method", "POST");
         var allowedResponse = await client.SendAsync(allowed);
-        Assert.Equal("https://client.example", Assert.Single(allowedResponse.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Equal("https://client.example",
+            Assert.Single(allowedResponse.Headers.GetValues("Access-Control-Allow-Origin")));
         var denied = new HttpRequestMessage(HttpMethod.Options, "/api/auth/login");
         denied.Headers.Add("Origin", "https://attacker.example");
         denied.Headers.Add("Access-Control-Request-Method", "POST");
@@ -223,7 +232,8 @@ public sealed class AccountTests(ApiFixture fixture)
             "/api/auth/register", "/api/auth/reset-password",
             "/api/invitations/join", "/api/invitations/preview",
             "/api/invitations/{token}", "/api/invitations/{token}/join", "/api/me",
-            "/api/me/events", "/api/me/theme", "/api/me/themes", "/api/me/themes/{themeId}", "/api/me/avatar", "/api/me/change-password",
+            "/api/me/events", "/api/me/theme", "/api/me/themes", "/api/me/themes/{themeId}", "/api/me/avatar",
+            "/api/me/change-password",
             "/api/users/{userId}/avatar", "/api/rooms/{roomId}/event-types", "/api/rooms/{roomId}/event-types/{typeId}",
             "/api/rooms/{roomId}/members/{memberId}", "/api/rooms/{roomId}/members/{memberId}/role",
             "/api/me/folders", "/api/me/folders/{folderId}",

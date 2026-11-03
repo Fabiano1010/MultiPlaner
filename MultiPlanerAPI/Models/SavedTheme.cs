@@ -1,5 +1,7 @@
 using MultiPlanerSharedModels.Contracts.Users;
+
 namespace MultiPlanerAPI.Models;
+
 public sealed class SavedTheme : TrackedEntity
 {
     public int Id { get; set; }

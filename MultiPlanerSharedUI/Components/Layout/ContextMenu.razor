@@ -1,4 +1,5 @@
-﻿@if (_visible) {
+﻿@if (_visible)
+{
     <div class="ctx-backdrop" @onclick="Hide" @oncontextmenu="Hide" @oncontextmenu:preventDefault></div>
     <div class="ctx-menu" style="left:min(@(_x)px, calc(100vw - 10rem)); top:min(@(_y)px, calc(100vh - 6rem));">
         @ChildContent
@@ -11,7 +12,8 @@
     private bool _visible;
     private double _x, _y;
 
-    public void Show(MouseEventArgs e) {
+    public void Show(MouseEventArgs e)
+    {
         _x = e.ClientX;
         _y = e.ClientY;
         _visible = true;
@@ -19,7 +21,8 @@
     }
 
 
-    public void Hide() {
+    public void Hide()
+    {
         _visible = false;
         StateHasChanged();
     }

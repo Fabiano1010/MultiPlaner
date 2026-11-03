@@ -29,8 +29,10 @@ public static class LocaleValidation
         return errors;
     }
 
-    private static bool IsIanaTimeZone(string id) =>
-        id == "UTC" ||
-        (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out _) &&
-         TimeZoneInfo.TryFindSystemTimeZoneById(id, out _));
+    private static bool IsIanaTimeZone(string id)
+    {
+        return id == "UTC" ||
+               (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out _) &&
+                TimeZoneInfo.TryFindSystemTimeZoneById(id, out _));
+    }
 }

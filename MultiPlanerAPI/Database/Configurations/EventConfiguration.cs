@@ -11,7 +11,8 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<CalendarEvent>
         b.ToTable("CalendarEvents", t =>
         {
             t.HasCheckConstraint("CK_CalendarEvent_Interval", "[EndsAtUtc] > [StartsAtUtc]");
-            t.HasCheckConstraint("CK_CalendarEvent_Color", "[Color] IS NULL OR (LEN([Color]) = 6 AND [Color] NOT LIKE '%[^0-9A-Fa-f]%')");
+            t.HasCheckConstraint("CK_CalendarEvent_Color",
+                "[Color] IS NULL OR (LEN([Color]) = 6 AND [Color] NOT LIKE '%[^0-9A-Fa-f]%')");
         });
         b.HasAlternateKey(x => new { x.Id, x.RoomId });
         b.Property(x => x.Title).HasMaxLength(128).IsRequired();
@@ -59,7 +60,8 @@ public sealed class AvailabilityConfiguration : IEntityTypeConfiguration<Availab
 {
     public void Configure(EntityTypeBuilder<AvailabilityInterval> b)
     {
-        b.ToTable("AvailabilityIntervals", t => t.HasCheckConstraint("CK_Availability_Interval", "[EndsAtUtc] > [StartsAtUtc]"));
+        b.ToTable("AvailabilityIntervals",
+            t => t.HasCheckConstraint("CK_Availability_Interval", "[EndsAtUtc] > [StartsAtUtc]"));
         b.HasOne<RoomMember>().WithMany().HasForeignKey(x => new { x.MemberId, x.RoomId })
             .HasPrincipalKey(x => new { x.Id, x.RoomId }).OnDelete(DeleteBehavior.NoAction);
         b.HasIndex(x => new { x.RoomId, x.MemberId, x.StartsAtUtc, x.EndsAtUtc });

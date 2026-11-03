@@ -6,7 +6,8 @@
                 <input type="text" @bind="_name" @bind:event="oninput"
                        class="input-main @(hasError ? "error-input" : "")"/>
             </div>
-            @if (hasError) {
+            @if (hasError)
+            {
                 <div class="form-error">@_error</div>
             }
             <div class="form-actions">
@@ -30,8 +31,10 @@
     private bool _isSaving, _wasVisible;
     private bool hasError => !string.IsNullOrEmpty(_error);
 
-    protected override void OnParametersSet() {
-        if (IsVisible && !_wasVisible) {
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && !_wasVisible)
+        {
             _name = CurrentName ?? "";
             _error = "";
         }
@@ -39,31 +42,38 @@
         _wasVisible = IsVisible;
     }
 
-    private async Task HandleClose() {
+    private async Task HandleClose()
+    {
         _error = "";
         await OnClose.InvokeAsync();
     }
 
-    private async Task HandleSave() {
+    private async Task HandleSave()
+    {
         var name = _name.Trim();
-        if (name.Length < 2 || name.Length > 128) {
+        if (name.Length < 2 || name.Length > 128)
+        {
             _error = "Name must be between 2 and 128 characters.";
             return;
         }
 
         _isSaving = true;
         _error = "";
-        try {
+        try
+        {
             await OnSave.InvokeAsync(name);
             await HandleClose();
         }
-        catch (ApiException e) {
+        catch (ApiException e)
+        {
             _error = e.Message;
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _error = "Cannot reach the server. " + e.Message;
         }
-        finally {
+        finally
+        {
             _isSaving = false;
         }
     }

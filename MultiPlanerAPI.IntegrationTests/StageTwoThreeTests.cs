@@ -41,10 +41,13 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
             var token = values["token"].ToString();
 
             Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/auth/reset-password",
-                new ResetPasswordRequest { Email = email, Token = token, NewPassword = "NewCorrect-Horse9!Battery" })).StatusCode);
+                    new ResetPasswordRequest
+                        { Email = email, Token = token, NewPassword = "NewCorrect-Horse9!Battery" }))
+                .StatusCode);
             await ApiFixture.CsrfAsync(client);
             await AccountTests.AssertProblem(await client.PostAsJsonAsync("/api/auth/reset-password",
-                new ResetPasswordRequest { Email = email, Token = token, NewPassword = "AgainCorrect-Horse9!Battery" }),
+                    new ResetPasswordRequest
+                        { Email = email, Token = token, NewPassword = "AgainCorrect-Horse9!Battery" }),
                 HttpStatusCode.BadRequest, "invalid_reset_token");
             Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/me")).StatusCode);
             Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/login",
@@ -63,7 +66,8 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
         using (other)
         {
             var room = await CreateRoomAsync(owner);
-            var response = await owner.PostAsJsonAsync("/api/me/folders", new CreateUserFolderRequest { Name = "Team" });
+            var response =
+                await owner.PostAsJsonAsync("/api/me/folders", new CreateUserFolderRequest { Name = "Team" });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             var folder = (await response.Content.ReadFromJsonAsync<UserFolderResponse>())!;
             Assert.Equal(HttpStatusCode.NoContent,
@@ -79,7 +83,7 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
             var updated = (await updatedResponse.Content.ReadFromJsonAsync<UserFolderResponse>())!;
             Assert.True(updated.IsFavourite);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/me/folders/{folder.Id}",
-                new UpdateUserFolderRequest { Name = "Stale", RowVersion = folder.RowVersion }),
+                    new UpdateUserFolderRequest { Name = "Stale", RowVersion = folder.RowVersion }),
                 HttpStatusCode.Conflict, "concurrency_conflict");
             Assert.Equal(HttpStatusCode.NoContent,
                 (await owner.DeleteAsync($"/api/me/folders/{folder.Id}")).StatusCode);
@@ -106,7 +110,7 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
                 new UpdateRoomRequest { Name = "Changed", RowVersion = room.RowVersion! });
             Assert.Equal(HttpStatusCode.OK, updatedResponse.StatusCode);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}",
-                new UpdateRoomRequest { Name = "Stale", RowVersion = room.RowVersion! }),
+                    new UpdateRoomRequest { Name = "Stale", RowVersion = room.RowVersion! }),
                 HttpStatusCode.Conflict, "concurrency_conflict");
             var rotated = await owner.PostAsJsonAsync($"/api/rooms/{room.Id}/invitations",
                 new CreateRoomInvitationRequest());
@@ -181,6 +185,9 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
         return (await result.Content.ReadFromJsonAsync<RoomResponse>())!;
     }
 
-    private static string UserCookie(HttpResponseMessage response) => response.Headers.GetValues("Set-Cookie")
-        .Single(c => c.StartsWith(MultiPlanerAPI.Modules.Users.SessionAuthentication.UserCookie + "=", StringComparison.Ordinal));
+    private static string UserCookie(HttpResponseMessage response)
+    {
+        return response.Headers.GetValues("Set-Cookie")
+            .Single(c => c.StartsWith(Modules.Users.SessionAuthentication.UserCookie + "=", StringComparison.Ordinal));
+    }
 }

@@ -46,7 +46,8 @@ public sealed class RoomInvitationConfiguration : IEntityTypeConfiguration<RoomI
         b.ToTable("RoomInvitations", t =>
         {
             t.HasCheckConstraint("CK_RoomInvitation_Expiry", "[ExpiresAtUtc] > [CreatedAtUtc]");
-            t.HasCheckConstraint("CK_RoomInvitation_Uses", "[UseCount] >= 0 AND ([MaxUses] IS NULL OR ([MaxUses] > 0 AND [UseCount] <= [MaxUses]))");
+            t.HasCheckConstraint("CK_RoomInvitation_Uses",
+                "[UseCount] >= 0 AND ([MaxUses] IS NULL OR ([MaxUses] > 0 AND [UseCount] <= [MaxUses]))");
         });
         b.Property(x => x.TokenHash).HasMaxLength(64).IsUnicode(false).IsRequired();
         b.Property(x => x.ProtectedToken).HasMaxLength(2048);

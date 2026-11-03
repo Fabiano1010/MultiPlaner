@@ -121,6 +121,7 @@
 .bell-btn {
     transform: rotate(25deg);
 }
+
 /*.bell-btn:active{*/
 /*    animation: ding_dong 1s forwards;*/
 /*}*/
@@ -191,17 +192,19 @@
 
 
 .calendar-cell.sunday {
-    background: var(--surface); color:var(--surface-text);
+    background: var(--surface);
+    color: var(--surface-text);
 }
 
 .calendar-cell.saturday {
-    background: var(--surface); color:var(--surface-text);
+    background: var(--surface);
+    color: var(--surface-text);
 }
 
 .calendar-cell:hover {
     background: var(--surface);
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .calendar-cell.other-month .day-number {
@@ -227,7 +230,7 @@
 .calendar-cell.in-range {
     background: var(--selection-background);
 
-    color:var(--selection-text);
+    color: var(--selection-text);
 }
 
 .calendar-cell.range-start,
@@ -435,7 +438,7 @@
     font-size: 1.2rem;
     transition: background-color 0.25s ease-in-out;
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .events-item:hover {
@@ -542,7 +545,15 @@
 }
 
 
+.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number {
+    color: var(--accent-text);
+}
 
-.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number { color:var(--accent-text); }
-.calendar-cell.in-range { color:var(--selection-text); }
-.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) { background:var(--hover-background); color:var(--surface-text); }
+.calendar-cell.in-range {
+    color: var(--selection-text);
+}
+
+.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) {
+    background: var(--hover-background);
+    color: var(--surface-text);
+}

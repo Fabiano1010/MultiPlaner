@@ -8,9 +8,14 @@ using MultiPlanerSharedModels.Contracts.Rooms;
 namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class InvitationService(
-    AppDbContext db, DbContextOptions<AppDbContext> dbOptions, CurrentActor actor,
-    GuestSessionService guests, TimeProvider clock, InvitationLinkBuilder links,
-    RoomAccessService access, InvitationTokenProtector tokens)
+    AppDbContext db,
+    DbContextOptions<AppDbContext> dbOptions,
+    CurrentActor actor,
+    GuestSessionService guests,
+    TimeProvider clock,
+    InvitationLinkBuilder links,
+    RoomAccessService access,
+    InvitationTokenProtector tokens)
 {
     public async Task<RoomInvitationResponse> CreateAsync(
         int roomId, CreateRoomInvitationRequest request, CancellationToken cancellationToken)
@@ -55,7 +60,11 @@ public sealed class InvitationService(
         var issuedAt = clock.GetUtcNow();
         await LockRoomAsync(operationDb, roomId, userId, issuedAt, cancellationToken);
         var lockedRoom = await operationDb.Rooms.SingleAsync(r => r.Id == roomId, cancellationToken);
-        if (expiry > lockedRoom.ExpiresAtUtc) throw new ApiException(409, "room_changed", "Room expiry changed. Reload and retry.");
+        if (expiry > lockedRoom.ExpiresAtUtc)
+        {
+            throw new ApiException(409, "room_changed", "Room expiry changed. Reload and retry.");
+        }
+
         if (expiry <= issuedAt)
         {
             throw ApiException.Validation(new Dictionary<string, string[]>
@@ -80,11 +89,13 @@ public sealed class InvitationService(
     }
 
     private static Task<int> RevokeActiveInvitationsAsync(AppDbContext operationDb, int roomId,
-        DateTimeOffset issuedAt, CancellationToken cancellationToken) =>
-        operationDb.RoomInvitations.Where(i => i.RoomId == roomId && i.RevokedAtUtc == null)
+        DateTimeOffset issuedAt, CancellationToken cancellationToken)
+    {
+        return operationDb.RoomInvitations.Where(i => i.RoomId == roomId && i.RevokedAtUtc == null)
             .ExecuteUpdateAsync(update => update
                 .SetProperty(i => i.RevokedAtUtc, issuedAt)
                 .SetProperty(i => i.UpdatedAtUtc, issuedAt), cancellationToken);
+    }
 
     /// <summary>Serializes concurrent invitation rotations by updating the owning room.</summary>
     private async Task LockRoomAsync(AppDbContext operationDb, int roomId, int userId,
@@ -151,6 +162,7 @@ public sealed class InvitationService(
 
             displayName = request.DisplayName.Trim();
         }
+
         return displayName;
     }
 
@@ -163,9 +175,9 @@ public sealed class InvitationService(
         access.RequireActive(room);
         var existingMember = await operationDb.RoomMembers.FirstOrDefaultAsync(m =>
             m.RoomId == room.Id &&
-            (userId != null && m.UserId == userId ||
-             guestId != null && m.GuestSessionId == guestId ||
-             newGuestId != null && m.GuestSessionId == newGuestId), cancellationToken);
+            ((userId != null && m.UserId == userId) ||
+             (guestId != null && m.GuestSessionId == guestId) ||
+             (newGuestId != null && m.GuestSessionId == newGuestId)), cancellationToken);
         if (existingMember is { LeftAtUtc: null })
         {
             return RoomService.ToResponse(room, existingMember, clock.GetUtcNow(),
@@ -175,7 +187,8 @@ public sealed class InvitationService(
 
         var now = clock.GetUtcNow();
         await ConsumeInvitationAsync(operationDb, invitation.Id, now, cancellationToken);
-        var member = existingMember ?? AddParticipant(operationDb, room.Id, userId, guestId, newGuestId, displayName, now);
+        var member = existingMember ??
+                     AddParticipant(operationDb, room.Id, userId, guestId, newGuestId, displayName, now);
         member.LeftAtUtc = null;
         member.IsAdmin = false;
         await operationDb.SaveChangesAsync(cancellationToken);
@@ -195,6 +208,7 @@ public sealed class InvitationService(
                 Id = sessionId, DisplayName = displayName, ExpiresAtUtc = now.AddDays(30)
             });
         }
+
         var member = new RoomMember
         {
             RoomId = roomId,
@@ -210,9 +224,11 @@ public sealed class InvitationService(
         DateTimeOffset now, CancellationToken cancellationToken)
     {
         var consumed = await operationDb.RoomInvitations.Where(i => i.Id == invitationId &&
-                i.RevokedAtUtc == null && i.ExpiresAtUtc > now &&
-                (i.MaxUses == null || i.UseCount < i.MaxUses) &&
-                operationDb.Rooms.Any(r => r.Id == i.RoomId && r.ArchivedAtUtc == null && r.ExpiresAtUtc > now))
+                                                                    i.RevokedAtUtc == null && i.ExpiresAtUtc > now &&
+                                                                    (i.MaxUses == null || i.UseCount < i.MaxUses) &&
+                                                                    operationDb.Rooms.Any(r =>
+                                                                        r.Id == i.RoomId && r.ArchivedAtUtc == null &&
+                                                                        r.ExpiresAtUtc > now))
             .ExecuteUpdateAsync(update => update
                 .SetProperty(i => i.UseCount, i => i.UseCount + 1)
                 .SetProperty(i => i.UpdatedAtUtc, now), cancellationToken);
@@ -222,17 +238,21 @@ public sealed class InvitationService(
         }
     }
 
-    public Task RevokeAsync(int roomId, Guid invitationId, CancellationToken ct) =>
-        new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) => {
+    public Task RevokeAsync(int roomId, Guid invitationId, CancellationToken ct)
+    {
+        return new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
+        {
             var roomAccess = new RoomAccessService(context, actor, clock);
             await roomAccess.RequireManagerAsync(roomId, ct);
             roomAccess.RequireActive(room);
-            var invitation = await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)
+            var invitation =
+                await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)
                 ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
             invitation.RevokedAtUtc ??= clock.GetUtcNow();
             await context.SaveChangesAsync(ct);
             return true;
         }, ct);
+    }
 
     public async Task<RoomInvitationResponse> GetCurrentAsync(int roomId, CancellationToken cancellationToken)
     {
@@ -240,16 +260,22 @@ public sealed class InvitationService(
         access.RequireActive(room);
         var now = clock.GetUtcNow();
         var invitation = await db.RoomInvitations.AsNoTracking()
-            .Where(i => i.RoomId == roomId && i.RevokedAtUtc == null && i.ExpiresAtUtc > now &&
-                        (i.MaxUses == null || i.UseCount < i.MaxUses))
-            .OrderByDescending(i => i.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken)
-            ?? throw new ApiException(404, "invitation_not_found", "No active invitation exists.");
+                             .Where(i => i.RoomId == roomId && i.RevokedAtUtc == null && i.ExpiresAtUtc > now &&
+                                         (i.MaxUses == null || i.UseCount < i.MaxUses))
+                             .OrderByDescending(i => i.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken)
+                         ?? throw new ApiException(404, "invitation_not_found", "No active invitation exists.");
         if (invitation.ProtectedToken is null)
+        {
             throw new ApiException(409, "invitation_regeneration_required",
                 "This invitation predates recoverable links. Generate a new invitation.");
+        }
+
         var token = tokens.Unprotect(invitation.ProtectedToken);
         if (InvitationTokens.Hash(token) != invitation.TokenHash)
+        {
             throw new ApiException(500, "invalid_invitation_storage", "Stored invitation could not be verified.");
+        }
+
         return links.CreateResponse(invitation, token);
     }
 
@@ -263,12 +289,12 @@ public sealed class InvitationService(
 
         var hash = InvitationTokens.Hash(token);
         var invitation = await db.RoomInvitations.AsNoTracking().SingleOrDefaultAsync(
-            i => i.TokenHash == hash, cancellationToken)
-            ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
+                             i => i.TokenHash == hash, cancellationToken)
+                         ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
         var room = await db.Rooms.AsNoTracking().SingleAsync(r => r.Id == invitation.RoomId, cancellationToken);
         var now = clock.GetUtcNow();
         if (room.ArchivedAtUtc is not null || room.ExpiresAtUtc <= now || invitation.RevokedAtUtc is not null ||
-            invitation.ExpiresAtUtc <= now || invitation.MaxUses is { } max && invitation.UseCount >= max)
+            invitation.ExpiresAtUtc <= now || (invitation.MaxUses is { } max && invitation.UseCount >= max))
         {
             throw new ApiException(410, "invitation_unavailable", "Invitation has expired or reached its use limit.");
         }
@@ -276,7 +302,8 @@ public sealed class InvitationService(
         return (invitation, room);
     }
 
-    private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second) =>
-        first < second ? first : second;
-
+    private static DateTimeOffset Min(DateTimeOffset first, DateTimeOffset second)
+    {
+        return first < second ? first : second;
+    }
 }
