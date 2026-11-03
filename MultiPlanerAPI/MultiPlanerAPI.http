@@ -207,10 +207,12 @@ POST {{MultiPlanerAPI_HostAddress}}/api/auth/logout
 X-CSRF-TOKEN: {{csrfToken}}
 
 ### Etap 4 — lista wydarzeń pokoju (zakres [from,to), JSON PagedResponse)
-GET {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/events?from=2026-10-01T00:00:00Z&to=2026-12-01T00:00:00Z&page=1&pageSize=50
+GET {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/events?from=2026-10-01T00:00:00Z&to=2026-12-01T00:00:00Z&page=1&
+    pageSize=50
 
 ### Globalna lista wszystkich dostępnych wydarzeń
-GET {{MultiPlanerAPI_HostAddress}}/api/me/events?from=2026-10-01T00:00:00Z&to=2026-12-01T00:00:00Z&status=all&isHighPriority=true
+GET {{MultiPlanerAPI_HostAddress}}/api/me/events?from=2026-10-01T00:00:00Z&to=2026-12-01T00:00:00Z&status=all&
+    isHighPriority=true
 
 ### Utworzenie wydarzenia — autora ustala serwer
 POST {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/events
@@ -237,7 +239,11 @@ X-CSRF-TOKEN: {{csrfToken}}
 
 {
   "title": "Urlop",
-  "time": { "isAllDay": true, "startDate": "2026-11-03", "endDateExclusive": "2026-11-04" },
+  "time": {
+    "isAllDay": true,
+    "startDate": "2026-11-03",
+    "endDateExclusive": "2026-11-04"
+  },
   "category": "Leave"
 }
 
@@ -251,21 +257,30 @@ PATCH {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/events/{{eventId}}
 Content-Type: application/json
 X-CSRF-TOKEN: {{csrfToken}}
 
-{ "title": "Zmienione planowanie", "color": "", "rowVersion": "{{eventRowVersion}}" }
+{
+  "title": "Zmienione planowanie",
+  "color": "",
+  "rowVersion": "{{eventRowVersion}}"
+}
 
 ### Przypięcie przez autora lub właściciela; użyj NOWEJ wersji po PATCH
 PUT {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/events/{{eventId}}/pin
 Content-Type: application/json
 X-CSRF-TOKEN: {{csrfToken}}
 
-{ "isPinned": true, "rowVersion": "{{eventRowVersion}}" }
+{
+  "isPinned": true,
+  "rowVersion": "{{eventRowVersion}}"
+}
 
 ### Usunięcie wymaga wersji w JSON body; tylko autor
 DELETE {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/events/{{eventId}}
 Content-Type: application/json
 X-CSRF-TOKEN: {{csrfToken}}
 
-{ "rowVersion": "{{eventRowVersion}}" }
+{
+  "rowVersion": "{{eventRowVersion}}"
+}
 
 ### Opuszczenie pokoju przez uczestnika (właściciel dostaje 409)
 DELETE {{MultiPlanerAPI_HostAddress}}/api/rooms/{{roomId}}/members/me

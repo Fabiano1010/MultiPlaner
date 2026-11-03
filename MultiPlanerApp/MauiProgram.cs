@@ -22,10 +22,7 @@ public static class MauiProgram
 
         // Hosting MAUI / Blazor Hybrid
         builder.UseMauiApp<App>()
-            .ConfigureFonts(fonts =>
-            {
-                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-            });
+            .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
         builder.Services.AddMauiBlazorWebView();
 
         // Konfiguracja (appsettings.json)
@@ -77,7 +74,8 @@ public static class MauiProgram
             : config["Api:BaseUrlDefault"];
 
         if (string.IsNullOrWhiteSpace(apiBaseUrl))
-            throw new InvalidOperationException("Configure Api:BaseUrlDefault / Api:BaseUrlAndroid w appsettings.json.");
+            throw new InvalidOperationException(
+                "Configure Api:BaseUrlDefault / Api:BaseUrlAndroid w appsettings.json.");
 
         var handler = new HttpClientHandler
         {

@@ -1,4 +1,5 @@
 namespace MultiPlanerAPI.Models;
+
 public sealed class RoomEventType : TrackedEntity
 {
     public int Id { get; set; }

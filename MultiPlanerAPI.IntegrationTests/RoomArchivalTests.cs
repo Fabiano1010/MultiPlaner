@@ -27,11 +27,14 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             Assert.Equal(expiry, archived.ArchivedAtUtc);
             Assert.True(archived.ArchiveOnExpiry);
             Assert.DoesNotContain((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms"))!, r => r.Id == room.Id);
-            Assert.Contains((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=archived"))!, r => r.Id == room.Id);
-            Assert.Contains((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=all"))!, r => r.Id == room.Id);
+            Assert.Contains((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=archived"))!,
+                r => r.Id == room.Id);
+            Assert.Contains((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=all"))!,
+                r => r.Id == room.Id);
             Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync($"/api/rooms/{room.Id}/members")).StatusCode);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}",
-                new UpdateRoomRequest { Name = "Must not change", RowVersion = room.RowVersion! }), HttpStatusCode.Conflict, "room_inactive");
+                    new UpdateRoomRequest { Name = "Must not change", RowVersion = room.RowVersion! }),
+                HttpStatusCode.Conflict, "room_inactive");
             await AccountTests.AssertProblem(await owner.GetAsync(room.InitialInvitation!.JoinPath),
                 HttpStatusCode.Gone, "invitation_unavailable");
 
@@ -64,7 +67,8 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
                 HttpStatusCode.Gone, "room_expired");
             await AccountTests.AssertProblem(await owner.PostAsync($"/api/rooms/{room.Id}/archive", null),
                 HttpStatusCode.Conflict, "room_inactive");
-            Assert.DoesNotContain((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=all"))!, r => r.Id == room.Id);
+            Assert.DoesNotContain((await owner.GetFromJsonAsync<RoomResponse[]>("/api/rooms?status=all"))!,
+                r => r.Id == room.Id);
         }
     }
 
@@ -90,7 +94,8 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             var manualDate = await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync();
             Assert.NotNull(manualDate);
             await new RoomArchivalService(db, new FixedClock(laterExpiry)).ArchiveDueAsync(default);
-            Assert.Equal(manualDate, await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync());
+            Assert.Equal(manualDate,
+                await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync());
         }
     }
 
@@ -115,6 +120,9 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => now;
+        public override DateTimeOffset GetUtcNow()
+        {
+            return now;
+        }
     }
 }

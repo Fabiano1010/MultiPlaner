@@ -1,7 +1,9 @@
 namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomArchivalWorker(
-    IServiceScopeFactory scopes, IConfiguration configuration, TimeProvider clock,
+    IServiceScopeFactory scopes,
+    IConfiguration configuration,
+    TimeProvider clock,
     ILogger<RoomArchivalWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -64,7 +64,7 @@ public sealed class RoomMembershipTests(ApiFixture fixture)
             Assert.Equal(HttpStatusCode.OK,
                 (await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}/members/me", request)).StatusCode);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}/members/me",
-                new UpdateRoomMembershipRequest { DisplayName = "Stale", RowVersion = initial.RowVersion }),
+                    new UpdateRoomMembershipRequest { DisplayName = "Stale", RowVersion = initial.RowVersion }),
                 HttpStatusCode.Conflict, "concurrency_conflict");
             Assert.Equal(initial.DisplayName, (await GetAsync(owner, room.Id)).DisplayName);
         }
@@ -107,7 +107,7 @@ public sealed class RoomMembershipTests(ApiFixture fixture)
             var updated = (await response.Content.ReadFromJsonAsync<RoomMembershipResponse>())!;
             Assert.True(updated.NotificationsMuted);
             await AccountTests.AssertProblem(await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}/members/me",
-                new UpdateRoomMembershipRequest { Color = "123456", RowVersion = updated.RowVersion }),
+                    new UpdateRoomMembershipRequest { Color = "123456", RowVersion = updated.RowVersion }),
                 HttpStatusCode.Conflict, "room_inactive");
         }
     }
@@ -126,6 +126,8 @@ public sealed class RoomMembershipTests(ApiFixture fixture)
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
     }
 
-    private static async Task<RoomMembershipResponse> GetAsync(HttpClient client, int roomId) =>
-        (await client.GetFromJsonAsync<RoomMembershipResponse>($"/api/rooms/{roomId}/members/me"))!;
+    private static async Task<RoomMembershipResponse> GetAsync(HttpClient client, int roomId)
+    {
+        return (await client.GetFromJsonAsync<RoomMembershipResponse>($"/api/rooms/{roomId}/members/me"))!;
+    }
 }

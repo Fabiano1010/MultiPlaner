@@ -20,21 +20,26 @@
 <div class="folders-collapse @(_areFoldersHidden ? "collapsed" : "")">
     <div class="folders-collapse-inner">
         <div class="folders-container">
-            @if (_isLoading) {
+            @if (_isLoading)
+            {
                 <LoadingSpinner/>
             }
-            else if (!string.IsNullOrEmpty(_errorMessage)) {
+            else if (!string.IsNullOrEmpty(_errorMessage))
+            {
                 <div class="error-message">@_errorMessage</div>
             }
-            else if (_folders is not null && _folders.Count > 0) {
-                foreach (var folder in _folders.OrderByDescending(f => f.IsFavourite)) {
+            else if (_folders is not null && _folders.Count > 0)
+            {
+                foreach (var folder in _folders.OrderByDescending(f => f.IsFavourite))
+                {
                     <Folder @key="folder.Id" FolderData="folder"
                             OnConflict="() => LoadFoldersAsync()"
                             OnFavouriteChanged="() => LoadFoldersAsync(true)"
                             OnChanged="() => LoadFoldersAsync(true)"/>
                 }
             }
-            else {
+            else
+            {
                 <div class="no-folders-message">Hey add some folders!</div>
             }
         </div>
@@ -47,26 +52,33 @@
     private List<UserFolderResponse>? _folders = new();
 
     private bool _areFoldersHidden;
-    private async Task HideFoldersAsync() {
+
+    private async Task HideFoldersAsync()
+    {
         _areFoldersHidden = !_areFoldersHidden;
     }
 
-    protected override async Task OnInitializedAsync() {
+    protected override async Task OnInitializedAsync()
+    {
         await LoadFoldersAsync();
     }
 
-    public async Task LoadFoldersAsync(bool silent = false) {
+    public async Task LoadFoldersAsync(bool silent = false)
+    {
         if (!silent) _isLoading = true;
         _errorMessage = null;
 
-        try {
+        try
+        {
             var result = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders");
             _folders = result ?? new List<UserFolderResponse>();
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _errorMessage = "Cannot load folders. " + e.Message;
         }
-        finally {
+        finally
+        {
             _isLoading = false;
             StateHasChanged();
         }

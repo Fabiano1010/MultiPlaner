@@ -1,5 +1,6 @@
 using System.Globalization;
 using MultiPlanerSharedModels.Services;
+
 namespace MultiPlanerAPI.UnitTests;
 
 [CollectionDefinition("Application culture", DisableParallelization = true)]
@@ -16,7 +17,8 @@ public sealed class AppCultureTests
         var defaultCulture = CultureInfo.DefaultThreadCurrentCulture;
         var defaultUi = CultureInfo.DefaultThreadCurrentUICulture;
         var zone = TimeZoneInfo.Local.Id;
-        try {
+        try
+        {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pl-PL");
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("pl-PL");
             AppCulture.Apply();
@@ -29,7 +31,9 @@ public sealed class AppCultureTests
             Assert.Equal("01/11/2026", value.ToString("dd/MM/yyyy"));
             Assert.Equal("17:05", value.ToString("HH:mm"));
             Assert.Equal(zone, TimeZoneInfo.Local.Id);
-        } finally {
+        }
+        finally
+        {
             CultureInfo.CurrentCulture = current;
             CultureInfo.CurrentUICulture = currentUi;
             CultureInfo.DefaultThreadCurrentCulture = defaultCulture;

@@ -1,5 +1,6 @@
 @inject ApiClient Api
-<img src="@_source" alt="@Alt" class="settings-avatar @Class @(_source == Placeholder ? "is-placeholder" : "")" />
+<img src="@_source" alt="@Alt" class="settings-avatar @Class @(_source == Placeholder ? "is-placeholder" : "")"/>
+
 @code {
     [Parameter] public string? Class { get; set; }
     [Parameter] public string? Url { get; set; }
@@ -7,16 +8,28 @@
     private const string Placeholder = "_content/MultiPlanerSharedUI/images/user.svg";
     private string _source = Placeholder;
     private string? _loaded;
-    protected override async Task OnParametersSetAsync() {
+
+    protected override async Task OnParametersSetAsync()
+    {
         if (_loaded == Url) return;
         _loaded = Url;
         var requested = Url;
         _source = Placeholder;
         if (string.IsNullOrEmpty(requested)) return;
-        if (requested.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) { _source = requested; return; }
-        try {
+        if (requested.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            _source = requested;
+            return;
+        }
+
+        try
+        {
             var data = await Api.ImageDataAsync(requested);
             if (_loaded == requested) _source = data;
-        } catch (Exception ex) when (ex is ApiException or HttpRequestException or InvalidOperationException) { }
+        }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or InvalidOperationException)
+        {
+        }
     }
+
 }

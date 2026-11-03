@@ -13,7 +13,8 @@ namespace MultiPlanerAPI.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class RoomsController(RoomService rooms, RoomMembershipService membership) : ControllerBase
 {
-    [HttpPost, Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
+    [HttpPost]
+    [Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
     [ProducesResponseType<RoomResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<RoomResponse>> Create(CreateRoomRequest request, CancellationToken cancellationToken)
     {
@@ -24,39 +25,53 @@ public sealed class RoomsController(RoomService rooms, RoomMembershipService mem
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<RoomResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<RoomResponse>>> List(
-        [FromQuery] string status = "active", CancellationToken cancellationToken = default) =>
-        Ok(await rooms.ListAsync(status, cancellationToken));
+        [FromQuery] string status = "active", CancellationToken cancellationToken = default)
+    {
+        return Ok(await rooms.ListAsync(status, cancellationToken));
+    }
 
     [HttpGet("{roomId:int}")]
     [ProducesResponseType<RoomResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<RoomResponse>> Get(int roomId, CancellationToken cancellationToken) =>
-        Ok(await rooms.GetAsync(roomId, cancellationToken));
+    public async Task<ActionResult<RoomResponse>> Get(int roomId, CancellationToken cancellationToken)
+    {
+        return Ok(await rooms.GetAsync(roomId, cancellationToken));
+    }
 
-    [HttpPatch("{roomId:int}"), Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
+    [HttpPatch("{roomId:int}")]
+    [Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
     [ProducesResponseType<RoomResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoomResponse>> Update(
-        int roomId, UpdateRoomRequest request, CancellationToken cancellationToken) =>
-        Ok(await rooms.UpdateAsync(roomId, request, cancellationToken));
+        int roomId, UpdateRoomRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await rooms.UpdateAsync(roomId, request, cancellationToken));
+    }
 
     [HttpGet("{roomId:int}/members")]
     [ProducesResponseType<PagedResponse<RoomMemberResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<RoomMemberResponse>>> Members(
-        int roomId, [FromQuery] PageRequest pagination, CancellationToken cancellationToken) =>
-        Ok(await rooms.ListMembersAsync(roomId, pagination, cancellationToken));
+        int roomId, [FromQuery] PageRequest pagination, CancellationToken cancellationToken)
+    {
+        return Ok(await rooms.ListMembersAsync(roomId, pagination, cancellationToken));
+    }
 
     [HttpGet("{roomId:int}/members/me")]
     [ProducesResponseType<RoomMembershipResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoomMembershipResponse>> Membership(
-        int roomId, CancellationToken cancellationToken) =>
-        Ok(await rooms.GetMembershipAsync(roomId, cancellationToken));
+        int roomId, CancellationToken cancellationToken)
+    {
+        return Ok(await rooms.GetMembershipAsync(roomId, cancellationToken));
+    }
 
     [HttpPatch("{roomId:int}/members/me")]
     [ProducesResponseType<RoomMembershipResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<RoomMembershipResponse>> UpdateMembership(
-        int roomId, UpdateRoomMembershipRequest request, CancellationToken cancellationToken) =>
-        Ok(await rooms.UpdateMembershipAsync(roomId, request, cancellationToken));
+        int roomId, UpdateRoomMembershipRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await rooms.UpdateMembershipAsync(roomId, request, cancellationToken));
+    }
 
-    [HttpPost("{roomId:int}/archive"), Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
+    [HttpPost("{roomId:int}/archive")]
+    [Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Archive(int roomId, CancellationToken cancellationToken)
     {
@@ -73,7 +88,8 @@ public sealed class RoomsController(RoomService rooms, RoomMembershipService mem
         return NoContent();
     }
 
-    [HttpDelete("{roomId:int}"), Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
+    [HttpDelete("{roomId:int}")]
+    [Authorize(Policy = SessionAuthentication.RegisteredUserPolicy)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(int roomId, CancellationToken cancellationToken)
     {

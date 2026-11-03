@@ -12,7 +12,8 @@
      @onclick="HandleRoomClickAsync"
      @oncontextmenu="e => _menu?.Show(e)"
      @oncontextmenu:preventDefault>
-    @if (Selection.Active && RoomData is not null) {
+    @if (Selection.Active && RoomData is not null)
+    {
         <input type="checkbox" class="room-check"
                checked="@Selection.IsSelected(RoomData.Id)"
                @onchange="() => Selection.Toggle(RoomData.Id)"
@@ -47,18 +48,22 @@
 </div>
 
 <ContextMenu @ref="_menu">
-    @if (Selection.IsSelected(RoomData?.Id ?? -1)) {
+    @if (Selection.IsSelected(RoomData?.Id ?? -1))
+    {
         <button class="ctx-item" @onclick="StartDeSelect">Deselect</button>
     }
-    else {
+    else
+    {
         <button class="ctx-item" @onclick="StartSelect">Select</button>
     }
-    @if (RoomData?.IsOwner == true) {
+    @if (RoomData?.IsOwner == true)
+    {
         <button class="ctx-item" @onclick="StartRenameAsync">Rename</button>
         @* <button class="ctx-item" @onclick="StartArchive">Archive</button> *@
         <button class="ctx-item danger" @onclick="StartDeleteAsync">Delete</button>
     }
-    else {
+    else
+    {
         @* <button class="ctx-item" @onclick="StartArchive">Archive</button> *@
         <button class="ctx-item danger" @onclick="StartLeaveAsync">Leave</button>
     }
@@ -91,40 +96,50 @@
     private bool _showRename, _showDelete, _showLeave;
     private string? _coverKey;
 
-    protected override void OnInitialized() {
+    protected override void OnInitialized()
+    {
         Selection.Changed += OnSelectionChanged;
     }
 
-    private void OnSelectionChanged() {
+    private void OnSelectionChanged()
+    {
         InvokeAsync(StateHasChanged);
     }
 
-    private void StartSelect() {
+    private void StartSelect()
+    {
         _menu?.Hide();
         if (RoomData is not null && !Selection.IsSelected(RoomData.Id)) _ = Selection.Toggle(RoomData.Id);
     }
 
-    private void StartDeSelect() {
+    private void StartDeSelect()
+    {
         _menu?.Hide();
         if (RoomData is not null && Selection.IsSelected(RoomData.Id)) _ = Selection.Toggle(RoomData.Id);
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         Selection.Changed -= OnSelectionChanged;
     }
 
-    private string CardStyle {
-        get {
+    private string CardStyle
+    {
+        get
+        {
             var color = RoomData?.Membership?.Color;
-            if (color != null && System.Text.RegularExpressions.Regex.IsMatch(color, "^[0-9A-Fa-f]{6}$")) {
+            if (color != null && System.Text.RegularExpressions.Regex.IsMatch(color, "^[0-9A-Fa-f]{6}$"))
+            {
                 var hex = "#" + color;
                 return $"--room-background:{hex};--room-text:{ThemeResolver.Text(hex)};--room-icon-filter:{ThemeResolver.IconFilter(hex)}";
             }
+
             return "--room-background:var(--field-background);--room-text:var(--field-text);--room-icon-filter:var(--field-icon-filter,brightness(0))";
         }
     }
 
-    protected override async Task OnParametersSetAsync() {
+    protected override async Task OnParametersSetAsync()
+    {
         _isFavourite = RoomData?.Membership?.IsFavourite ?? false;
         _rowVersion = RoomData?.Membership?.RowVersion;
         await LoadRoomCoverAsync();
@@ -163,31 +178,37 @@
         }
     }
 
-    private async Task StartRenameAsync() {
+    private async Task StartRenameAsync()
+    {
         _menu?.Hide();
         _showRename = true;
     }
 
-    private async Task StartDeleteAsync() {
+    private async Task StartDeleteAsync()
+    {
         _menu?.Hide();
         _showDelete = true;
     }
 
-    private async Task StartLeaveAsync() {
+    private async Task StartLeaveAsync()
+    {
         _menu?.Hide();
         _showLeave = true;
     }
     // private void StartArchive()  { _menu?.Hide(); _showArchive = true; }
 
 
-    private async Task ToggleFavouriteAsync() {
+    private async Task ToggleFavouriteAsync()
+    {
         if (RoomData is null || _isSaving) return;
         var newValue = !_isFavourite;
         _isFavourite = newValue;
         _isSaving = true;
-        try {
+        try
+        {
             var res = await Api.PatchAsync($"api/rooms/{RoomData.Id}/members/me", new { isFavourite = newValue, rowVersion = _rowVersion });
-            if (res.StatusCode == HttpStatusCode.Conflict) {
+            if (res.StatusCode == HttpStatusCode.Conflict)
+            {
                 _isFavourite = !newValue;
                 await OnConflict.InvokeAsync();
                 return;
@@ -195,22 +216,26 @@
 
             await ApiClient.EnsureSuccessAsync(res);
             var updated = await res.Content.ReadFromJsonAsync<RoomResponse>();
-            if (updated is not null) {
+            if (updated is not null)
+            {
                 _rowVersion = updated.Membership?.RowVersion;
             }
 
             await OnFavouriteChanged.InvokeAsync();
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             _isFavourite = !newValue;
             Console.WriteLine($"Error toggling favourite: {ex.Message}");
         }
-        finally {
+        finally
+        {
             _isSaving = false;
         }
     }
 
-    private async Task RenameAsync(string name) {
+    private async Task RenameAsync(string name)
+    {
         if (RoomData is null) return;
 
         var res = await Api.PatchAsync($"api/rooms/{RoomData.Id}",
@@ -220,7 +245,8 @@
         await OnChanged.InvokeAsync();
     }
 
-    private async Task DeleteAsync() {
+    private async Task DeleteAsync()
+    {
         if (RoomData is null) return;
 
         var res = await Api.SendAsync(HttpMethod.Delete, $"api/rooms/{RoomData.Id}");
@@ -229,7 +255,8 @@
         await OnChanged.InvokeAsync();
     }
 
-    private async Task LeaveAsync() {
+    private async Task LeaveAsync()
+    {
         if (RoomData is null) return;
 
         var res = await Api.SendAsync(HttpMethod.Delete, $"api/rooms/{RoomData.Id}/members/me");
@@ -238,9 +265,11 @@
         await OnChanged.InvokeAsync();
     }
 
-    private async Task HandleRoomClickAsync() {
+    private async Task HandleRoomClickAsync()
+    {
         if (RoomData is null) return;
-        if (Selection.Active) {
+        if (Selection.Active)
+        {
             _ = Selection.Toggle(RoomData.Id);
             return;
         }

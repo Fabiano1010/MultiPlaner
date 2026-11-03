@@ -64,7 +64,8 @@
                     disabled="@(!CanSubmit)">Register
             </button>
 
-            @if (_error is not null) {
+            @if (_error is not null)
+            {
                 <span class="error">@_error</span>
             }
             <div class="register-direction">
@@ -97,10 +98,12 @@
     private bool _hasErrorPassword;
     private bool _hasErrorName;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
         if (!firstRender) return;
 
-        try {
+        try
+        {
             var module = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/MultiPlanerSharedUI/js/locale.js");
 
             var detectedTimeZone = await module.InvokeAsync<string?>("getTimeZone");
@@ -114,36 +117,44 @@
 
             StateHasChanged();
         }
-        catch {
+        catch
+        {
             // default values will be used if detection fails
         }
     }
 
 
-    async Task RegisterAsync() {
+    async Task RegisterAsync()
+    {
         _error = null;
         _hasError = false;
         _hasErrorPassword = false;
         _hasErrorName = false;
-        try {
+        try
+        {
             await Auth.RegisterAsync(_name, _email, _password, _countryCode, _timeZoneId);
             Nav.NavigateTo("/login");
         }
-        catch (ApiException ex) {
+        catch (ApiException ex)
+        {
             _error = ex.Status == 409 ? "This account already exists." : ex.Message;
-            if (ex.Status == 400 && ex.Message.Contains("Password")) {
+            if (ex.Status == 400 && ex.Message.Contains("Password"))
+            {
                 _hasErrorPassword = true;
             }
 
-            if (ex.Status == 409) {
+            if (ex.Status == 409)
+            {
                 _hasError = true;
             }
 
-            if (ex.Status == 400 && ex.Message.Contains("DisplayName")) {
+            if (ex.Status == 400 && ex.Message.Contains("DisplayName"))
+            {
                 _hasErrorName = true;
             }
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _error = "Cannot connect to server. " + e.Message;
         }
     }

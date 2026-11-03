@@ -23,7 +23,8 @@ public sealed class GuestSessionConfiguration : IEntityTypeConfiguration<GuestSe
 {
     public void Configure(EntityTypeBuilder<GuestSession> b)
     {
-        b.ToTable("GuestSessions", t => t.HasCheckConstraint("CK_GuestSession_Expiry", "[ExpiresAtUtc] > [CreatedAtUtc]"));
+        b.ToTable("GuestSessions",
+            t => t.HasCheckConstraint("CK_GuestSession_Expiry", "[ExpiresAtUtc] > [CreatedAtUtc]"));
         b.Property(x => x.DisplayName).HasMaxLength(64).IsRequired();
         b.HasIndex(x => x.ExpiresAtUtc);
     }

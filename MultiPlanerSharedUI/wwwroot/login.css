@@ -27,7 +27,7 @@
     border-radius: 15px;
     background-color: var(--surface);
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .auth-form {

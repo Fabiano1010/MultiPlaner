@@ -14,12 +14,17 @@ public sealed class EventTimeRequest
 
 public sealed class CreateEventRequest
 {
-    [Required, StringLength(128, MinimumLength = 1)]
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
     public string Title { get; init; } = string.Empty;
+
     [StringLength(4000)] public string? Description { get; init; }
     [Required] public EventTimeRequest Time { get; init; } = null!;
     [Range(1, int.MaxValue)] public int EventTypeId { get; init; }
-    [RegularExpression("^[0-9A-Fa-f]{6}$")] public string? Color { get; init; }
+
+    [RegularExpression("^[0-9A-Fa-f]{6}$")]
+    public string? Color { get; init; }
+
     public bool IsHighPriority { get; init; }
     public bool IsPinned { get; init; }
     [MaxLength(1000)] public int[]? ParticipantMemberIds { get; init; }
@@ -28,26 +33,41 @@ public sealed class CreateEventRequest
 public sealed class UpdateEventRequest
 {
     [StringLength(128, MinimumLength = 1)] public string? Title { get; init; }
+
     // Null leaves optional values unchanged; empty strings clear description/color.
     [StringLength(4000)] public string? Description { get; init; }
     public EventTimeRequest? Time { get; init; }
     [Range(1, int.MaxValue)] public int? EventTypeId { get; init; }
-    [RegularExpression("^([0-9A-Fa-f]{6})?$")] public string? Color { get; init; }
+
+    [RegularExpression("^([0-9A-Fa-f]{6})?$")]
+    public string? Color { get; init; }
+
     public bool? IsHighPriority { get; init; }
     public bool? IsPinned { get; init; }
     [MaxLength(1000)] public int[]? ParticipantMemberIds { get; init; }
-    [Required, MinLength(8), MaxLength(8)] public byte[] RowVersion { get; init; } = [];
+
+    [Required]
+    [MinLength(8)]
+    [MaxLength(8)]
+    public byte[] RowVersion { get; init; } = [];
 }
 
 public sealed class EventVersionRequest
 {
-    [Required, MinLength(8), MaxLength(8)] public byte[] RowVersion { get; init; } = [];
+    [Required]
+    [MinLength(8)]
+    [MaxLength(8)]
+    public byte[] RowVersion { get; init; } = [];
 }
 
 public sealed class PinEventRequest
 {
     public bool IsPinned { get; init; }
-    [Required, MinLength(8), MaxLength(8)] public byte[] RowVersion { get; init; } = [];
+
+    [Required]
+    [MinLength(8)]
+    [MaxLength(8)]
+    public byte[] RowVersion { get; init; } = [];
 }
 
 public sealed class EventListRequest : IValidatableObject
@@ -59,7 +79,10 @@ public sealed class EventListRequest : IValidatableObject
     [Range(1, int.MaxValue)] public int? RoomId { get; init; }
     public bool? IsPinned { get; init; }
     public bool? IsHighPriority { get; init; }
-    [RegularExpression("^(active|archived|all)$")] public string Status { get; init; } = "active";
+
+    [RegularExpression("^(active|archived|all)$")]
+    public string Status { get; init; } = "active";
+
     [Range(1, int.MaxValue)] public int Page { get; init; } = 1;
     [Range(1, 100)] public int PageSize { get; init; } = 50;
 
@@ -71,11 +94,31 @@ public sealed class EventListRequest : IValidatableObject
 }
 
 public sealed record EventAuthorResponse(int MemberId, string DisplayName, bool IsGuest, bool IsOwner, bool HasLeft);
+
 public sealed record EventPermissions(bool CanEdit, bool CanDelete, bool CanPin);
+
 public sealed record EventResponse(
-    int Id, int RoomId, string RoomName, string RoomTimeZoneId, bool RoomIsArchived,
-    string Title, string? Description, DateTimeOffset StartsAtUtc, DateTimeOffset EndsAtUtc,
-    bool IsAllDay, DateOnly? StartDate, DateOnly? EndDateExclusive, string? TimeZoneId,
-    int EventTypeId, string EventTypeName, bool EventTypeIsArchived, string Color, string? CustomColor, bool IsHighPriority, bool IsPinned,
-    EventAuthorResponse Author, IReadOnlyList<int> ParticipantMemberIds, byte[] RowVersion,
+    int Id,
+    int RoomId,
+    string RoomName,
+    string RoomTimeZoneId,
+    bool RoomIsArchived,
+    string Title,
+    string? Description,
+    DateTimeOffset StartsAtUtc,
+    DateTimeOffset EndsAtUtc,
+    bool IsAllDay,
+    DateOnly? StartDate,
+    DateOnly? EndDateExclusive,
+    string? TimeZoneId,
+    int EventTypeId,
+    string EventTypeName,
+    bool EventTypeIsArchived,
+    string Color,
+    string? CustomColor,
+    bool IsHighPriority,
+    bool IsPinned,
+    EventAuthorResponse Author,
+    IReadOnlyList<int> ParticipantMemberIds,
+    byte[] RowVersion,
     EventPermissions Permissions);

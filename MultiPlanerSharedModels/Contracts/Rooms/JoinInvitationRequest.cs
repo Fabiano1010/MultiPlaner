@@ -4,6 +4,5 @@ namespace MultiPlanerSharedModels.Contracts.Rooms;
 
 public sealed class JoinInvitationRequest
 {
-    [StringLength(64, MinimumLength = 2)]
-    public string? DisplayName { get; init; }
+    [StringLength(64, MinimumLength = 2)] public string? DisplayName { get; init; }
 }

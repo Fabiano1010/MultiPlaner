@@ -45,7 +45,8 @@
                     disabled="@(!CanSubmit)">Login
             </button>
 
-            @if (_error is not null) {
+            @if (_error is not null)
+            {
                 <span class="error">@_error</span>
             }
             <div class="register-direction">
@@ -66,18 +67,22 @@
     private bool _showPassword;
     private bool _hasError;
 
-    async Task LoginAsync() {
+    async Task LoginAsync()
+    {
         _error = null;
         _hasError = false;
-        try {
+        try
+        {
             await Auth.LoginAsync(_email, _password, _remember);
             Nav.NavigateTo("/");
         }
-        catch (ApiException ex) {
+        catch (ApiException ex)
+        {
             _error = ex.Status == 401 ? "Invalid email or password." : ex.Message;
             _hasError = true;
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _error = "Cannot connect to the server." + e.Message;
         }
     }

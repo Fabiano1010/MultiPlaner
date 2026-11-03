@@ -51,7 +51,8 @@ public sealed class ApiFixture : IAsyncLifetime
         await using var scope = Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (db.Database.GetDbConnection().Database != databaseName)
-            throw new InvalidOperationException("Refusing to run tests against a database not created by this fixture.");
+            throw new InvalidOperationException(
+                "Refusing to run tests against a database not created by this fixture.");
         await DatabaseInitializer.MigrateAsync(db);
     }
 
@@ -75,12 +76,15 @@ public sealed class ApiFixture : IAsyncLifetime
         }
     }
 
-    public HttpClient Client(bool handleCookies = true) => Factory.CreateClient(new WebApplicationFactoryClientOptions
+    public HttpClient Client(bool handleCookies = true)
     {
-        BaseAddress = new Uri("https://localhost"),
-        AllowAutoRedirect = false,
-        HandleCookies = handleCookies
-    });
+        return Factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("https://localhost"),
+            AllowAutoRedirect = false,
+            HandleCookies = handleCookies
+        });
+    }
 
     public static async Task<string> CsrfAsync(HttpClient client)
     {
@@ -100,7 +104,8 @@ public sealed class ApiFixture : IAsyncLifetime
             Email = email, Password = Password, DisplayName = "Test User"
         });
         Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
-        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = email, Password = Password });
+        var login = await client.PostAsJsonAsync("/api/auth/login",
+            new LoginRequest { Email = email, Password = Password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var cookie = login.Headers.GetValues("Set-Cookie")
             .Single(c => c.StartsWith(SessionAuthentication.UserCookie + "=", StringComparison.Ordinal)).Split(';')[0];
@@ -137,15 +142,19 @@ internal sealed class TestCookieHandler : DelegatingHandler
 {
     private readonly CookieContainer cookies = new();
 
-    public TestCookieHandler(string initialCookie) =>
+    public TestCookieHandler(string initialCookie)
+    {
         cookies.SetCookies(new Uri("https://localhost"), initialCookie);
+    }
 
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        CancellationToken cancellationToken)
     {
         request.Headers.TryAddWithoutValidation("Cookie", cookies.GetCookieHeader(request.RequestUri!));
         var response = await base.SendAsync(request, cancellationToken);
         if (response.Headers.TryGetValues("Set-Cookie", out var values))
-            foreach (var value in values) cookies.SetCookies(request.RequestUri!, value);
+            foreach (var value in values)
+                cookies.SetCookies(request.RequestUri!, value);
         return response;
     }
 }
@@ -186,6 +195,7 @@ public sealed class RecordingResetEmailSender : IPasswordResetEmailSender
 {
     private readonly System.Collections.Concurrent.ConcurrentQueue<(string Recipient, string Link)> messages = new();
     public (string Recipient, string Link)[] Messages => messages.ToArray();
+
     public Task SendAsync(string recipient, string resetUrl, CancellationToken cancellationToken)
     {
         messages.Enqueue((recipient, resetUrl));

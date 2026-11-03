@@ -15,7 +15,9 @@ public sealed class EventTimeTests
     {
         var date = new DateOnly(year, month, day);
         var ev = new CalendarEvent();
-        EventTime.Apply(ev, new() { IsAllDay = true, StartDate = date, EndDateExclusive = date.AddDays(1) }, "Europe/Warsaw");
+        EventTime.Apply(ev,
+            new EventTimeRequest { IsAllDay = true, StartDate = date, EndDateExclusive = date.AddDays(1) },
+            "Europe/Warsaw");
         Assert.Equal(hours, (ev.EndsAtUtc - ev.StartsAtUtc).TotalHours);
         Assert.Equal(date, ev.StartDate);
         Assert.Equal("Europe/Warsaw", ev.TimeZoneId);
@@ -26,12 +28,14 @@ public sealed class EventTimeTests
     public void ExistingAllDayEventKeepsItsZoneAndCanChangeToTimed()
     {
         var ev = new CalendarEvent();
-        var time = new EventTimeRequest { IsAllDay = true, StartDate = new(2026, 3, 29), EndDateExclusive = new(2026, 3, 30) };
+        var time = new EventTimeRequest
+            { IsAllDay = true, StartDate = new DateOnly(2026, 3, 29), EndDateExclusive = new DateOnly(2026, 3, 30) };
         EventTime.Apply(ev, time, "Europe/Warsaw");
         var start = ev.StartsAtUtc;
         EventTime.Apply(ev, time, "America/New_York");
         Assert.Equal(start, ev.StartsAtUtc);
-        EventTime.Apply(ev, new() { StartsAtUtc = start, EndsAtUtc = start.AddHours(1) }, "America/New_York");
+        EventTime.Apply(ev, new EventTimeRequest { StartsAtUtc = start, EndsAtUtc = start.AddHours(1) },
+            "America/New_York");
         Assert.False(ev.IsAllDay);
         Assert.Null(ev.StartDate);
         Assert.Null(ev.EndDateExclusive);
@@ -44,11 +48,17 @@ public sealed class EventTimeTests
         var start = new DateTimeOffset(2026, 10, 25, 2, 30, 0, TimeSpan.FromHours(2));
         var end = new DateTimeOffset(2026, 10, 25, 2, 30, 0, TimeSpan.FromHours(1));
         var ev = new CalendarEvent();
-        EventTime.Apply(ev, new() { StartsAtUtc = start, EndsAtUtc = end }, "Europe/Warsaw");
+        EventTime.Apply(ev, new EventTimeRequest { StartsAtUtc = start, EndsAtUtc = end }, "Europe/Warsaw");
         Assert.Equal(1, (ev.EndsAtUtc - ev.StartsAtUtc).TotalHours);
         Assert.Equal(TimeSpan.Zero, ev.StartsAtUtc.Offset);
-        Assert.Throws<ApiException>(() => EventTime.Apply(ev, new() { StartsAtUtc = start, EndsAtUtc = start }, "UTC"));
-        Assert.Throws<ApiException>(() => EventTime.Apply(ev, new() { StartsAtUtc = start, EndsAtUtc = end, StartDate = new(2026, 1, 1) }, "UTC"));
-        Assert.Throws<ApiException>(() => EventTime.Apply(ev, new() { IsAllDay = true, StartDate = new(2026, 1, 1), EndDateExclusive = new(2026, 1, 1) }, "UTC"));
+        Assert.Throws<ApiException>(() =>
+            EventTime.Apply(ev, new EventTimeRequest { StartsAtUtc = start, EndsAtUtc = start }, "UTC"));
+        Assert.Throws<ApiException>(() => EventTime.Apply(ev,
+            new EventTimeRequest
+                { StartsAtUtc = start, EndsAtUtc = end, StartDate = new DateOnly(2026, 1, 1) }, "UTC"));
+        Assert.Throws<ApiException>(() => EventTime.Apply(ev,
+            new EventTimeRequest
+                { IsAllDay = true, StartDate = new DateOnly(2026, 1, 1), EndDateExclusive = new DateOnly(2026, 1, 1) },
+            "UTC"));
     }
 }

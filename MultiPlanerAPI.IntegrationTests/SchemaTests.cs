@@ -72,7 +72,8 @@ public sealed class SchemaTests(ApiFixture fixture)
         var entry = Event(first.RoomId, first.MemberId, first.TypeId);
         db.CalendarEvents.Add(entry);
         await db.SaveChangesAsync();
-        db.EventParticipants.Add(new EventParticipant { EventId = entry.Id, RoomId = first.RoomId, MemberId = second.MemberId });
+        db.EventParticipants.Add(new EventParticipant
+            { EventId = entry.Id, RoomId = first.RoomId, MemberId = second.MemberId });
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 
@@ -150,20 +151,25 @@ public sealed class SchemaTests(ApiFixture fixture)
         client.Dispose();
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var room = new Room { OwnerUserId = user.UserId!.Value, Name = "Test Room", ExpiresAtUtc = DateTimeOffset.UtcNow.AddMonths(3) };
+        var room = new Room
+            { OwnerUserId = user.UserId!.Value, Name = "Test Room", ExpiresAtUtc = DateTimeOffset.UtcNow.AddMonths(3) };
         db.Rooms.Add(room);
         await db.SaveChangesAsync();
         var member = new RoomMember { RoomId = room.Id, UserId = user.UserId, DisplayName = "Owner" };
         db.RoomMembers.Add(member);
         await db.SaveChangesAsync();
         var type = new RoomEventType { RoomId = room.Id, Name = "Meeting", NormalizedName = "MEETING" };
-        db.RoomEventTypes.Add(type); await db.SaveChangesAsync();
+        db.RoomEventTypes.Add(type);
+        await db.SaveChangesAsync();
         return (user.UserId.Value, room.Id, member.Id, type.Id);
     }
 
-    private static CalendarEvent Event(int roomId, int authorMemberId, int typeId) => new()
+    private static CalendarEvent Event(int roomId, int authorMemberId, int typeId)
     {
-        EventTypeId = typeId, RoomId = roomId, AuthorMemberId = authorMemberId, Title = "Meeting",
-        StartsAtUtc = DateTimeOffset.UtcNow, EndsAtUtc = DateTimeOffset.UtcNow.AddHours(1)
-    };
+        return new CalendarEvent
+        {
+            EventTypeId = typeId, RoomId = roomId, AuthorMemberId = authorMemberId, Title = "Meeting",
+            StartsAtUtc = DateTimeOffset.UtcNow, EndsAtUtc = DateTimeOffset.UtcNow.AddHours(1)
+        };
+    }
 }

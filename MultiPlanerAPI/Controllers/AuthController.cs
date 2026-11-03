@@ -12,7 +12,8 @@ namespace MultiPlanerAPI.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class AuthController(UserService users, IAntiforgery antiforgery) : ControllerBase
 {
-    [HttpGet("csrf"), AllowAnonymous]
+    [HttpGet("csrf")]
+    [AllowAnonymous]
     [ProducesResponseType<CsrfResponse>(StatusCodes.Status200OK)]
     public ActionResult<CsrfResponse> Csrf()
     {
@@ -20,23 +21,29 @@ public sealed class AuthController(UserService users, IAntiforgery antiforgery) 
         return new CsrfResponse(tokens.RequestToken!, "X-CSRF-TOKEN");
     }
 
-    [HttpPost("register"), AllowAnonymous]
+    [HttpPost("register")]
+    [AllowAnonymous]
     [ProducesResponseType<SessionResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<SessionResponse>> Register(RegisterRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SessionResponse>> Register(RegisterRequest request,
+        CancellationToken cancellationToken)
     {
         var user = await users.RegisterAsync(request, cancellationToken);
         return Created("/api/me", user);
     }
 
-    [HttpPost("login"), AllowAnonymous]
+    [HttpPost("login")]
+    [AllowAnonymous]
     [ProducesResponseType<SessionResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<SessionResponse>> Login(LoginRequest request, CancellationToken cancellationToken) =>
-        Ok(await users.LoginAsync(request, cancellationToken));
+    public async Task<ActionResult<SessionResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await users.LoginAsync(request, cancellationToken));
+    }
 
-    [HttpPost("forgot-password"), AllowAnonymous]
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
     [EnableRateLimiting("PasswordReset")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
@@ -45,7 +52,8 @@ public sealed class AuthController(UserService users, IAntiforgery antiforgery) 
         return Accepted();
     }
 
-    [HttpPost("reset-password"), AllowAnonymous]
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
     [EnableRateLimiting("PasswordReset")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request, CancellationToken cancellationToken)
@@ -54,7 +62,8 @@ public sealed class AuthController(UserService users, IAntiforgery antiforgery) 
         return NoContent();
     }
 
-    [HttpPost("logout"), Authorize]
+    [HttpPost("logout")]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {

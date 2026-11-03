@@ -14,14 +14,17 @@
 
 
 <div class="calendar-page" tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
-    @if (_isLoading) {
+    @if (_isLoading)
+    {
         <LoadingSpinner/>
     }
-    else if (!string.IsNullOrEmpty(_errorMessage)) {
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
         <div class="error-message">@_errorMessage</div>
         <button type="button" class="btn-main btn-cancel" @onclick="GoBack">← Back</button>
     }
-    else if (_roomData is not null) {
+    else if (_roomData is not null)
+    {
         <CalendarHeader Room="_roomData"
                         CurrentMonth="_month"
                         OnPreviousMonth="() => SetMonthAsync(_month.AddMonths(-1))"
@@ -32,7 +35,7 @@
                         OnBack="GoBack"
                         OnNotifications="ToggleNotifications"
                         NotificationsState="_notificationsState"
-                        />
+        />
         <CalendarGrid CurrentMonth="_month"
                       IsAddingEvent="_isAddingEvent"
                       SelectedDate="_selectedDate"
@@ -49,7 +52,8 @@
                         RoomId="_loadedRoomId"
                         OnChanged="LoadEventsAsync"/>
 
-        @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null) {
+        @if (_roomData is not null && _rangeStart is not null && _rangeEnd is not null)
+        {
             <AddEventForm IsVisible="_showAddForm"
                           RoomId="_loadedRoomId"
                           RoomTimeZoneId="@_roomData.TimeZoneId"
@@ -58,18 +62,20 @@
                           OnClose="CancelAdding"
                           OnSaved="HandleEventSaved"/>
         }
-        @if (_roomData is not null) {
+
+        @if (_roomData is not null)
+        {
             <CalendarSettings OnSaved="RefreshSettingsAsync"
-                IsVisible="_showSettings"
-                Room="_roomData"
-                OnClose="ClosePopup"
+                              IsVisible="_showSettings"
+                              Room="_roomData"
+                              OnClose="ClosePopup"
             />
-            <CalendarMembers 
+            <CalendarMembers
                 IsVisible="_showMembers"
                 Room="_roomData"
                 OnClose="ClosePopup"
             />
-            <CalendarChat 
+            <CalendarChat
                 IsVisible="_showChat"
                 Room="_roomData"
                 OnClose="ClosePopup"
@@ -78,7 +84,6 @@
             <PollsPopup IsVisible="_showPolls"
                         OnClose="ClosePopup"/>
         }
-       
     }
 </div>
 
@@ -105,39 +110,48 @@
     private int _typeFilter;
     private CancellationTokenSource? _loadCts;
 
-    protected override async Task OnParametersSetAsync() {
+    protected override async Task OnParametersSetAsync()
+    {
         if (_loadedRoomId == RoomId) return;
         _loadedRoomId = RoomId;
         await LoadRoomAsync();
     }
 
-    private async Task RefreshSettingsAsync() {
+    private async Task RefreshSettingsAsync()
+    {
         _roomData = await Api.GetRoomAsync(RoomId);
-            _eventTypes = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? [];
-            if (!_eventTypes.Any(t => t.Id == _typeFilter)) _typeFilter = 0;
+        _eventTypes = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? [];
+        if (!_eventTypes.Any(t => t.Id == _typeFilter)) _typeFilter = 0;
         await LoadEventsAsync();
     }
-    private async Task LoadRoomAsync() {
+
+    private async Task LoadRoomAsync()
+    {
         _isLoading = true;
         _errorMessage = null;
         _roomData = null;
 
-        try {
+        try
+        {
             _roomData = await Api.GetRoomAsync(RoomId);
             _eventTypes = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? [];
             if (!_eventTypes.Any(t => t.Id == _typeFilter)) _typeFilter = 0;
             if (_roomData is null) _errorMessage = "Calendar not found.";
         }
-        catch (ApiException e) when (e.Status is 403 or 404) {
+        catch (ApiException e) when (e.Status is 403 or 404)
+        {
             _errorMessage = "Calendar not found or you don't have access.";
         }
-        catch (ApiException e) {
+        catch (ApiException e)
+        {
             _errorMessage = e.Message;
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _errorMessage = "Cannot reach the server. " + e.Message;
         }
-        finally {
+        finally
+        {
             _isLoading = false;
         }
 
@@ -145,17 +159,21 @@
             await LoadEventsAsync();
     }
 
-    private async Task GoToTodayAsync() {
+    private async Task GoToTodayAsync()
+    {
         await SetMonthAsync(DateTime.Today);
         _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     }
 
-    private void GoBack() {
+    private void GoBack()
+    {
         Nav.NavigateTo("/Rooms");
     }
 
-    private async Task ToggleAdding() {
-        if (_isAddingEvent) {
+    private async Task ToggleAdding()
+    {
+        if (_isAddingEvent)
+        {
             CancelAdding();
             return;
         }
@@ -163,20 +181,25 @@
         _isAddingEvent = true;
         _rangeStart = _rangeEnd = null;
 
-        try {
+        try
+        {
             await _pageRef.FocusAsync();
         }
-        catch (InvalidOperationException) {
+        catch (InvalidOperationException)
+        {
         }
     }
 
-    private void HandleDayClicked(DateOnly day) {
-        if (!_isAddingEvent) {
+    private void HandleDayClicked(DateOnly day)
+    {
+        if (!_isAddingEvent)
+        {
             _selectedDate = day;
             return;
         }
 
-        if (_rangeStart is null) {
+        if (_rangeStart is null)
+        {
             _rangeStart = day;
             return;
         }
@@ -185,14 +208,16 @@
         (_rangeStart, _rangeEnd) = day < first ? (day, first) : (first, day);
         _showAddForm = true;
     }
-    
-    private void CancelAdding() {
+
+    private void CancelAdding()
+    {
         _isAddingEvent = false;
         _showAddForm = false;
         _rangeStart = _rangeEnd = null;
     }
 
-    private void ClosePopup() {
+    private void ClosePopup()
+    {
         _showMembers = false;
         _showChat = false;
         _showSettings = false;
@@ -202,25 +227,33 @@
         _rangeStart = _rangeEnd = null;
     }
 
-    private async Task OpenSettingsAsync() {
+    private async Task OpenSettingsAsync()
+    {
         _showSettings = true;
     }
-    private async Task OpenMebmersAsync() {
+
+    private async Task OpenMebmersAsync()
+    {
         _showMembers = true;
     }
-    private async Task OpenChatAsync() {
+
+    private async Task OpenChatAsync()
+    {
         _showChat = true;
     }
-    
-    private void HandleKeyDown(KeyboardEventArgs e) {
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
         if (e.Key == "Escape" && _isAddingEvent) CancelAdding();
     }
 
 
-    private async Task SetMonthAsync(DateTime month) {
+    private async Task SetMonthAsync(DateTime month)
+    {
         _month = new DateTime(month.Year, month.Month, 1);
         var (start, endExcl) = CalendarRange.Grid(_month);
-        if (_selectedDate is not { } d || d < start || d >= endExcl) {
+        if (_selectedDate is not { } d || d < start || d >= endExcl)
+        {
             var today = DateOnly.FromDateTime(DateTime.Today);
             _selectedDate = today >= start && today < endExcl && today.Month == _month.Month
                 ? today
@@ -230,7 +263,8 @@
         await LoadEventsAsync();
     }
 
-    private async Task LoadEventsAsync() {
+    private async Task LoadEventsAsync()
+    {
         if (_roomData is null) return;
 
         _loadCts?.Cancel();
@@ -243,11 +277,13 @@
         var from = Uri.EscapeDataString(StartOfDayUtc(start, tz).ToString("O"));
         var to = Uri.EscapeDataString(StartOfDayUtc(endExcl, tz).ToString("O"));
 
-        try {
+        try
+        {
             const int pageSize = 100;
             var all = new List<EventResponse>();
 
-            for (var page = 1;; page++) {
+            for (var page = 1;; page++)
+            {
                 var url = $"api/rooms/{RoomId}/events?from={from}&to={to}&status=active&page={page}&pageSize={pageSize}";
                 if (_typeFilter > 0) url += $"&eventTypeId={_typeFilter}";
                 var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
@@ -263,36 +299,44 @@
             _events = all;
             _errorMessage = null;
         }
-        catch (OperationCanceledException) {
+        catch (OperationCanceledException)
+        {
         }
-        catch (ApiException e) {
+        catch (ApiException e)
+        {
             _errorMessage = e.Message;
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _errorMessage = "Cannot load events. " + e.Message;
         }
-        catch (JsonException) {
+        catch (JsonException)
+        {
             _errorMessage = "Unexpected response from the server.";
         }
     }
 
-    private static DateTimeOffset StartOfDayUtc(DateOnly day, TimeZoneInfo tz) {
+    private static DateTimeOffset StartOfDayUtc(DateOnly day, TimeZoneInfo tz)
+    {
         var local = DateTime.SpecifyKind(day.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
         return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, tz), TimeSpan.Zero);
     }
 
-    private async Task HandleEventSaved() {
+    private async Task HandleEventSaved()
+    {
         CancelAdding();
         await LoadEventsAsync();
     }
 
 
-    private async Task ToggleNotifications() {
+    private async Task ToggleNotifications()
+    {
         _notificationsState = !_notificationsState;
     }
-    
 
-    public void Dispose() {
+
+    public void Dispose()
+    {
         _loadCts?.Cancel();
         _loadCts?.Dispose();
     }

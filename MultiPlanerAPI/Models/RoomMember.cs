@@ -12,8 +12,10 @@ public sealed class RoomMember : TrackedEntity
     public bool IsFavourite { get; set; }
     public bool NotificationsMuted { get; set; }
     public DateTimeOffset? LeftAtUtc { get; set; }
+
     /// <summary>A read cursor, not a foreign key, so messages can be deleted independently.</summary>
     public long? LastReadMessageId { get; set; }
+
     /// <summary>A read cursor, not a foreign key, so activities can be deleted independently.</summary>
     public long? LastReadActivityId { get; set; }
 }
