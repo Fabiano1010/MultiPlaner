@@ -32,9 +32,11 @@ public sealed class InvitationLinkTests
             builder.CreateResponse(new RoomInvitation { RoomId = 1 }, "abc"));
     }
 
-    private static IConfiguration Configuration(string baseUrl) =>
-        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    private static IConfiguration Configuration(string baseUrl)
+    {
+        return new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Invitations:PublicWebBaseUrl"] = baseUrl
         }).Build();
+    }
 }

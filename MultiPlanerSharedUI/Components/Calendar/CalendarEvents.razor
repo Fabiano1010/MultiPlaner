@@ -34,12 +34,15 @@
         <div class="events-collapse-inner">
             <div class="events-list-cointainer">
 
-                @if (_dayEvents.Count == 0) {
+                @if (_dayEvents.Count == 0)
+                {
                     <div class="events-empty">Nothing is happening here :c</div>
                 }
-                else {
+                else
+                {
                     <div class="events-list">
-                        @foreach (var ev in _dayEvents) {
+                        @foreach (var ev in _dayEvents)
+                        {
                             <div class="events-item @(ev.IsHighPriority ? "high" : "")" @key="ev.Id"
                                  style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
                                  @onclick="() => OpenDetails(ev)">
@@ -88,19 +91,22 @@
     private bool _collapsed = true;
 
 
-    private async Task ToggleCollapsed() {
+    private async Task ToggleCollapsed()
+    {
         _collapsed = !_collapsed;
         await OnCollapsedChanged.InvokeAsync(_collapsed);
     }
 
-    protected override void OnParametersSet() {
+    protected override void OnParametersSet()
+    {
         var day = SelectedDate ?? DateOnly.FromDateTime(DateTime.Today);
         if (ReferenceEquals(_eventsSeen, Events) && _daySeen == day) return;
 
         _eventsSeen = Events;
         _daySeen = day;
         _dayEvents = Events
-            .Where(e => {
+            .Where(e =>
+            {
                 var (f, l) = EventDays.Range(e);
                 return f <= day && day <= l;
             })
@@ -110,13 +116,15 @@
             .ToList();
     }
 
-    private void OpenDetails(EventResponse ev) {
+    private void OpenDetails(EventResponse ev)
+    {
         _selectedEvent = ev;
         _showDetails = true;
     }
 
 
-    private void HandleCloseDetails() {
+    private void HandleCloseDetails()
+    {
         _showDetails = false;
         _selectedEvent = null;
     }

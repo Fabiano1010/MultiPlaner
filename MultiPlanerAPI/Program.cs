@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(TimeProvider.System);
 var keyPath = builder.Configuration["DataProtection:KeysPath"] ??
-    Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys");
+              Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys");
 builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keyPath));
 builder.Services.AddRateLimiter(options =>
 {
@@ -26,13 +26,15 @@ builder.Services.AddRateLimiter(options =>
             PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
         }));
     options.AddPolicy("PasswordChange", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ??
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers(options => options.Filters.Add<CsrfValidationFilter>())
-    .AddJsonOptions(options => options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow);
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -86,7 +88,8 @@ builder.Services.Configure<IdentityOptions>(options =>
 });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection before starting the API.");
+                       ?? throw new InvalidOperationException(
+                           "Configure ConnectionStrings:DefaultConnection before starting the API.");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5)));
 builder.Services.AddUserSessions();
@@ -135,6 +138,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 app.UseCors("BrowserClient");
 app.UseAuthentication();
 app.UseRateLimiter();

@@ -33,7 +33,8 @@
             <img src="_content/MultiPlanerSharedUI/images/settings.svg" alt="" class="action-button-img">
         </button>
         <div class="action-button" @onclick="OnNotifications">
-            <img src="_content/MultiPlanerSharedUI/images/@(NotificationsState ? "bell.svg" : "bell-off.svg") " alt="" class="action-button-img bell-btn">
+            <img src="_content/MultiPlanerSharedUI/images/@(NotificationsState ? "bell.svg" : "bell-off.svg") " alt=""
+                 class="action-button-img bell-btn">
         </div>
     </div>
 
@@ -51,6 +52,5 @@
     [Parameter] public EventCallback OnNotifications { get; set; }
     [Parameter] public bool NotificationsState { get; set; }
 
-    
-    
+
 }

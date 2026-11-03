@@ -1,19 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MultiPlanerAPI.Models;
+
 namespace MultiPlanerAPI.Data.Configurations;
+
 public sealed class UserThemeConfiguration : IEntityTypeConfiguration<UserTheme>
 {
     public void Configure(EntityTypeBuilder<UserTheme> b)
     {
         b.HasKey(x => x.UserId);
         b.HasOne<ApplicationUser>().WithOne().HasForeignKey<UserTheme>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-        b.OwnsOne(x => x.Palette, owned => {
+        b.OwnsOne(x => x.Palette, owned =>
+        {
             foreach (var p in typeof(MultiPlanerSharedModels.Contracts.Users.ThemePalette).GetProperties())
+            {
                 owned.Property(p.Name).HasMaxLength(7).IsRequired();
+            }
         });
     }
 }
+
 public sealed class RoomEventTypeConfiguration : IEntityTypeConfiguration<RoomEventType>
 {
     public void Configure(EntityTypeBuilder<RoomEventType> b)
@@ -36,9 +42,12 @@ public sealed class SavedThemeConfiguration : IEntityTypeConfiguration<SavedThem
         b.Property(x => x.Name).HasMaxLength(64).IsRequired();
         b.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(x => x.UserId);
-        b.OwnsOne(x => x.Palette, owned => {
+        b.OwnsOne(x => x.Palette, owned =>
+        {
             foreach (var p in typeof(MultiPlanerSharedModels.Contracts.Users.ThemePalette).GetProperties())
+            {
                 owned.Property(p.Name).HasMaxLength(7).IsRequired();
+            }
         });
     }
 }

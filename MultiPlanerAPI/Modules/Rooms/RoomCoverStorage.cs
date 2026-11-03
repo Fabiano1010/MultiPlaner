@@ -11,7 +11,7 @@ public sealed class LocalRoomCoverStorage(IConfiguration configuration, IWebHost
     : IRoomCoverStorage
 {
     private readonly string root = Path.GetFullPath(configuration["Storage:CoverRoot"] ??
-        Path.Combine(environment.ContentRootPath, "data", "room-covers"));
+                                                    Path.Combine(environment.ContentRootPath, "data", "room-covers"));
 
     public async Task<string> SaveAsync(Stream stream, CancellationToken cancellationToken)
     {
@@ -20,12 +20,24 @@ public sealed class LocalRoomCoverStorage(IConfiguration configuration, IWebHost
         var path = Path.Combine(root, key);
         await using var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write,
             FileShare.None, 81920, FileOptions.Asynchronous);
-        try { await stream.CopyToAsync(output, cancellationToken); }
-        catch { output.Close(); File.Delete(path); throw; }
+        try
+        {
+            await stream.CopyToAsync(output, cancellationToken);
+        }
+        catch
+        {
+            output.Close();
+            File.Delete(path);
+            throw;
+        }
+
         return key;
     }
 
-    public Stream OpenRead(string key) => new FileStream(PathFor(key), FileMode.Open, FileAccess.Read, FileShare.Read);
+    public Stream OpenRead(string key)
+    {
+        return new FileStream(PathFor(key), FileMode.Open, FileAccess.Read, FileShare.Read);
+    }
 
     public Task DeleteAsync(string key)
     {
@@ -36,7 +48,10 @@ public sealed class LocalRoomCoverStorage(IConfiguration configuration, IWebHost
     private string PathFor(string key)
     {
         if (key.Length != 32 || key.Any(c => !char.IsAsciiHexDigit(c)))
+        {
             throw new InvalidOperationException("Invalid cover storage key.");
+        }
+
         return Path.Combine(root, key);
     }
 }

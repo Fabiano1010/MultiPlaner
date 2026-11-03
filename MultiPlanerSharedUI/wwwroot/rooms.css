@@ -28,7 +28,7 @@
     scale: 0.9;
     transition-duration: 0.08s;
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .add-room-button img {
@@ -105,7 +105,7 @@
     transition-duration: 0.08s;
 
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .main-content-rooms {
@@ -155,7 +155,7 @@
     cursor: pointer;
     user-select: none;
 
-    color:var(--field-text);
+    color: var(--field-text);
 }
 
 .room {
@@ -189,7 +189,7 @@
     border-radius: 10px 10px 0 0;
     background: var(--field-background);
 
-    color:var(--field-text);
+    color: var(--field-text);
 }
 
 .folder:hover, .room:hover {
@@ -385,7 +385,7 @@
     background-color: var(--field-background);
     padding-left: 35px;
 
-    color:var(--field-text);
+    color: var(--field-text);
 }
 
 .search-wrapper {
@@ -420,7 +420,19 @@
 }
 
 /* Membership colors are independent of the page theme. */
-.room { background:var(--room-background,var(--field-background)); color:var(--room-text,var(--field-text)); }
-.room .room-header, .room .room-footer { color:inherit; }
-.room .favourite-icon, .room .room-symbol { filter:var(--room-icon-filter,brightness(0)); }
-.folder .favourite-icon { filter:var(--field-icon-filter,brightness(0)); }
+.room {
+    background: var(--room-background, var(--field-background));
+    color: var(--room-text, var(--field-text));
+}
+
+.room .room-header, .room .room-footer {
+    color: inherit;
+}
+
+.room .favourite-icon, .room .room-symbol {
+    filter: var(--room-icon-filter, brightness(0));
+}
+
+.folder .favourite-icon {
+    filter: var(--field-icon-filter, brightness(0));
+}

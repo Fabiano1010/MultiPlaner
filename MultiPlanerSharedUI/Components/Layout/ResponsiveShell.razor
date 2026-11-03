@@ -1,4 +1,4 @@
-<MultiPlanerSharedUI.Components.User.ThemeLoader />
+<MultiPlanerSharedUI.Components.User.ThemeLoader/>
 <div class="app-layout">
     <header class="mobile-nav-bar">
         <button type="button" class="mobile-nav-toggle" aria-label="Open navigation"
@@ -6,7 +6,7 @@
                 @ref="_menuToggle" @onclick="OpenMenu">
             <img src="_content/MultiPlanerSharedUI/images/menu.svg" alt=""/>
         </button>
-        <img class="mobile-nav-banner" src="_content/MultiPlanerSharedUI/images/banner-light.svg" alt="MultiPlaner" />
+        <img class="mobile-nav-banner" src="_content/MultiPlanerSharedUI/images/banner-light.svg" alt="MultiPlaner"/>
     </header>
 
     <button type="button" class="nav-backdrop @(_menuOpen ? "is-visible" : "")"
@@ -17,10 +17,12 @@
         <button type="button" class="mobile-nav-close" aria-label="Close navigation"
                 @ref="_closeButton" @onclick="CloseMenu">×
         </button>
-        @if (IsAuthenticated) {
+        @if (IsAuthenticated)
+        {
             <NavMenu OnNavigate="CloseMenu" OnOpenSettings="OpenSettings"/>
         }
-        else {
+        else
+        {
             <NavMenuNotLoggedIn OnNavigate="CloseMenu"/>
         }
     </nav>
@@ -30,11 +32,17 @@
     </main>
 </div>
 
-<MultiPlanerSharedUI.Components.User.UserSettingsPopup IsVisible="_settingsOpen" OnClose="() => _settingsOpen = false" />
+<MultiPlanerSharedUI.Components.User.UserSettingsPopup IsVisible="_settingsOpen" OnClose="() => _settingsOpen = false"/>
 
 @code {
     private bool _settingsOpen;
-    private async Task OpenSettings() { await CloseMenu(); _settingsOpen = true; }
+
+    private async Task OpenSettings()
+    {
+        await CloseMenu();
+        _settingsOpen = true;
+    }
+
     [Parameter] public bool IsAuthenticated { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -43,23 +51,28 @@
     private ElementReference _menuToggle;
     private ElementReference _closeButton;
 
-    private void OpenMenu() {
+    private void OpenMenu()
+    {
         _menuOpen = true;
         _focusCloseButton = true;
     }
 
-    private async Task CloseMenu() {
+    private async Task CloseMenu()
+    {
         if (!_menuOpen) return;
         _menuOpen = false;
         await _menuToggle.FocusAsync();
     }
 
-    private async Task HandleMenuKeyDown(KeyboardEventArgs args) {
+    private async Task HandleMenuKeyDown(KeyboardEventArgs args)
+    {
         if (args.Key == "Escape") await CloseMenu();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
-        if (_focusCloseButton && _menuOpen) {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusCloseButton && _menuOpen)
+        {
             _focusCloseButton = false;
             await _closeButton.FocusAsync();
         }

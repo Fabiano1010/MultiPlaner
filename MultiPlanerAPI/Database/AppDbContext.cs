@@ -45,7 +45,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
     {
         SetTimestamps();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);

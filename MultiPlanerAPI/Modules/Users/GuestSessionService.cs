@@ -35,8 +35,9 @@ public sealed class GuestSessionService(AppDbContext db, TimeProvider clock, IHt
     public async Task SignInAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         var session = await db.GuestSessions.AsNoTracking().SingleOrDefaultAsync(
-            s => s.Id == sessionId && s.RevokedAtUtc == null && s.ExpiresAtUtc > clock.GetUtcNow(), cancellationToken)
-            ?? throw new ApiException(401, "invalid_session", "The guest session is no longer valid.");
+                          s => s.Id == sessionId && s.RevokedAtUtc == null && s.ExpiresAtUtc > clock.GetUtcNow(),
+                          cancellationToken)
+                      ?? throw new ApiException(401, "invalid_session", "The guest session is no longer valid.");
         var principal = new ClaimsPrincipal(new ClaimsIdentity([
             new Claim(ClaimTypes.NameIdentifier, $"guest:{session.Id}"),
             new Claim(ClaimTypes.Name, session.DisplayName),

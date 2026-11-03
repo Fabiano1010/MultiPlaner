@@ -14,8 +14,10 @@ public sealed class UserValidationTests
     [InlineData("PL", "Europe/Warsaw")]
     [InlineData("US", "America/New_York")]
     [InlineData("DE", "UTC")]
-    public void AcceptsKnownLocales(string country, string zone) =>
+    public void AcceptsKnownLocales(string country, string zone)
+    {
         Assert.Empty(LocaleValidation.GetErrors("Anna", country, zone));
+    }
 
     [Theory]
     [InlineData("A", "PL", "Europe/Warsaw", "displayName")]
@@ -24,8 +26,10 @@ public sealed class UserValidationTests
     [InlineData("Anna", "pl", "Europe/Warsaw", "countryCode")]
     [InlineData("Anna", "PL", "Mars/Olympus", "timeZoneId")]
     [InlineData("Anna", "PL", "Central European Standard Time", "timeZoneId")]
-    public void RejectsInvalidLocaleOrName(string name, string country, string zone, string field) =>
+    public void RejectsInvalidLocaleOrName(string name, string country, string zone, string field)
+    {
         Assert.Contains(field, LocaleValidation.GetErrors(name, country, zone).Keys);
+    }
 
     [Fact]
     public void RegistrationRequiresCredentialsAndName()
@@ -38,18 +42,25 @@ public sealed class UserValidationTests
     }
 
     [Fact]
-    public void ProfilePatchRequiresAChange() => Assert.NotEmpty(Validate(new UpdateProfileRequest()));
+    public void ProfilePatchRequiresAChange()
+    {
+        Assert.NotEmpty(Validate(new UpdateProfileRequest()));
+    }
 
     [Theory]
     [InlineData("red")]
     [InlineData("#abc")]
     [InlineData("#000000; background: red")]
-    public void ThemeRejectsNonHexColors(string value) =>
+    public void ThemeRejectsNonHexColors(string value)
+    {
         Assert.NotEmpty(Validate(new ThemePalette { Accent = value }));
+    }
 
     [Fact]
-    public void OptionalProfileFieldsCanBeCleared() =>
+    public void OptionalProfileFieldsCanBeCleared()
+    {
         Assert.Empty(Validate(new UpdateProfileRequest { ContactDetails = "" }));
+    }
 
     [Fact]
     public void GuestCannotBeMistakenForRegisteredAccount()
@@ -81,7 +92,7 @@ public sealed class UserValidationTests
     private static List<ValidationResult> Validate(object value)
     {
         var errors = new List<ValidationResult>();
-        Validator.TryValidateObject(value, new ValidationContext(value), errors, validateAllProperties: true);
+        Validator.TryValidateObject(value, new ValidationContext(value), errors, true);
         return errors;
     }
 }

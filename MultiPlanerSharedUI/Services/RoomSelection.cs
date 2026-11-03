@@ -11,22 +11,26 @@ public sealed class RoomSelection
 
     public event Action? Changed;
 
-    public bool IsSelected(int id) {
+    public bool IsSelected(int id)
+    {
         return _ids.Contains(id);
     }
 
-    public async Task Toggle(int id) {
+    public async Task Toggle(int id)
+    {
         if (!_ids.Remove(id)) _ids.Add(id);
         Changed?.Invoke();
     }
 
-    public async Task Clear() {
+    public async Task Clear()
+    {
         if (_ids.Count == 0) return;
         _ids.Clear();
         Changed?.Invoke();
     }
 
-    public async Task Prune(IEnumerable<int> existingIds) {
+    public async Task Prune(IEnumerable<int> existingIds)
+    {
         if (_ids.RemoveWhere(id => !existingIds.Contains(id)) > 0) Changed?.Invoke();
     }
 }

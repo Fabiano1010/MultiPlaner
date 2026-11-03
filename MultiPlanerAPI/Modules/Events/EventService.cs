@@ -9,8 +9,12 @@ using MultiPlanerSharedModels.Contracts.Events;
 
 namespace MultiPlanerAPI.Modules.Events;
 
-public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvider clock,
-    RoomAccessService access, RoomMutationService mutations)
+public sealed class EventService(
+    AppDbContext db,
+    CurrentActor actor,
+    TimeProvider clock,
+    RoomAccessService access,
+    RoomMutationService mutations)
 {
     private sealed class EventRow
     {
@@ -32,43 +36,81 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
             join author in context.RoomMembers.AsNoTracking() on ev.AuthorMemberId equals author.Id
             join viewer in context.RoomMembers.AsNoTracking() on room.Id equals viewer.RoomId
             where viewer.LeftAtUtc == null &&
-                  (userId != null && viewer.UserId == userId || guestId != null && viewer.GuestSessionId == guestId) &&
+                  ((userId != null && viewer.UserId == userId) ||
+                   (guestId != null && viewer.GuestSessionId == guestId)) &&
                   (room.ArchivedAtUtc != null || room.ExpiresAtUtc > now || room.ArchiveOnExpiry)
             select new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = viewer.Id };
     }
 
-    public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter, CancellationToken ct)
+    public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter,
+        CancellationToken ct)
     {
         if (roomId is { } id)
         {
             var (room, _) = await access.RequireMemberAsync(id, ct);
             access.RequireReadable(room);
         }
+
         var query = VisibleEvents(db);
-        if ((roomId ?? filter.RoomId) is { } requestedRoom) query = query.Where(x => x.Event.RoomId == requestedRoom);
+        if ((roomId ?? filter.RoomId) is { } requestedRoom)
+        {
+            query = query.Where(x => x.Event.RoomId == requestedRoom);
+        }
+
         if (roomId is not null && filter.RoomId is not null && roomId != filter.RoomId)
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["roomId"] = ["Room filter must match the route."] });
+        {
+            throw ApiException.Validation(new Dictionary<string, string[]>
+                { ["roomId"] = ["Room filter must match the route."] });
+        }
+
         if (roomId is null)
         {
             var now = clock.GetUtcNow();
-            if (filter.Status == "active") query = query.Where(x => x.Room.ArchivedAtUtc == null && x.Room.ExpiresAtUtc > now);
-            else if (filter.Status == "archived") query = query.Where(x => x.Room.ArchivedAtUtc != null ||
-                x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now);
+            if (filter.Status == "active")
+            {
+                query = query.Where(x => x.Room.ArchivedAtUtc == null && x.Room.ExpiresAtUtc > now);
+            }
+            else if (filter.Status == "archived")
+            {
+                query = query.Where(x => x.Room.ArchivedAtUtc != null ||
+                                         (x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now));
+            }
         }
+
         query = query.Where(x => x.Event.StartsAtUtc < filter.To && x.Event.EndsAtUtc > filter.From);
-        if (filter.EventTypeId is { } typeId) query = query.Where(x => x.Event.EventTypeId == typeId);
-        if (filter.AuthorMemberId is { } authorId) query = query.Where(x => x.Event.AuthorMemberId == authorId);
-        if (filter.IsPinned is { } pinned) query = query.Where(x => x.Event.IsPinned == pinned);
-        if (filter.IsHighPriority is { } priority) query = query.Where(x => x.Event.IsHighPriority == priority);
+        if (filter.EventTypeId is { } typeId)
+        {
+            query = query.Where(x => x.Event.EventTypeId == typeId);
+        }
+
+        if (filter.AuthorMemberId is { } authorId)
+        {
+            query = query.Where(x => x.Event.AuthorMemberId == authorId);
+        }
+
+        if (filter.IsPinned is { } pinned)
+        {
+            query = query.Where(x => x.Event.IsPinned == pinned);
+        }
+
+        if (filter.IsHighPriority is { } priority)
+        {
+            query = query.Where(x => x.Event.IsHighPriority == priority);
+        }
+
         var count = await query.CountAsync(ct);
         var offset = (long)(filter.Page - 1) * filter.PageSize;
-        if (offset > int.MaxValue) return new([], count, filter.Page, filter.PageSize);
+        if (offset > int.MaxValue)
+        {
+            return new PagedResponse<EventResponse>([], count, filter.Page, filter.PageSize);
+        }
+
         var rows = await query.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
             .Skip((int)offset).Take(filter.PageSize).ToListAsync(ct);
         var ids = rows.Select(x => x.Event.Id).ToArray();
         var participants = await db.EventParticipants.AsNoTracking().Where(p => ids.Contains(p.EventId))
             .OrderBy(p => p.MemberId).ToListAsync(ct);
-        return new(rows.Select(x => Map(x, participants.Where(p => p.EventId == x.Event.Id)
+        return new PagedResponse<EventResponse>(rows.Select(x => Map(x, participants.Where(p => p.EventId == x.Event.Id)
             .Select(p => p.MemberId).ToArray())).ToArray(), count, filter.Page, filter.PageSize);
     }
 
@@ -79,8 +121,9 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
         return await ResponseAsync(db, roomId, eventId, ct);
     }
 
-    public Task<EventResponse> CreateAsync(int roomId, CreateEventRequest request, CancellationToken ct) =>
-        mutations.ExecuteAsync(roomId, async (context, room) =>
+    public Task<EventResponse> CreateAsync(int roomId, CreateEventRequest request, CancellationToken ct)
+    {
+        return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var member = await RequireWriterAsync(context, room, ct);
             await ValidateTypeAsync(context, roomId, request.EventTypeId, ct);
@@ -88,7 +131,8 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
             {
                 RoomId = roomId, AuthorMemberId = member.Id, Title = Title(request.Title),
                 Description = EmptyToNull(request.Description), EventTypeId = request.EventTypeId,
-                Color = request.Color?.ToUpperInvariant(), IsHighPriority = request.IsHighPriority, IsPinned = request.IsPinned
+                Color = request.Color?.ToUpperInvariant(), IsHighPriority = request.IsHighPriority,
+                IsPinned = request.IsPinned
             };
             EventTime.Apply(ev, request.Time, room.TimeZoneId);
             var participants = await ValidateParticipantsAsync(context, roomId,
@@ -100,23 +144,51 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
             await context.SaveChangesAsync(ct);
             return await ResponseAsync(context, roomId, ev.Id, ct);
         }, ct);
+    }
 
-    public Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request, CancellationToken ct) =>
-        mutations.ExecuteAsync(roomId, async (context, room) =>
+    public Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request, CancellationToken ct)
+    {
+        return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
             RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId);
-            if (request.Title is not null) ev.Title = Title(request.Title);
-            if (request.Description is not null) ev.Description = EmptyToNull(request.Description);
-            if (request.Color is not null) ev.Color = EmptyToNull(request.Color)?.ToUpperInvariant();
-            if (request.EventTypeId is { } typeId && typeId != ev.EventTypeId) {
+            if (request.Title is not null)
+            {
+                ev.Title = Title(request.Title);
+            }
+
+            if (request.Description is not null)
+            {
+                ev.Description = EmptyToNull(request.Description);
+            }
+
+            if (request.Color is not null)
+            {
+                ev.Color = EmptyToNull(request.Color)?.ToUpperInvariant();
+            }
+
+            if (request.EventTypeId is { } typeId && typeId != ev.EventTypeId)
+            {
                 await ValidateTypeAsync(context, roomId, typeId, ct);
                 ev.EventTypeId = typeId;
             }
-            if (request.IsHighPriority is { } priority) ev.IsHighPriority = priority;
-            if (request.IsPinned is { } pinned) ev.IsPinned = pinned;
-            if (request.Time is not null) EventTime.Apply(ev, request.Time, room.TimeZoneId);
+
+            if (request.IsHighPriority is { } priority)
+            {
+                ev.IsHighPriority = priority;
+            }
+
+            if (request.IsPinned is { } pinned)
+            {
+                ev.IsPinned = pinned;
+            }
+
+            if (request.Time is not null)
+            {
+                EventTime.Apply(ev, request.Time, room.TimeZoneId);
+            }
+
             if (request.ParticipantMemberIds is { } ids)
             {
                 var validated = await ValidateParticipantsAsync(context, roomId, ids, ct);
@@ -124,27 +196,35 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
                 context.EventParticipants.AddRange(validated.Select(id => new EventParticipant
                     { EventId = eventId, RoomId = roomId, MemberId = id }));
             }
+
             // Participant-only and no-op updates still advance the concurrency token.
             context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
             return await ResponseAsync(context, roomId, eventId, ct);
         }, ct);
+    }
 
-    public Task<EventResponse> PinAsync(int roomId, int eventId, PinEventRequest request, CancellationToken ct) =>
-        mutations.ExecuteAsync(roomId, async (context, room) =>
+    public Task<EventResponse> PinAsync(int roomId, int eventId, PinEventRequest request, CancellationToken ct)
+    {
+        return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
             if (ev.AuthorMemberId != member.Id && room.OwnerUserId != actor.UserId)
+            {
                 throw new ApiException(403, "event_pin_forbidden", "Only the author or room owner may pin this event.");
+            }
+
             ev.IsPinned = request.IsPinned;
             context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
             return await ResponseAsync(context, roomId, eventId, ct);
         }, ct);
+    }
 
-    public Task DeleteAsync(int roomId, int eventId, EventVersionRequest request, CancellationToken ct) =>
-        mutations.ExecuteAsync(roomId, async (context, room) =>
+    public Task DeleteAsync(int roomId, int eventId, EventVersionRequest request, CancellationToken ct)
+    {
+        return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
@@ -155,6 +235,7 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
             await context.SaveChangesAsync(ct);
             return true;
         }, ct);
+    }
 
     private async Task<RoomMember> RequireWriterAsync(AppDbContext context, Room room, CancellationToken ct)
     {
@@ -168,26 +249,35 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
         byte[] version, CancellationToken ct)
     {
         var ev = await context.CalendarEvents.SingleOrDefaultAsync(e => e.RoomId == roomId && e.Id == eventId, ct)
-            ?? throw new ApiException(404, "event_not_found", "Event not found.");
+                 ?? throw new ApiException(404, "event_not_found", "Event not found.");
         if (!ev.RowVersion.AsSpan().SequenceEqual(version))
+        {
             throw new ApiException(409, "concurrency_conflict", "Event changed. Reload and retry.");
+        }
+
         return ev;
     }
 
-    private static async Task<int[]> ValidateParticipantsAsync(AppDbContext context, int roomId, int[] ids, CancellationToken ct)
+    private static async Task<int[]> ValidateParticipantsAsync(AppDbContext context, int roomId, int[] ids,
+        CancellationToken ct)
     {
         var distinct = ids.Distinct().ToArray();
         if (distinct.Any(id => id <= 0) || distinct.Length != ids.Length ||
-            await context.RoomMembers.CountAsync(m => m.RoomId == roomId && m.LeftAtUtc == null && distinct.Contains(m.Id), ct) != distinct.Length)
+            await context.RoomMembers.CountAsync(
+                m => m.RoomId == roomId && m.LeftAtUtc == null && distinct.Contains(m.Id), ct) != distinct.Length)
+        {
             throw ApiException.Validation(new Dictionary<string, string[]>
                 { ["participantMemberIds"] = ["Use distinct active members of this room."] });
+        }
+
         return distinct;
     }
 
     private async Task<EventResponse> ResponseAsync(AppDbContext context, int roomId, int eventId, CancellationToken ct)
     {
-        var row = await VisibleEvents(context).SingleOrDefaultAsync(x => x.Event.RoomId == roomId && x.Event.Id == eventId, ct)
-            ?? throw new ApiException(404, "event_not_found", "Event not found.");
+        var row = await VisibleEvents(context)
+                      .SingleOrDefaultAsync(x => x.Event.RoomId == roomId && x.Event.Id == eventId, ct)
+                  ?? throw new ApiException(404, "event_not_found", "Event not found.");
         var participants = await context.EventParticipants.Where(p => p.EventId == eventId)
             .OrderBy(p => p.MemberId).Select(p => p.MemberId).ToArrayAsync(ct);
         return Map(row, participants);
@@ -198,24 +288,36 @@ public sealed class EventService(AppDbContext db, CurrentActor actor, TimeProvid
         var ev = row.Event;
         var active = row.Room.ArchivedAtUtc is null && row.Room.ExpiresAtUtc > clock.GetUtcNow();
         var own = row.ViewerMemberId == ev.AuthorMemberId;
-        return new(ev.Id, ev.RoomId, row.Room.Name, row.Room.TimeZoneId,
+        return new EventResponse(ev.Id, ev.RoomId, row.Room.Name, row.Room.TimeZoneId,
             row.Room.GetArchivedAtUtc(clock.GetUtcNow()) is not null,
             ev.Title, ev.Description, ev.StartsAtUtc, ev.EndsAtUtc, ev.IsAllDay, ev.StartDate, ev.EndDateExclusive,
-            ev.TimeZoneId, ev.EventTypeId, row.Type.Name, row.Type.IsArchived, (ev.Color ?? row.Type.Color).ToUpperInvariant(), ev.Color,
+            ev.TimeZoneId, ev.EventTypeId, row.Type.Name, row.Type.IsArchived,
+            (ev.Color ?? row.Type.Color).ToUpperInvariant(), ev.Color,
             ev.IsHighPriority, ev.IsPinned,
-            new(row.Author.Id, row.Author.DisplayName, row.Author.GuestSessionId != null,
+            new EventAuthorResponse(row.Author.Id, row.Author.DisplayName, row.Author.GuestSessionId != null,
                 row.Author.UserId == row.Room.OwnerUserId, row.Author.LeftAtUtc != null), participants, ev.RowVersion,
-            new(active && own, active && own, active && (own || row.Room.OwnerUserId == actor.UserId)));
+            new EventPermissions(active && own, active && own,
+                active && (own || row.Room.OwnerUserId == actor.UserId)));
     }
 
     private static async Task ValidateTypeAsync(AppDbContext context, int roomId, int typeId, CancellationToken ct)
     {
         if (!await context.RoomEventTypes.AnyAsync(t => t.RoomId == roomId && t.Id == typeId && !t.IsArchived, ct))
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["eventTypeId"] = ["Select an active event type from this room."] });
+        {
+            throw ApiException.Validation(new Dictionary<string, string[]>
+                { ["eventTypeId"] = ["Select an active event type from this room."] });
+        }
     }
 
-    private static string Title(string value) => string.IsNullOrWhiteSpace(value)
-        ? throw ApiException.Validation(new Dictionary<string, string[]> { ["title"] = ["Title cannot be blank."] })
-        : value.Trim();
-    private static string? EmptyToNull(string? value) => string.IsNullOrEmpty(value) ? null : value;
+    private static string Title(string value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? throw ApiException.Validation(new Dictionary<string, string[]> { ["title"] = ["Title cannot be blank."] })
+            : value.Trim();
+    }
+
+    private static string? EmptyToNull(string? value)
+    {
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
 }

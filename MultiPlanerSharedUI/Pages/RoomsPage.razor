@@ -42,25 +42,31 @@
     private Rooms? _rooms;
     private Folders? _folders;
 
-    private async Task OpenCalendarPopup() {
+    private async Task OpenCalendarPopup()
+    {
         _isOpen = false;
         _showCalendarPopup = true;
     }
 
-    private async Task OpenFloderPopup() {
+    private async Task OpenFloderPopup()
+    {
         _isOpen = false;
         _showFolderPopup = true;
     }
 
 
-    private async Task HandleRoomCreated() {
-        if (_rooms is not null) {
+    private async Task HandleRoomCreated()
+    {
+        if (_rooms is not null)
+        {
             await _rooms.LoadRoomsAsync(true);
         }
     }
 
-    private async Task HandleFolderCreated() {
-        if (_folders is not null) {
+    private async Task HandleFolderCreated()
+    {
+        if (_folders is not null)
+        {
             await _folders.LoadFoldersAsync(true);
         }
     }

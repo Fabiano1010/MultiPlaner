@@ -1,13 +1,16 @@
-﻿@if (IsVisible) {
+﻿@if (IsVisible)
+{
     <div class="popup-overlay @(IsSettings ? "settings-overlay" : "")">
-        <div class="popup-container @(IsSettings ? "settings-popup" : "")" role="dialog" aria-modal="true" aria-label="@Title"
+        <div class="popup-container @(IsSettings ? "settings-popup" : "")" role="dialog" aria-modal="true"
+             aria-label="@Title"
              @ref="_container"
              tabindex="-1"
              @onclick:stopPropagation="true"
              @onkeydown="HandleKeyDown">
             <div class="popup-header">
                 <span class="popup-title">@Title</span>
-                <button type="button" class="popup-close" aria-label="Close" @onclick="OnClose"><img src="_content/MultiPlanerSharedUI/images/x.svg" alt="" /></button>
+                <button type="button" class="popup-close" aria-label="Close" @onclick="OnClose"><img
+                        src="_content/MultiPlanerSharedUI/images/x.svg" alt=""/></button>
             </div>
             <div class="popup-content">
                 @ChildContent
@@ -26,12 +29,14 @@
     private ElementReference _container;
     private bool _wasVisible;
 
-    private async Task HandleKeyDown(KeyboardEventArgs e) {
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
         if (e.Key == "Escape")
             await OnClose.InvokeAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
         if (IsVisible && !_wasVisible)
             await _container.FocusAsync();
         _wasVisible = IsVisible;

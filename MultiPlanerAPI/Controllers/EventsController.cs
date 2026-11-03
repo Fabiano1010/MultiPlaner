@@ -6,7 +6,8 @@ using MultiPlanerSharedModels.Contracts.Events;
 
 namespace MultiPlanerAPI.Controllers;
 
-[ApiController, Authorize]
+[ApiController]
+[Authorize]
 [Route("api/rooms/{roomId:int}/events")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -19,12 +20,17 @@ public sealed class EventsController(EventService events) : ControllerBase
     [HttpGet]
     [ProducesResponseType<PagedResponse<EventResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResponse<EventResponse>>> List(int roomId,
-        [FromQuery] EventListRequest filter, CancellationToken ct) => Ok(await events.ListAsync(roomId, filter, ct));
+        [FromQuery] EventListRequest filter, CancellationToken ct)
+    {
+        return Ok(await events.ListAsync(roomId, filter, ct));
+    }
 
     [HttpGet("{eventId:int}")]
     [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<EventResponse>> Get(int roomId, int eventId, CancellationToken ct) =>
-        Ok(await events.GetAsync(roomId, eventId, ct));
+    public async Task<ActionResult<EventResponse>> Get(int roomId, int eventId, CancellationToken ct)
+    {
+        return Ok(await events.GetAsync(roomId, eventId, ct));
+    }
 
     [HttpPost]
     [ProducesResponseType<EventResponse>(StatusCodes.Status201Created)]
@@ -37,23 +43,31 @@ public sealed class EventsController(EventService events) : ControllerBase
     [HttpPatch("{eventId:int}")]
     [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<EventResponse>> Update(int roomId, int eventId,
-        UpdateEventRequest request, CancellationToken ct) => Ok(await events.UpdateAsync(roomId, eventId, request, ct));
+        UpdateEventRequest request, CancellationToken ct)
+    {
+        return Ok(await events.UpdateAsync(roomId, eventId, request, ct));
+    }
 
     [HttpPut("{eventId:int}/pin")]
     [ProducesResponseType<EventResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<EventResponse>> Pin(int roomId, int eventId,
-        PinEventRequest request, CancellationToken ct) => Ok(await events.PinAsync(roomId, eventId, request, ct));
+        PinEventRequest request, CancellationToken ct)
+    {
+        return Ok(await events.PinAsync(roomId, eventId, request, ct));
+    }
 
     [HttpDelete("{eventId:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> Delete(int roomId, int eventId, [FromBody] EventVersionRequest request, CancellationToken ct)
+    public async Task<IActionResult> Delete(int roomId, int eventId, [FromBody] EventVersionRequest request,
+        CancellationToken ct)
     {
         await events.DeleteAsync(roomId, eventId, request, ct);
         return NoContent();
     }
 }
 
-[ApiController, Authorize]
+[ApiController]
+[Authorize]
 [Route("api/me/events")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class MyEventsController(EventService events) : ControllerBase
@@ -63,5 +77,8 @@ public sealed class MyEventsController(EventService events) : ControllerBase
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PagedResponse<EventResponse>>> List([FromQuery] EventListRequest filter,
-        CancellationToken ct) => Ok(await events.ListAsync(null, filter, ct));
+        CancellationToken ct)
+    {
+        return Ok(await events.ListAsync(null, filter, ct));
+    }
 }

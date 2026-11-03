@@ -23,8 +23,11 @@ public sealed class RoomMutationService(DbContextOptions<AppDbContext> options, 
         });
     }
 
-    internal static async Task<Room> LockAsync(AppDbContext db, int roomId, CancellationToken cancellationToken) =>
-        await db.Rooms.FromSqlInterpolated($"SELECT * FROM [dbo].[Rooms] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {roomId}")
-            .SingleOrDefaultAsync(cancellationToken)
-        ?? throw new ApiException(404, "room_not_found", "Room not found.");
+    internal static async Task<Room> LockAsync(AppDbContext db, int roomId, CancellationToken cancellationToken)
+    {
+        return await db.Rooms
+                   .FromSqlInterpolated($"SELECT * FROM [dbo].[Rooms] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {roomId}")
+                   .SingleOrDefaultAsync(cancellationToken)
+               ?? throw new ApiException(404, "room_not_found", "Room not found.");
+    }
 }

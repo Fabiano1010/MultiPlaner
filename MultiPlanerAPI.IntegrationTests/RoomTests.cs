@@ -67,10 +67,12 @@ public sealed class RoomTests(ApiFixture fixture)
             Assert.Equal("UTC", updated.TimeZoneId);
             Assert.Equal(expiry, updated.ExpiresAtUtc);
             await AccountTests.AssertProblem(
-                await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = " ", RowVersion = updated.RowVersion! }),
+                await owner.PatchAsJsonAsync($"/api/rooms/{room.Id}",
+                    new UpdateRoomRequest { Name = " ", RowVersion = updated.RowVersion! }),
                 HttpStatusCode.BadRequest, "validation_failed");
             await AccountTests.AssertProblem(
-                await other.PatchAsJsonAsync($"/api/rooms/{room.Id}", new UpdateRoomRequest { Name = "Wrong", RowVersion = updated.RowVersion! }),
+                await other.PatchAsJsonAsync($"/api/rooms/{room.Id}",
+                    new UpdateRoomRequest { Name = "Wrong", RowVersion = updated.RowVersion! }),
                 HttpStatusCode.NotFound, "room_not_found");
             Assert.Equal(HttpStatusCode.NotFound,
                 (await other.GetAsync($"/api/rooms/{room.Id}/members")).StatusCode);
@@ -80,13 +82,17 @@ public sealed class RoomTests(ApiFixture fixture)
             Assert.Equal(HttpStatusCode.OK,
                 (await guest.PostAsJsonAsync("/api/invitations/join",
                     new JoinByTokenRequest { Token = TokenOf(invitation), DisplayName = "Guest One" })).StatusCode);
-            var members = await guest.GetFromJsonAsync<MultiPlanerSharedModels.Contracts.Common.PagedResponse<RoomMemberResponse>>(
-                $"/api/rooms/{room.Id}/members?page=1&pageSize=1");
+            var members =
+                await guest
+                    .GetFromJsonAsync<MultiPlanerSharedModels.Contracts.Common.PagedResponse<RoomMemberResponse>>(
+                        $"/api/rooms/{room.Id}/members?page=1&pageSize=1");
             Assert.Equal(2, members!.TotalCount);
             Assert.Single(members.Items);
             Assert.True(members.Items[0].IsOwner);
-            var secondPage = await guest.GetFromJsonAsync<MultiPlanerSharedModels.Contracts.Common.PagedResponse<RoomMemberResponse>>(
-                $"/api/rooms/{room.Id}/members?page=2&pageSize=1");
+            var secondPage =
+                await guest
+                    .GetFromJsonAsync<MultiPlanerSharedModels.Contracts.Common.PagedResponse<RoomMemberResponse>>(
+                        $"/api/rooms/{room.Id}/members?page=2&pageSize=1");
             Assert.True(secondPage!.Items[0].IsGuest);
         }
     }
@@ -103,38 +109,39 @@ public sealed class RoomTests(ApiFixture fixture)
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var now = DateTimeOffset.UtcNow;
-                var entry = new MultiPlanerAPI.Models.CalendarEvent
+                var entry = new Models.CalendarEvent
                 {
                     RoomId = room.Id, AuthorMemberId = room.MemberId,
                     Title = "Meeting", StartsAtUtc = now.AddHours(1), EndsAtUtc = now.AddHours(2)
                 };
-                entry.EventTypeId = await db.RoomEventTypes.Where(t => t.RoomId == room.Id).Select(t => t.Id).FirstAsync();
+                entry.EventTypeId =
+                    await db.RoomEventTypes.Where(t => t.RoomId == room.Id).Select(t => t.Id).FirstAsync();
                 db.CalendarEvents.Add(entry);
                 await db.SaveChangesAsync();
                 eventId = entry.Id;
-                db.EventParticipants.Add(new MultiPlanerAPI.Models.EventParticipant
+                db.EventParticipants.Add(new Models.EventParticipant
                     { RoomId = room.Id, EventId = entry.Id, MemberId = room.MemberId });
-                db.EventAttachments.Add(new MultiPlanerAPI.Models.EventAttachment
+                db.EventAttachments.Add(new Models.EventAttachment
                 {
                     EventId = entry.Id, StorageKey = Guid.NewGuid().ToString("N"),
                     OriginalFileName = "image.png", ContentType = "image/png", SizeBytes = 16
                 });
-                db.ChatMessages.Add(new MultiPlanerAPI.Models.ChatMessage
+                db.ChatMessages.Add(new Models.ChatMessage
                 {
                     RoomId = room.Id, AuthorMemberId = room.MemberId,
                     ClientRequestId = Guid.NewGuid(), Text = "Hello", SentAtUtc = now
                 });
-                db.AvailabilityIntervals.Add(new MultiPlanerAPI.Models.AvailabilityInterval
+                db.AvailabilityIntervals.Add(new Models.AvailabilityInterval
                 {
                     RoomId = room.Id, MemberId = room.MemberId,
                     StartsAtUtc = now.AddHours(1), EndsAtUtc = now.AddHours(2)
                 });
-                db.RoomActivities.Add(new MultiPlanerAPI.Models.RoomActivity
+                db.RoomActivities.Add(new Models.RoomActivity
                 {
                     RoomId = room.Id, ActorMemberId = room.MemberId,
                     Kind = "Test", ResourceId = entry.Id.ToString(), OccurredAtUtc = now
                 });
-                db.OutboxMessages.Add(new MultiPlanerAPI.Models.OutboxMessage
+                db.OutboxMessages.Add(new Models.OutboxMessage
                 {
                     RoomId = room.Id, Kind = "Test", PayloadJson = "{}", CreatedAtUtc = now
                 });
@@ -168,7 +175,7 @@ public sealed class RoomTests(ApiFixture fixture)
         using (var secondGuest = fixture.Client())
         {
             var room = await CreateRoomAsync(owner);
-            var invitation = await CreateInvitationAsync(owner, room.Id, maxUses: 1);
+            var invitation = await CreateInvitationAsync(owner, room.Id, 1);
             await ApiFixture.CsrfAsync(guest);
             var previewResult = await guest.PostAsJsonAsync("/api/invitations/preview",
                 new PreviewInvitationRequest { Token = TokenOf(invitation) });
@@ -190,16 +197,19 @@ public sealed class RoomTests(ApiFixture fixture)
 
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            Assert.Equal(1, await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
+            Assert.Equal(1,
+                await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
             Assert.Equal(identity.GuestSessionId,
-                await db.RoomMembers.Where(m => m.Id == membership.MemberId).Select(m => m.GuestSessionId).SingleAsync());
+                await db.RoomMembers.Where(m => m.Id == membership.MemberId).Select(m => m.GuestSessionId)
+                    .SingleAsync());
 
             await ApiFixture.CsrfAsync(secondGuest);
             await AccountTests.AssertProblem(
                 await secondGuest.PostAsJsonAsync(invitation.JoinPath + "/join",
                     new JoinInvitationRequest { DisplayName = "Guest Two" }),
                 HttpStatusCode.Gone, "invitation_unavailable");
-            Assert.Equal(1, await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
+            Assert.Equal(1,
+                await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
         }
     }
 
@@ -212,7 +222,7 @@ public sealed class RoomTests(ApiFixture fixture)
         using (participant)
         {
             var room = await CreateRoomAsync(owner);
-            var invitation = await CreateInvitationAsync(owner, room.Id, maxUses: 2);
+            var invitation = await CreateInvitationAsync(owner, room.Id, 2);
             var first = await participant.PostAsJsonAsync(invitation.JoinPath + "/join", new JoinInvitationRequest());
             Assert.Equal(HttpStatusCode.OK, first.StatusCode);
             var second = await participant.PostAsJsonAsync(invitation.JoinPath + "/join", new JoinInvitationRequest());
@@ -223,8 +233,10 @@ public sealed class RoomTests(ApiFixture fixture)
 
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            Assert.Equal(1, await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
-            Assert.Equal(1, await db.RoomMembers.CountAsync(m => m.RoomId == room.Id && m.UserId == participantUser.UserId));
+            Assert.Equal(1,
+                await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
+            Assert.Equal(1,
+                await db.RoomMembers.CountAsync(m => m.RoomId == room.Id && m.UserId == participantUser.UserId));
 
             Assert.Equal(HttpStatusCode.NoContent,
                 (await owner.DeleteAsync($"/api/rooms/{room.Id}/invitations/{invitation.Id}")).StatusCode);
@@ -247,7 +259,7 @@ public sealed class RoomTests(ApiFixture fixture)
             await AccountTests.AssertProblem(await owner.GetAsync(initial.JoinPath),
                 HttpStatusCode.Gone, "invitation_unavailable");
 
-            var second = await CreateInvitationAsync(owner, room.Id, maxUses: 1);
+            var second = await CreateInvitationAsync(owner, room.Id, 1);
             await AccountTests.AssertProblem(await owner.GetAsync(first.JoinPath),
                 HttpStatusCode.Gone, "invitation_unavailable");
             Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync(second.JoinPath)).StatusCode);
@@ -255,7 +267,8 @@ public sealed class RoomTests(ApiFixture fixture)
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             Assert.Equal(1, await db.RoomInvitations.CountAsync(i => i.RoomId == room.Id && i.RevokedAtUtc == null));
-            Assert.Equal(0, await db.RoomInvitations.Where(i => i.Id == second.Id).Select(i => i.UseCount).SingleAsync());
+            Assert.Equal(0,
+                await db.RoomInvitations.Where(i => i.Id == second.Id).Select(i => i.UseCount).SingleAsync());
             Assert.DoesNotContain(TokenOf(second),
                 await db.RoomInvitations.Where(i => i.Id == second.Id).Select(i => i.TokenHash).SingleAsync());
         }
@@ -270,7 +283,7 @@ public sealed class RoomTests(ApiFixture fixture)
         using (var secondGuest = fixture.Client())
         {
             var room = await CreateRoomAsync(owner);
-            var invitation = await CreateInvitationAsync(owner, room.Id, maxUses: 1);
+            var invitation = await CreateInvitationAsync(owner, room.Id, 1);
             await ApiFixture.CsrfAsync(firstGuest);
             await ApiFixture.CsrfAsync(secondGuest);
             var responses = await Task.WhenAll(
@@ -284,7 +297,8 @@ public sealed class RoomTests(ApiFixture fixture)
 
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            Assert.Equal(1, await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
+            Assert.Equal(1,
+                await db.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
             Assert.Equal(1, await db.RoomMembers.CountAsync(m => m.RoomId == room.Id && m.GuestSessionId != null));
         }
     }
@@ -301,7 +315,8 @@ public sealed class RoomTests(ApiFixture fixture)
             var room = await CreateRoomAsync(owner);
             var invitation = await CreateInvitationAsync(owner, room.Id);
             await AccountTests.AssertProblem(
-                await guest.PostAsJsonAsync(invitation.JoinPath + "/join", new JoinInvitationRequest { DisplayName = "Guest" }),
+                await guest.PostAsJsonAsync(invitation.JoinPath + "/join",
+                    new JoinInvitationRequest { DisplayName = "Guest" }),
                 HttpStatusCode.BadRequest, "invalid_csrf");
             await ApiFixture.CsrfAsync(guest);
             await AccountTests.AssertProblem(
@@ -311,7 +326,8 @@ public sealed class RoomTests(ApiFixture fixture)
                 (await guest.PostAsJsonAsync("/api/rooms", new CreateRoomRequest { Name = "Wrong" })).StatusCode);
             await ApiFixture.CsrfAsync(existingGuest);
             Assert.Equal(HttpStatusCode.Forbidden,
-                (await existingGuest.PostAsJsonAsync("/api/rooms", new CreateRoomRequest { Name = "Wrong" })).StatusCode);
+                (await existingGuest.PostAsJsonAsync("/api/rooms", new CreateRoomRequest { Name = "Wrong" }))
+                .StatusCode);
         }
     }
 
@@ -325,7 +341,8 @@ public sealed class RoomTests(ApiFixture fixture)
         return (await response.Content.ReadFromJsonAsync<RoomResponse>())!;
     }
 
-    private static async Task<RoomInvitationResponse> CreateInvitationAsync(HttpClient client, int roomId, int? maxUses = null)
+    private static async Task<RoomInvitationResponse> CreateInvitationAsync(HttpClient client, int roomId,
+        int? maxUses = null)
     {
         var response = await client.PostAsJsonAsync($"/api/rooms/{roomId}/invitations",
             new CreateRoomInvitationRequest { MaxUses = maxUses });
@@ -333,6 +350,8 @@ public sealed class RoomTests(ApiFixture fixture)
         return (await response.Content.ReadFromJsonAsync<RoomInvitationResponse>())!;
     }
 
-    private static string TokenOf(RoomInvitationResponse invitation) =>
-        invitation.JoinPath[(invitation.JoinPath.LastIndexOf('/') + 1)..];
+    private static string TokenOf(RoomInvitationResponse invitation)
+    {
+        return invitation.JoinPath[(invitation.JoinPath.LastIndexOf('/') + 1)..];
+    }
 }

@@ -11,7 +11,8 @@
                 <input type="text" @bind="_folderName" placeholder="Folder name"
                        class="input-main @(HasError ? "error-input" : "")"/>
             </div>
-            @if (!string.IsNullOrEmpty(_errorMessage)) {
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
                 <div class="form-error">@_errorMessage</div>
             }
             <div class="form-actions">
@@ -39,14 +40,17 @@
     private bool _isSaving;
     private bool HasError => !string.IsNullOrEmpty(_errorMessage);
 
-    private async Task HandleClose() {
+    private async Task HandleClose()
+    {
         _errorMessage = "";
         await OnClose.InvokeAsync();
     }
 
-    private async Task HandleSave() {
+    private async Task HandleSave()
+    {
         var name = _folderName?.Trim() ?? string.Empty;
-        if (name.Length is < 2 or > 128) {
+        if (name.Length is < 2 or > 128)
+        {
             _errorMessage = "Folder name must be between 2 and 128 characters.";
             return;
         }
@@ -54,11 +58,13 @@
         _isSaving = true;
         _errorMessage = "";
 
-        try {
+        try
+        {
             var request = new CreateUserFolderRequest { Name = name };
             var response = await Api.PostAsync("api/me/folders", request);
             await ApiClient.EnsureSuccessAsync(response);
-            if (!response.IsSuccessStatusCode) {
+            if (!response.IsSuccessStatusCode)
+            {
                 var body = await response.Content.ReadAsStringAsync();
                 _errorMessage = $"Error creating room: {response.StatusCode} - {body}";
                 return;
@@ -68,13 +74,16 @@
             await OnCreate.InvokeAsync(room!);
             await HandleClose();
         }
-        catch (ApiException e) {
+        catch (ApiException e)
+        {
             _errorMessage = e.Message;
         }
-        catch (HttpRequestException e) {
+        catch (HttpRequestException e)
+        {
             _errorMessage = "Cannot reach the server. " + e.Message;
         }
-        finally {
+        finally
+        {
             _isSaving = false;
             _folderName = "New Folder";
         }

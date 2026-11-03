@@ -7,7 +7,8 @@ namespace MultiPlanerAPI.Infrastructure;
 public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger<ApiExceptionHandler> logger)
     : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception,
+        CancellationToken cancellationToken)
     {
         if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
         {
@@ -16,13 +17,15 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger
 
         var apiError = exception as ApiException;
         var status = apiError?.StatusCode ??
-            (exception is DbUpdateConcurrencyException ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError);
+                     (exception is DbUpdateConcurrencyException
+                         ? StatusCodes.Status409Conflict
+                         : StatusCodes.Status500InternalServerError);
         if (status == StatusCodes.Status500InternalServerError)
         {
             logger.LogError(exception, "Unhandled API error. TraceId: {TraceId}", context.TraceIdentifier);
         }
 
-        ProblemDetails detail = apiError?.Errors is { } errors
+        var detail = apiError?.Errors is { } errors
             ? new ValidationProblemDetails(errors)
             : new ProblemDetails();
         detail.Status = status;

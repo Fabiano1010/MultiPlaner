@@ -23,7 +23,8 @@ public sealed class GuestSessionTests(ApiFixture fixture)
             Assert.Null(profile.Email);
             Assert.Equal(id, profile.GuestSessionId);
             Assert.Equal("Named Guest", profile.DisplayName);
-            Assert.InRange(profile.ExpiresAtUtc!.Value, DateTimeOffset.UtcNow.AddDays(29), DateTimeOffset.UtcNow.AddDays(31));
+            Assert.InRange(profile.ExpiresAtUtc!.Value, DateTimeOffset.UtcNow.AddDays(29),
+                DateTimeOffset.UtcNow.AddDays(31));
             await ApiFixture.CsrfAsync(client);
             Assert.Equal(HttpStatusCode.Forbidden,
                 (await client.PatchAsJsonAsync("/api/me", new { displayName = "Different" })).StatusCode);
@@ -35,7 +36,9 @@ public sealed class GuestSessionTests(ApiFixture fixture)
     {
         var (client, _, _) = await fixture.GuestAsync(DateTimeOffset.UtcNow.AddMinutes(-1));
         using (client)
+        {
             Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/me")).StatusCode);
+        }
     }
 
     [Fact]
@@ -71,7 +74,7 @@ public sealed class GuestSessionTests(ApiFixture fixture)
     {
         var (client, _, cookie) = await fixture.GuestAsync();
         using (client)
-        using (var copy = fixture.Client(handleCookies: false))
+        using (var copy = fixture.Client(false))
         {
             copy.DefaultRequestHeaders.Add("Cookie", cookie);
             await ApiFixture.CsrfAsync(client);
