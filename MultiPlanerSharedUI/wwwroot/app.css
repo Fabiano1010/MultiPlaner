@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Red+Hat+Display:wght@600&display=swap');
 
 :root {
-    --app-background: #ffffff;
-    --app-text: #000000;
-    --surface: #dddddd;
-    --surface-text: #000000;
-    --sidebar-background: #0b0b0b;
-    --sidebar-text: #ffffff;
-    --field-background: #f1f1f1;
-    --field-text: #000000;
-    --accent: #000000;
-    --accent-text: #ffffff;
-    --border: #999999;
-    --hover-background: #c2c2c2;
-    --selection-background: #d1d1d1;
-    --selection-text: #000000;
-    --shadow: #cccccc;
+    --app-background:#ffffff; 
+    --app-text:#000000; 
+    --surface:#dddddd; 
+    --surface-text:#000000; 
+    --sidebar-background:#0b0b0b; 
+    --sidebar-text:#ffffff; 
+    --field-background:#f1f1f1; 
+    --field-text:#000000; 
+    --accent:#000000; 
+    --accent-text:#ffffff; 
+    --border:#999999; 
+    --hover-background:#c2c2c2; 
+    --selection-background:#d1d1d1; 
+    --selection-text:#000000; 
+    --shadow:#cccccc;
     --border-radius: 10px;
     --font-sans: 'Red Hat Display', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-size-small: 12px;
@@ -145,7 +145,8 @@ html, body {
     align-items: center;
 
 
-    color: var(--surface-text);
+
+    color:var(--surface-text);
 }
 
 .user-img {
@@ -268,10 +269,11 @@ html, body {
     border: none;
     outline: none;
     background: none;
+    
 }
 
 .action-button:hover {
-    background-color: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     transform: translateY(-2px);
     filter: drop-shadow(0px 5px 5px var(--border));
     color: var(--accent-text);
@@ -287,7 +289,7 @@ html, body {
     scale: 0.9;
     transition-duration: 0.08s;
 
-    color: var(--surface-text);
+    color:var(--surface-text);
 }
 
 .input-main,
@@ -340,7 +342,7 @@ html, body {
 .btn-main:hover {
     filter: drop-shadow(0px 3px 5px var(--accent));
     transform: translateY(-2px);
-    background: var(--accent);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--accent-text);
 }
 
@@ -350,8 +352,7 @@ html, body {
     scale: 0.9;
     transform: translateY(-2px);
     transition-duration: 0.08s;
-
-    color: var(--surface-text);
+    color:var(--surface-text);
 }
 
 .loading-container {
@@ -465,141 +466,61 @@ html, body {
 }
 
 /* Context colors follow their actual background. */
-.sidebar {
-    background: var(--sidebar-background);
-    color: var(--sidebar-text);
-}
+.sidebar { background:var(--sidebar-background); color:var(--sidebar-text); }
+.nav-item, .nav-user { color:var(--sidebar-text); }
+button.nav-user { border:0; border-bottom:1px solid var(--border); background:transparent; font:inherit; width:100%; }
+.user-img-div { width:60%; aspect-ratio:1; flex:none; overflow:hidden; border-radius:50%; transition:width .35s ease-in-out; }
+.user-img-div .sidebar-avatar { display:block; width:100%; height:100%; aspect-ratio:1; flex:none; object-fit:cover; border-radius:50%; }
+.settings-avatar { width:48px; height:48px; aspect-ratio:1; object-fit:cover; border-radius:50%; flex:none; }
+.input-main, .form-group textarea { background:var(--field-background); color:var(--field-text); border-color:var(--accent); }
+.btn-save, .btn-main:hover { background:var(--accent); color:var(--accent-text); }
+.btn-cancel { background:var(--surface); color:var(--surface-text); }
+.popup-container { background:var(--app-background); color:var(--app-text); }
+.mobile-nav-bar { background:var(--sidebar-background); color:var(--sidebar-text); }
+.action-button-img, .nav-item-img, .mobile-nav-toggle img { filter:none; }
+.sidebar .nav-item-img, .mobile-nav-toggle img { filter:brightness(0) invert(1); }
+.btn-danger { background:#d90000; color:#ffffff; }
+.events-button:hover .plus-icon {filter:var(--icon-filter,brightness(0) invert(1));}
+.action-button-img, .popup-close img { filter:var(--icon-filter,brightness(0)); }
+.action-button:hover .action-button-img { filter:var(--accent-icon-filter,brightness(0) invert(1)); }
+.sidebar .nav-item-img, .mobile-nav-toggle img { filter:var(--sidebar-icon-filter,brightness(0) invert(1)); }
+.sidebar .nav-item:hover .nav-item-img { filter:var(--accent-icon-filter,brightness(0) invert(1)); }
+.calendar-type-filter select { background:var(--field-background); color:var(--field-text); border:1px solid var(--border); border-radius:var(--border-radius); padding:.5rem; font:inherit; }
 
-.nav-item, .nav-user {
-    color: var(--sidebar-text);
+.nav-item-current { background:var(--surface); color:var(--surface-text); }
+.nav-item-current .nav-item-img { filter:var(--surface-icon-filter,brightness(0)); }
+.nav-item:hover { background:var(--app-background); color:var(--app-text); }
+.sidebar .nav-item:hover .nav-item-img { filter:var(--icon-filter,brightness(0)); }
+.user-img-div { background:var(--surface);
+    color:var(--surface-text);
 }
+.user-img-div .sidebar-avatar.is-placeholder { width:70%; height:70%; object-fit:contain; filter:var(--surface-icon-filter,brightness(0)); }
 
-button.nav-user {
-    border: 0;
-    border-bottom: 1px solid var(--border);
-    background: transparent;
-    font: inherit;
-    width: 100%;
-}
+.info-popup {
+    position: fixed;
+    top: 3%;
+    left: 50%;
+    transform: translateX(-50%);
 
-.user-img-div {
-    width: 60%;
-    aspect-ratio: 1;
-    flex: none;
-    overflow: hidden;
-    border-radius: 50%;
-    transition: width .35s ease-in-out;
-}
-
-.user-img-div .sidebar-avatar {
-    display: block;
-    width: 100%;
-    height: 100%;
-    aspect-ratio: 1;
-    flex: none;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.settings-avatar {
-    width: 48px;
-    height: 48px;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 50%;
-    flex: none;
-}
-
-.input-main, .form-group textarea {
-    background: var(--field-background);
-    color: var(--field-text);
-    border-color: var(--border);
-}
-
-.btn-save, .btn-main:hover {
-    background: var(--accent);
-    color: var(--accent-text);
-}
-
-.btn-cancel {
-    background: var(--surface);
-    color: var(--surface-text);
-}
-
-.popup-container {
     background: var(--app-background);
     color: var(--app-text);
-}
-
-.mobile-nav-bar {
-    background: var(--sidebar-background);
-    color: var(--sidebar-text);
-}
-
-.action-button-img, .nav-item-img, .mobile-nav-toggle img {
-    filter: none;
-}
-
-.sidebar .nav-item-img, .mobile-nav-toggle img {
-    filter: brightness(0) invert(1);
-}
-
-.btn-danger {
-    background: #d90000;
-    color: #ffffff;
-}
-
-.action-button-img, .popup-close img {
-    filter: var(--icon-filter, brightness(0));
-}
-
-.action-button:hover .action-button-img {
-    filter: var(--accent-icon-filter, brightness(0) invert(1));
-}
-
-.sidebar .nav-item-img, .mobile-nav-toggle img {
-    filter: var(--sidebar-icon-filter, brightness(0) invert(1));
-}
-
-.sidebar .nav-item:hover .nav-item-img {
-    filter: var(--accent-icon-filter, brightness(0) invert(1));
-}
-
-.calendar-type-filter select {
-    background: var(--field-background);
-    color: var(--field-text);
-    border: 1px solid var(--border);
+    border: 1px solid var(--accent);
     border-radius: var(--border-radius);
-    padding: .5rem;
-    font: inherit;
-}
+    z-index: 10000000;
+    padding: 10px;
 
-.nav-item-current {
-    background: var(--surface);
-    color: var(--surface-text);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
-
-.nav-item-current .nav-item-img {
-    filter: var(--surface-icon-filter, brightness(0));
+.info-popup-header{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
 }
-
-.nav-item:hover {
-    background: var(--app-background);
-    color: var(--app-text);
-}
-
-.sidebar .nav-item:hover .nav-item-img {
-    filter: var(--icon-filter, brightness(0));
-}
-
-.user-img-div {
-    background: var(--surface);
-    color: var(--surface-text);
-}
-
-.user-img-div .sidebar-avatar.is-placeholder {
-    width: 70%;
-    height: 70%;
-    object-fit: contain;
-    filter: var(--surface-icon-filter, brightness(0));
+.info-popup-content{
+    
 }

@@ -506,6 +506,10 @@
     .event-details-row-column .event-details-value {
         text-align: left;
     }
+    .popup-close{
+        width: 30px;
+        height: 30px;
+    }
 }
 
 @media (max-width: 360px) {
@@ -528,6 +532,7 @@
     .form-actions > button {
         flex: 1;
     }
+
 }
 
 @media (prefers-reduced-motion: reduce) {

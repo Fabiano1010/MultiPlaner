@@ -21,7 +21,7 @@
         {
             <button type="button" class="btn-main btn-save folder-add-btn"
                     disabled="@_isAdding" @onclick="AddSelectedAsync" @onclick:stopPropagation>
-                @(_isAdding ? "Adding..." : $"Add to folder ({Selection.Count})")
+                @(_isAdding ? "Adding..." : $"Add ({Selection.Count})")
             </button>
             @if (!string.IsNullOrEmpty(_addError))
             {

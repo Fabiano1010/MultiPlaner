@@ -1,0 +1,16 @@
+﻿<Popup Title="Calendar settings" IsVisible="IsVisible" OnClose="OnClose">
+
+    <div class="polls-container">
+        <PollsList/>
+        
+        
+    </div>
+    
+</Popup>
+@code {
+    
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    
+    
+}

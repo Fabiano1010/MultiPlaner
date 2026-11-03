@@ -6,7 +6,7 @@
 @inject ApiClient Api
 @inject RoomSelection Selection
 @inject NavigationManager Nav
-
+@inject HttpClient Http
 <div class="room @(Selection.IsSelected(RoomData?.Id ?? -1) ? "room-selected" : "")"
      style="@CardStyle"
      @onclick="HandleRoomClickAsync"
@@ -94,7 +94,7 @@
     private string? _imagePath;
     private ContextMenu? _menu;
     private bool _showRename, _showDelete, _showLeave;
-
+    private string? _coverKey;
 
     protected override void OnInitialized()
     {
@@ -142,6 +142,40 @@
     {
         _isFavourite = RoomData?.Membership?.IsFavourite ?? false;
         _rowVersion = RoomData?.Membership?.RowVersion;
+        await LoadRoomCoverAsync();
+    }
+
+    private async Task LoadRoomCoverAsync()
+    {
+        if (RoomData is null || !RoomData.HasCover)
+        {
+            _imagePath = null;
+            _coverKey = null;
+            return;
+        }
+
+
+        var key = $"{RoomData.Id}:{Convert.ToBase64String(RoomData.RowVersion ?? [])}";
+        if (_coverKey == key) return;
+        _coverKey = key;
+
+        try
+        {
+            var res = await Http.GetAsync($"api/rooms/{RoomData.Id}/cover");
+            if (!res.IsSuccessStatusCode)
+            {
+                _imagePath = null;  
+                return;
+            }
+
+            var bytes = await res.Content.ReadAsByteArrayAsync();
+            var mime = res.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+            _imagePath = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch (HttpRequestException)
+        {
+            _imagePath = null;
+        }
     }
 
     private async Task StartRenameAsync()

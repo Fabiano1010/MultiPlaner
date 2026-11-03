@@ -81,6 +81,13 @@
     text-transform: uppercase;
     user-select: none;
 }
+.date-controls-today:active{
+    background-color: var(--surface);
+    filter: drop-shadow(0px 2px 6px var(--border));
+    scale: 0.9;
+    transform: translateY(-2px);
+    transition-duration: 0.08s;
+}
 
 .date-move {
     display: flex;
@@ -112,7 +119,7 @@
 }
 
 .date-control-move:hover, .date-controls-today:hover {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--surface-text);
     filter: drop-shadow(0px 5px 5px var(--border));
     transform: translateY(-2px);
@@ -121,7 +128,6 @@
 .bell-btn {
     transform: rotate(25deg);
 }
-
 /*.bell-btn:active{*/
 /*    animation: ding_dong 1s forwards;*/
 /*}*/
@@ -192,19 +198,18 @@
 
 
 .calendar-cell.sunday {
-    background: var(--surface);
-    color: var(--surface-text);
+    background: color-mix(in srgb, var(--surface) 85%, red) ; 
+    color:var(--surface-text);
 }
 
 .calendar-cell.saturday {
-    background: var(--surface);
-    color: var(--surface-text);
+    background: var(--surface); color:var(--surface-text);
 }
 
 .calendar-cell:hover {
     background: var(--surface);
 
-    color: var(--surface-text);
+    color:var(--surface-text);
 }
 
 .calendar-cell.other-month .day-number {
@@ -219,7 +224,7 @@
 }
 
 .calendar-cell.selected {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 85%, white);
     color: var(--accent-text);
 }
 
@@ -230,12 +235,12 @@
 .calendar-cell.in-range {
     background: var(--selection-background);
 
-    color: var(--selection-text);
+    color:var(--selection-text);
 }
 
 .calendar-cell.range-start,
 .calendar-cell.range-end {
-    background: var(--accent);
+    background: color-mix(in srgb, var(--accent) 85%, white);;
     color: var(--accent-text);
 }
 
@@ -252,8 +257,8 @@
 }
 
 .event-dot {
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
 }
 
@@ -356,17 +361,24 @@
     cursor: pointer;
     text-transform: uppercase;
     user-select: none;
+    outline: none;
+    border: none;
 }
 
 .events-button:hover {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--surface-text);
     filter: drop-shadow(0px 5px 5px var(--border));
     transform: translateY(-2px);
 }
 
-.events-button:hover .plus-icon {
-    filter: invert(0);
+
+.events-button:active {
+    background-color: var(--surface);
+    filter: drop-shadow(0px 2px 6px var(--border));
+    scale: 0.9;
+    transform: translateY(-2px);
+    transition-duration: 0.08s;
 }
 
 .active {
@@ -438,7 +450,7 @@
     font-size: 1.2rem;
     transition: background-color 0.25s ease-in-out;
 
-    color: var(--surface-text);
+    color:var(--surface-text);
 }
 
 .events-item:hover {
@@ -544,16 +556,26 @@
     }
 }
 
+.action-buttons { position: relative; }
 
-.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number {
-    color: var(--accent-text);
+.header-toast {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 5rem;
+    white-space: nowrap;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--border-radius);
+    background: var(--field-background);
+    color: var(--field-text);
+    font-size: var(--font-size-small);
+    z-index: 10;
 }
 
-.calendar-cell.in-range {
-    color: var(--selection-text);
-}
+.header-toast.error { background: #d90000; color: #fff; }
 
-.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) {
-    background: var(--hover-background);
-    color: var(--surface-text);
-}
+.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number { color:var(--accent-text); }
+.calendar-cell.in-range { color:var(--selection-text); }
+.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) { background:var(--hover-background); color:var(--surface-text); }
+
+
+

@@ -51,7 +51,7 @@
     padding: 0.5rem;
     font-size: var(--font-size-medium);
     transition: 0.25s all;
-
+    background: #FFF;
 }
 
 input[type="password"]::-ms-reveal {

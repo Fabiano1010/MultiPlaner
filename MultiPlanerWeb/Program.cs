@@ -1,10 +1,9 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using MultiPlanerWeb;
 using MultiPlanerSharedModels.Services;
-using MultiPlanerSharedModels.Models;
 using MultiPlanerSharedUI.Services;
-using Microsoft.AspNetCore.Components.Authorization;
+using MultiPlanerWeb;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -30,7 +29,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ThemeService>();
 
 // Domain Services
-builder.Services.AddScoped<EventService>();
+builder.Services.AddScoped<ImageUploadService>();
 builder.Services.AddScoped<RoomSelection>();
 var host = builder.Build();
 
