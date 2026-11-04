@@ -514,13 +514,11 @@ button.nav-user { border:0; border-bottom:1px solid var(--border); background:tr
     justify-content: center;
     align-items: center;
 }
-.info-popup-header{
+
+.info-popup-content{
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
-}
-.info-popup-content{
-    
 }

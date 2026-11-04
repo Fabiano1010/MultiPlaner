@@ -198,7 +198,7 @@
 
 
 .calendar-cell.sunday {
-    background: color-mix(in srgb, var(--surface) 85%, red) ; 
+    background: color-mix(in srgb, var(--surface) 75%, red) ; 
     color:var(--surface-text);
 }
 
@@ -224,7 +224,7 @@
 }
 
 .calendar-cell.selected {
-    background: color-mix(in srgb, var(--accent) 85%, white);
+    background: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--accent-text);
 }
 
