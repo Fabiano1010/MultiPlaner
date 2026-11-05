@@ -11,6 +11,7 @@ using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Modules.Rooms;
 using MultiPlanerAPI.Modules.Users;
 using MultiPlanerAPI.Modules.Events;
+using MultiPlanerAPI.Modules.Polls;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -111,6 +112,7 @@ builder.Services.AddSingleton<InvitationTokenProtector>();
 builder.Services.AddScoped<UserFolderService>();
 builder.Services.AddSingleton<IRoomCoverStorage, LocalRoomCoverStorage>();
 builder.Services.AddScoped<RoomCoverService>();
+builder.Services.AddScoped<PollService>();
 builder.Services.AddCors(options => options.AddPolicy("BrowserClient", policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
     .AllowAnyMethod()
