@@ -203,7 +203,7 @@ html, body {
 }
 
 .nav-item:hover {
-    background-color: var(--app-background);
+    background-color: color-mix(in srgb, var(--surface) 65%, white);
     color: var(--app-text);
 }
 
@@ -273,7 +273,7 @@ html, body {
 }
 
 .action-button:hover {
-    background-color: color-mix(in srgb, var(--accent) 55%, white);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     transform: translateY(-2px);
     filter: drop-shadow(0px 5px 5px var(--border));
     color: var(--accent-text);
@@ -284,7 +284,7 @@ html, body {
 }
 
 .action-button:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;
@@ -342,12 +342,12 @@ html, body {
 .btn-main:hover {
     filter: drop-shadow(0px 3px 5px var(--accent));
     transform: translateY(-2px);
-    background-color: color-mix(in srgb, var(--accent) 55%, white);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     color: var(--accent-text);
 }
 
 .btn-main:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transform: translateY(-2px);
@@ -375,8 +375,8 @@ html, body {
 .spinner {
     width: 100%;
     height: 100%;
-    border-right: 3px dotted var(--border);
-    border-top: 3px dotted var(--border);
+    border-right: 3px dotted var(--accent);
+    border-top: 3px dotted var(--accent);
     animation: spin 1s linear infinite;
     border-radius: 100%;
 }
@@ -440,7 +440,7 @@ html, body {
 }
 
 .ctx-item:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     color: var(--surface-text);
     scale: 0.95;
     transition-duration: 0.1s;

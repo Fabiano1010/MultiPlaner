@@ -82,7 +82,7 @@
     user-select: none;
 }
 .date-controls-today:active{
-    background-color: var(--surface);
+    background: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transform: translateY(-2px);
@@ -374,7 +374,7 @@
 
 
 .events-button:active {
-    background-color: var(--surface);
+    background: color-mix(in srgb, var(--accent) 55%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transform: translateY(-2px);

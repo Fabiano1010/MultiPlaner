@@ -23,7 +23,7 @@
 }
 
 .add-room-button:active, .fab-item:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;
@@ -99,7 +99,7 @@
 }
 
 .fab-item:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;

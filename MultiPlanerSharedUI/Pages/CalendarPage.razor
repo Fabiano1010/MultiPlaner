@@ -47,6 +47,7 @@
                         SelectedDate="_selectedDate"
                         OnAddEvent="ToggleAdding"
                         OnOpenChat="OpenChatAsync"
+                        OnOpenPolls="OpenPollsAsync"
                         IsAddingEvent="_isAddingEvent"
                         Events="_events"
                         RoomId="_loadedRoomId"
@@ -221,6 +222,7 @@
         _showMembers = false;
         _showChat = false;
         _showSettings = false;
+        _showPolls = false;
     }
     private void CloseInformationPopup() {
         _isAddingEvent = false;
@@ -240,6 +242,10 @@
     private async Task OpenChatAsync()
     {
         _showChat = true;
+    }
+    private async Task OpenPollsAsync()
+    {
+        _showPolls = true;
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)

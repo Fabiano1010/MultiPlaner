@@ -12,7 +12,7 @@
             @foreach (var entry in new[] { (0, "Profile"), (1, "Password"), (2, "Appearance") }) { <button type="button" aria-current="@(_tab == entry.Item1 ? "page" : null)" @onclick="() => SelectTab(entry.Item1)">@entry.Item2</button> }
         </nav>
         <div class="settings-content">
-            @if (_busy && _me == null) { <p role="status">Loading profile…</p> }
+            @if (_busy && _me == null) { <LoadingSpinner /> }
             @if (_error != null) { <p class="form-error" role="alert">@_error</p><button class="btn-main btn-cancel" @onclick="() => Run(Reload)">Retry</button> }
             @if (_message != null) { <p role="status">@_message</p> }
             @if (_me?.Kind == "user") {

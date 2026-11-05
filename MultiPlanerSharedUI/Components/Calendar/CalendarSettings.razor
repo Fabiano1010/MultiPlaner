@@ -12,7 +12,7 @@
             @foreach (var entry in new[] { (0, "General"), (1, "Invitations"), (2, "Event types") }) { <button aria-current="@(_tab == entry.Item1 ? "page" : null)" @onclick="() => _tab = entry.Item1">@entry.Item2</button> }
         </nav>
         <div class="settings-content">
-            @if (_busy && _room == null) { <p role="status">Loading settings…</p> }
+            @if (_busy && _room == null) { <p role="status"><LoadingSpinner /></p> }
             @if (_error != null) { <p role="alert" class="form-error">@_error</p><button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Run(Load)">Retry</button> }
             @if (_message != null) { <p role="status">@_message</p> }
             @if (_room != null) {
@@ -41,7 +41,7 @@
                 } else {
                     @if (_typeForm && Manage) {
                         <h3>@(_editingType == null ? "New event type" : "Edit event type")</h3>
-                        <form @onsubmit="SaveType" @onsubmit:preventDefault><div class="settings-grid"><div class="form-group"><label for="type-name">Type name</label><input id="type-name" class="input-main" @bind="_typeName" maxlength="64" required /></div><div class="form-group"><label for="type-color">Default event colour</label><input id="type-color" class="input-main" type="color" @bind="_typeColor" /></div></div><div class="settings-actions"><button type="button" class="btn-main btn-cancel" disabled="@_busy" @onclick="ClearType">Cancel</button><button class="btn-main btn-save" disabled="@_busy">Save event type</button></div></form>
+                        <form @onsubmit="SaveType" @onsubmit:preventDefault><div class="settings-grid"><div class="form-group"><label for="type-name">Type name</label><input id="type-name" class="input-main" @bind="_typeName" maxlength="64" required /></div><div class="form-group"><label for="type-color">Default event colour</label><input id="type-color" class="input-main color-picker-settings" type="color" @bind="_typeColor" /></div></div><div class="settings-actions"><button type="button" class="btn-main btn-cancel" disabled="@_busy" @onclick="ClearType">Cancel</button><button class="btn-main btn-save" disabled="@_busy">Save event type</button></div></form>
                     } else {
                         <h3>Event types</h3><div class="settings-grid">@foreach (var type in _types) {
                             <article class="settings-tile" @key="type.Id"><div class="settings-tile-heading"><span class="settings-swatch" style="background:#@type.Color"></span><h4>@type.Name</h4>@if (type.IsArchived) { <span>Archived</span> }</div>
