@@ -1,10 +1,30 @@
 ﻿<Popup Title="Polls" IsVisible="IsVisible" OnClose="OnClose">
 
     <div class="polls-container">
-        <PollsList/>
+        @* @if (_loading) { *@
+        @*     <LoadingSpinner /> *@
+        @* } *@
+        @* else { *@
+            @if (_addPoll) {
+                <AddPoll OnClose="() => _addPoll = false"/>
+            }
+            else {
+                <div class="polls-header">
+                    <div class="polls-header-title">Polls</div>
+                    <button class="polls-header-add" @onclick="_ => _addPoll = true">
+                        <img src="/_content/MultiPlanerSharedUI/images/plus.svg" alt="" class="plus-icon">
+                        <div class="polls-header-add-text">Add Poll</div>
+                    </button>
+                </div>
+                <PollsList/>
+            }    
+        @* } *@
         
-        <AddPoll />
-        
+
+
+
+
+
     </div>
     
 </Popup>
@@ -12,6 +32,8 @@
     
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-    
-    
+
+
+    private bool _addPoll;
+    private bool _loading = true;
 }

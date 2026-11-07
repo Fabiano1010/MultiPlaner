@@ -5,7 +5,7 @@
 @inject ThemeService Theme
 @if (_loading)
 {
-    <p role="status">Loading themes…</p>
+   <LoadingSpinner />
 }
 @if (_error != null)
 {
