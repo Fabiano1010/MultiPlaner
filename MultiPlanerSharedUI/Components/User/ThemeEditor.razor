@@ -1,20 +1,17 @@
-@using MultiPlanerSharedModels.Contracts.Users
 @using System.Net.Http.Json
-@using System.ComponentModel.DataAnnotations
+@using System.Text.RegularExpressions
+@using MultiPlanerSharedModels.Contracts.Users
 @inject ApiClient Api
 @inject ThemeService Theme
-@if (_loading)
-{
-   <LoadingSpinner />
+@if (_loading) {
+    <LoadingSpinner/>
 }
-@if (_error != null)
-{
+@if (_error != null) {
     <div role="alert" class="form-error">@_error <button class="btn-main btn-cancel" @onclick="ReloadSafe">Retry
         </button>
     </div>
 }
-@if (_editing)
-{
+@if (_editing) {
     <h3>@(_editId == null ? "New theme" : "Edit theme")</h3>
     <div class="settings-grid">
         <div class="settings-fields">
@@ -22,8 +19,7 @@
                                                                                       class="input-main" maxlength="64"
                                                                                       @bind="_name"
                                                                                       @bind:event="oninput"/></div>
-            @foreach (var field in Fields)
-            {
+            @foreach (var field in Fields) {
                 <div class="form-group"><label for="@field.Key">@field.Label</label>
                     <div class="settings-color">
                         <input class="input-main" type="color" aria-label="@field.Label" value="@Get(field.Key)"
@@ -46,31 +42,26 @@
         </button>
     </div>
 }
-else
-{
+else {
     <h3>Colour themes</h3>
     <div class="settings-grid">
-        @foreach (var item in _schemes)
-        {
+        @foreach (var item in _schemes) {
             <article class="settings-tile" @key="item.Id">
                 <SchemePreview Palette="item.Palette"/>
                 <div class="settings-tile-heading"><h4>@item.Name</h4>
-                    @if (_active?.ThemeId == item.Id)
-                    {
+                    @if (_active?.ThemeId == item.Id) {
                         <span>✓ Active</span>
                     }
                 </div>
                 <div class="settings-actions">
                     <button class="btn-main btn-save" disabled="@_busy" @onclick="() => Apply(item)">Apply</button>
-                    @if (!item.IsBuiltIn)
-                    {
+                    @if (!item.IsBuiltIn) {
                         <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, false)">Edit
                         </button>
                     }
                     <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => Edit(item, true)">Duplicate
                     </button>
-                    @if (!item.IsBuiltIn)
-                    {
+                    @if (!item.IsBuiltIn) {
                         <button class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _delete = item">Delete
                         </button>
                     }
@@ -102,71 +93,58 @@ else
     private Func<Task>? _afterDiscard;
     private string? _error;
     private static readonly (string Key, string Label)[] Fields = [("Background", "App background"), ("Surface", "Surfaces"), ("Accent", "Accent"), ("Border", "Borders")];
-    private bool Valid => !string.IsNullOrWhiteSpace(_name) && Fields.All(f => System.Text.RegularExpressions.Regex.IsMatch(_raw.GetValueOrDefault(f.Key) ?? Get(f.Key), ThemePalette.HexPattern));
+    private bool Valid => !string.IsNullOrWhiteSpace(_name) && Fields.All(f => Regex.IsMatch(_raw.GetValueOrDefault(f.Key) ?? Get(f.Key), ThemePalette.HexPattern));
     public bool Dirty => _editing && (_draft != _original || _name != _originalName || _raw.Any(v => v.Value != Get(v.Key)));
 
-    public async Task RequestLeave(Func<Task> action)
-    {
+    public async Task RequestLeave(Func<Task> action) {
         if (_busy) return;
-        if (Dirty)
-        {
+        if (Dirty) {
             _afterDiscard = action;
             _discard = true;
         }
-        else
-        {
+        else {
             _editing = false;
             await action();
         }
     }
 
-    protected override Task OnInitializedAsync()
-    {
+    protected override Task OnInitializedAsync() {
         return ReloadSafe();
     }
 
-    private async Task Reload()
-    {
+    private async Task Reload() {
         _schemes = await Api.GetAsync<List<SavedThemeResponse>>("api/me/themes") ?? [];
         _active = await Api.GetAsync<ThemeResponse>("api/me/theme");
     }
 
-    private async Task ReloadSafe()
-    {
+    private async Task ReloadSafe() {
         _loading = true;
         _error = null;
-        try
-        {
+        try {
             await Reload();
         }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException)
-        {
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) {
             _error = ex.Message;
         }
-        finally
-        {
+        finally {
             _loading = false;
         }
     }
 
-    private string Get(string key)
-    {
+    private string Get(string key) {
         return (string)typeof(ThemePalette).GetProperty(key)!.GetValue(_draft)!;
     }
 
-    private void Change(string key, string? value)
-    {
+    private void Change(string key, string? value) {
         _raw[key] = value ?? "";
-        if (System.Text.RegularExpressions.Regex.IsMatch(value ?? "", ThemePalette.HexPattern)) typeof(ThemePalette).GetProperty(key)!.SetValue(_draft, value!.ToUpperInvariant());
+        if (Regex.IsMatch(value ?? "", ThemePalette.HexPattern)) typeof(ThemePalette).GetProperty(key)!.SetValue(_draft, value!.ToUpperInvariant());
     }
 
-    private void New()
-    {
+    private void New() {
         Edit(new SavedThemeResponse(0, "New theme", new ThemePalette(), []), true);
     }
 
-    private void Edit(SavedThemeResponse item, bool copy)
-    {
+    private void Edit(SavedThemeResponse item, bool copy) {
         _editId = copy ? null : item.Id;
         _name = copy && item.Id != 0 ? item.Name + " — copy" : item.Name;
         _draft = item.Palette with { };
@@ -178,17 +156,14 @@ else
         _error = null;
     }
 
-    private Task Cancel()
-    {
-        return RequestLeave(() =>
-        {
+    private Task Cancel() {
+        return RequestLeave(() => {
             _editing = false;
             return Task.CompletedTask;
         });
     }
 
-    private async Task Discard()
-    {
+    private async Task Discard() {
         _editing = false;
         _discard = false;
         var action = _afterDiscard;
@@ -196,50 +171,40 @@ else
         if (action != null) await action();
     }
 
-    private async Task Run(Func<Task> action)
-    {
+    private async Task Run(Func<Task> action) {
         if (_busy) return;
         _busy = true;
         _error = null;
-        try
-        {
+        try {
             await action();
         }
-        catch (ApiException ex) when (ex.Status == 409)
-        {
+        catch (ApiException ex) when (ex.Status == 409) {
             _error = "The data changed on another device. Reload the list; your edits remain in the form.";
         }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException)
-        {
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) {
             _error = ex.Message;
         }
-        finally
-        {
+        finally {
             _busy = false;
         }
     }
 
-    private Task Apply(SavedThemeResponse item)
-    {
-        return Run(async () =>
-        {
+    private Task Apply(SavedThemeResponse item) {
+        return Run(async () => {
             await ApplyCore(item);
             await Reload();
         });
     }
 
-    private async Task ApplyCore(SavedThemeResponse item)
-    {
+    private async Task ApplyCore(SavedThemeResponse item) {
         using var response = await Api.SendAsync(HttpMethod.Put, "api/me/theme", new ApplyThemeRequest { ThemeId = item.Id, RowVersion = item.RowVersion, ActiveRowVersion = _active?.RowVersion ?? [] });
         await ApiClient.EnsureSuccessAsync(response);
         _active = (await response.Content.ReadFromJsonAsync<ThemeResponse>())!;
         await Theme.ApplyAsync(_active.Palette);
     }
 
-    private Task Save(bool apply)
-    {
-        return Run(async () =>
-        {
+    private Task Save(bool apply) {
+        return Run(async () => {
             using var response = await Api.SendAsync(_editId == null ? HttpMethod.Post : HttpMethod.Put, _editId == null ? "api/me/themes" : $"api/me/themes/{_editId}", new SaveThemeRequest { Name = _name, Palette = _draft, RowVersion = _version });
             await ApiClient.EnsureSuccessAsync(response);
             var saved = (await response.Content.ReadFromJsonAsync<SavedThemeResponse>())!;
@@ -254,10 +219,8 @@ else
         });
     }
 
-    private Task Delete()
-    {
-        return Run(async () =>
-        {
+    private Task Delete() {
+        return Run(async () => {
             using var response = await Api.SendAsync(HttpMethod.Delete, $"api/me/themes/{_delete!.Id}", new ResetThemeRequest { RowVersion = _delete.RowVersion });
             await ApiClient.EnsureSuccessAsync(response);
             _delete = null;

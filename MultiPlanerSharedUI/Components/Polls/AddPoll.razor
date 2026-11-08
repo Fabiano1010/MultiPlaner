@@ -1,6 +1,5 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Polls
 @using MultiPlanerSharedModels.Contracts.Rooms
-@using MultiPlanerSharedUI.Services
 @inject ApiClient Api
 
 <div class="add-poll">
@@ -24,8 +23,10 @@
                     <input type="color" class="poll-color" @bind="o.Color" disabled="@_lock"/>
                     <input type="text" class="input-main" placeholder="Option" maxlength="128"
                            @bind="o.Text" @bind:event="oninput" disabled="@_lock"/>
-                    <button type="button" class="action-button" title="Remove option"
-                            disabled="@(_lock || _options.Count <= 2)" @onclick="() => _options.Remove(o)">✕
+                    <button type="button" class="action-button remove-option-btn" title="Remove option"
+                            disabled="@(_lock || _options.Count <= 2)" @onclick="() => _options.Remove(o)">
+                        <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="Remove option"
+                             class="action-button-img remove-option-img">
                     </button>
                 </div>
             }
@@ -70,7 +71,7 @@
 </div>
 
 @code {
-    [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter][EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public PollResponse? Existing { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
@@ -80,7 +81,8 @@
     private static readonly string[] Palette =
         ["#4F8EF7", "#F76B6B", "#5CC98C", "#F7B84F", "#A178F0", "#4FC7D9", "#F27AB0", "#8D9AA6", "#B5D94F", "#F78E4F"];
 
-    private sealed class OptionDraft {
+    private sealed class OptionDraft
+    {
         public string Text { get; set; } = "";
         public string Color { get; set; } = "#999999";
     }
@@ -106,8 +108,9 @@
         }
     }
 
-    private void AddOption() =>
+    private void AddOption() {
         _options.Add(new OptionDraft { Color = Palette[_options.Count % Palette.Length] });
+    }
 
     private async Task SaveAsync() {
         var question = _question.Trim();

@@ -47,10 +47,8 @@
     private string? _avatar;
 
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (AuthState is not null)
-        {
+    protected override async Task OnParametersSetAsync() {
+        if (AuthState is not null) {
             var user = (await AuthState).User;
             var name = user.Identity?.Name;
             _avatar = user.FindFirst("avatar")?.Value;
@@ -58,13 +56,11 @@
         }
     }
 
-    private async Task OpenUserSettingsPopup()
-    {
+    private async Task OpenUserSettingsPopup() {
         await OnOpenSettings.InvokeAsync();
     }
 
-    private async Task LogoutAsync()
-    {
+    private async Task LogoutAsync() {
         await OnNavigate.InvokeAsync();
         await Auth.LogoutAsync();
         Nav.NavigateTo("/", replace: true);

@@ -1,6 +1,5 @@
 ﻿@using System.Net.Http.Json
 @using MultiPlanerSharedModels.Contracts.Polls
-@using MultiPlanerSharedUI.Services
 @inject ApiClient Api
 
 <article class="poll @(Data.IsClosed ? "poll-closed" : "")">
@@ -78,7 +77,7 @@
               OnConfirm="DeleteAsync" OnClose="() => _confirmDelete = false"/>
 
 @code {
-    [Parameter, EditorRequired] public PollResponse Data { get; set; } = default!;
+    [Parameter][EditorRequired] public PollResponse Data { get; set; } = default!;
     [Parameter] public int RoomId { get; set; }
     [Parameter] public string TimeZoneId { get; set; } = "UTC";
     [Parameter] public EventCallback<PollResponse> OnChanged { get; set; }
@@ -108,10 +107,13 @@
         }
     }
 
-    private int Percent(PollOptionResponse o) =>
-        Data.TotalVoters == 0 ? 0 : (int)Math.Round(100.0 * o.VoteCount / Data.TotalVoters);
+    private int Percent(PollOptionResponse o) {
+        return Data.TotalVoters == 0 ? 0 : (int)Math.Round(100.0 * o.VoteCount / Data.TotalVoters);
+    }
 
-    private void SelectOne(int id) => _selected = new HashSet<int> { id };
+    private void SelectOne(int id) {
+        _selected = new HashSet<int> { id };
+    }
 
     private void Toggle(int id, bool on) {
         if (on) _selected.Add(id);
@@ -140,16 +142,23 @@
         }
     }
 
-    private Task VoteAsync() => SendVoteAsync(_selected.ToArray());
-    private Task RetractAsync() => SendVoteAsync([]);
+    private Task VoteAsync() {
+        return SendVoteAsync(_selected.ToArray());
+    }
 
-    private Task SendVoteAsync(int[] ids) => Run(async () => {
-        using var res = await Api.SendAsync(HttpMethod.Put, $"{Url}/vote",
-            new VotePollRequest { OptionIds = ids });
-        await ApiClient.EnsureSuccessAsync(res);
-        var updated = await res.Content.ReadFromJsonAsync<PollResponse>();
-        if (updated is not null) await OnChanged.InvokeAsync(updated);
-    });
+    private Task RetractAsync() {
+        return SendVoteAsync([]);
+    }
+
+    private Task SendVoteAsync(int[] ids) {
+        return Run(async () => {
+            using var res = await Api.SendAsync(HttpMethod.Put, $"{Url}/vote",
+                new VotePollRequest { OptionIds = ids });
+            await ApiClient.EnsureSuccessAsync(res);
+            var updated = await res.Content.ReadFromJsonAsync<PollResponse>();
+            if (updated is not null) await OnChanged.InvokeAsync(updated);
+        });
+    }
 
 
     private async Task CloseAsync() {

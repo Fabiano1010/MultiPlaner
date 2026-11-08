@@ -3,11 +3,22 @@
 @using MultiPlanerSharedModels.Contracts.Rooms
 @inject ApiClient Api
 
-<Popup Title="@(_form ? (_editing is null ? "New poll" : "Edit poll") : "Polls")"
-       IsVisible="IsVisible" OnClose="HandleClose">
+<Popup Title="@(_form ? _editing is null ? "New poll" : "Edit poll" : "Polls")"
+       IsVisible="IsVisible" OnClose="HandleClose" IsLarge="true">
     <div class="polls-container">
         @if (_form) {
             <AddPoll Room="Room" Existing="_editing" OnBack="BackToList" OnSaved="HandleSaved"/>
+        }
+        else if (Opened is { } open) {
+            <div class="poll-detail-top">
+                <button type="button" class="action-button goback-btn" title="Back" @onclick="CloseDetail">
+                    <img src="_content/MultiPlanerSharedUI/images/arrow-left.svg" alt="Back" class="action-button-img">
+                </button>
+            </div>
+
+            <Poll Data="open" RoomId="Room.Id" TimeZoneId="@Room.TimeZoneId"
+                  OnChanged="HandleChanged" OnDeleted="HandleDeleted"
+                  OnEdit="StartEdit" OnReload="LoadAsync"/>
         }
         else {
             <div class="polls-header">
@@ -18,7 +29,7 @@
                 </select>
 
                 @if (Active) {
-                    <button type="button" class="polls-header-add" @onclick="StartAdd">
+                    <button type="button" class="events-button" @onclick="StartAdd">
                         <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="" class="plus-icon">
                         <span class="polls-header-add-text">Add poll</span>
                     </button>
@@ -33,9 +44,7 @@
                 <button type="button" class="btn-main btn-cancel" @onclick="LoadAsync">Retry</button>
             }
             else {
-                <PollsList Polls="_polls" RoomId="Room.Id" TimeZoneId="@Room.TimeZoneId"
-                           OnChanged="HandleChanged" OnDeleted="HandleDeleted"
-                           OnEdit="StartEdit" OnReload="LoadAsync"/>
+                <PollsList Polls="_polls" TimeZoneId="@Room.TimeZoneId" OnOpen="OpenPoll" />
             }
         }
     </div>
@@ -43,7 +52,7 @@
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
-    [Parameter, EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter] [EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
 
     private List<PollResponse> _polls = new();
@@ -51,13 +60,25 @@
     private string _status = "open";
     private string? _error;
     private bool _loading, _form, _wasVisible;
+    private int? _openId;
+
+    private PollResponse? Opened => _openId is { } id ? _polls.FirstOrDefault(p => p.Id == id) : null;
 
     private bool Active => Room.ArchivedAtUtc is null && Room.ExpiresAtUtc > DateTimeOffset.UtcNow;
+
+    private void OpenPoll(int id) {
+        _openId = id;
+    }
+
+    private void CloseDetail() {
+        _openId = null;
+    }
 
     protected override async Task OnParametersSetAsync() {
         if (IsVisible && !_wasVisible) {
             _form = false;
             _editing = null;
+            _openId = null;
             await LoadAsync();
         }
 
@@ -116,15 +137,24 @@
     }
 
 
-    private void HandleChanged(PollResponse updated) =>
+    private void HandleChanged(PollResponse updated) {
         _polls = _polls.Select(p => p.Id == updated.Id ? updated : p).ToList();
+    }
 
-    private void HandleDeleted(int id) => _polls = _polls.Where(p => p.Id != id).ToList();
+    private void HandleDeleted(int id) {
+        _polls = _polls.Where(p => p.Id != id).ToList();
+        _openId = null;
+    }
 
 
     private async Task HandleClose() {
         if (_form) {
             BackToList();
+            return;
+        }
+
+        if (_openId is not null) {
+            CloseDetail();
             return;
         }
 
