@@ -1,5 +1,21 @@
-﻿<h3>PollsList</h3>
+﻿@using MultiPlanerSharedModels.Contracts.Polls
+
+<div class="polls-list">
+    @if (Polls.Count == 0) {
+        <div class="polls-empty">No polls here.</div>
+    }
+    @foreach (var poll in Polls) {
+        <Poll @key="poll.Id" Data="poll" RoomId="RoomId" TimeZoneId="@TimeZoneId"
+              OnChanged="OnChanged" OnDeleted="OnDeleted" OnEdit="OnEdit" OnReload="OnReload"/>
+    }
+</div>
 
 @code {
-    
+    [Parameter] public IReadOnlyList<PollResponse> Polls { get; set; } = Array.Empty<PollResponse>();
+    [Parameter] public int RoomId { get; set; }
+    [Parameter] public string TimeZoneId { get; set; } = "UTC";
+    [Parameter] public EventCallback<PollResponse> OnChanged { get; set; }
+    [Parameter] public EventCallback<int> OnDeleted { get; set; }
+    [Parameter] public EventCallback<PollResponse> OnEdit { get; set; }
+    [Parameter] public EventCallback OnReload { get; set; }
 }

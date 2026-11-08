@@ -1,5 +1,168 @@
-﻿<h3>Poll</h3>
+﻿@using System.Net.Http.Json
+@using MultiPlanerSharedModels.Contracts.Polls
+@using MultiPlanerSharedUI.Services
+@inject ApiClient Api
+
+<article class="poll @(Data.IsClosed ? "poll-closed" : "")">
+    <header class="poll-header">
+        <h4 class="poll-question">@Data.Question</h4>
+        <span class="poll-badge">@(Data.IsClosed ? "Closed" : "Open")</span>
+    </header>
+    <div class="poll-meta">
+        @Data.Author.DisplayName · @(Data.IsClosed ? "closed" : "closes") @CloseText ·
+        @(Data.AllowMultiple ? "multiple choice" : "single choice")
+    </div>
+
+    <div class="poll-options">
+        @foreach (var o in Data.Options) {
+            var pct = Percent(o);
+            <label class="poll-option @(_selected.Contains(o.Id) ? "selected" : "")"
+                   style="--poll-color:#@o.Color">
+                <span class="poll-option-bar" style="width:@(pct)%"></span>
+                @if (Data.Permissions.CanVote) {
+                    @if (Data.AllowMultiple) {
+                        <input type="checkbox" checked="@_selected.Contains(o.Id)" disabled="@_busy"
+                               @onchange="e => Toggle(o.Id, e.Value is true)"/>
+                    }
+                    else {
+                        <input type="radio" name="@($"poll-{Data.Id}")" checked="@_selected.Contains(o.Id)"
+                               disabled="@_busy" @onchange="() => SelectOne(o.Id)"/>
+                    }
+                }
+                <span class="poll-option-text">@o.Text</span>
+                <span class="poll-option-count">@o.VoteCount · @pct%</span>
+            </label>
+        }
+    </div>
+
+    <div class="poll-total">@Data.TotalVoters @(Data.TotalVoters == 1 ? "voter" : "voters")</div>
+
+    @if (!string.IsNullOrEmpty(_error)) {
+        <div class="form-error">@_error</div>
+    }
+
+    <div class="poll-actions">
+        @if (Data.Permissions.CanVote) {
+            <button type="button" class="btn-main btn-save" disabled="@(_busy || !CanSubmit)" @onclick="VoteAsync">
+                @(Data.MyOptionIds.Count > 0 ? "Change vote" : "Vote")
+            </button>
+            @if (Data.MyOptionIds.Count > 0) {
+                <button type="button" class="btn-main btn-cancel" disabled="@_busy" @onclick="RetractAsync">Remove my
+                    vote
+                </button>
+            }
+        }
+        @if (Data.Permissions.CanEdit) {
+            <button type="button" class="btn-main btn-cancel" disabled="@_busy"
+                    @onclick="() => OnEdit.InvokeAsync(Data)">Edit
+            </button>
+        }
+        @if (Data.Permissions.CanClose) {
+            <button type="button" class="btn-main btn-cancel" disabled="@_busy" @onclick="() => _confirmClose = true">
+                Close voting
+            </button>
+        }
+        @if (Data.Permissions.CanDelete) {
+            <button type="button" class="btn-main btn-danger" disabled="@_busy" @onclick="() => _confirmDelete = true">
+                Delete
+            </button>
+        }
+    </div>
+</article>
+
+<ConfirmPopup IsVisible="_confirmClose" Title="Close voting" ConfirmText="Close"
+              Message="Close voting now? Nobody will be able to vote or change a vote."
+              OnConfirm="CloseAsync" OnClose="() => _confirmClose = false"/>
+<ConfirmPopup IsVisible="_confirmDelete" Title="Delete poll" Danger="true" ConfirmText="Delete"
+              Message="Delete this poll and all its votes? This cannot be undone."
+              OnConfirm="DeleteAsync" OnClose="() => _confirmDelete = false"/>
 
 @code {
-    
+    [Parameter, EditorRequired] public PollResponse Data { get; set; } = default!;
+    [Parameter] public int RoomId { get; set; }
+    [Parameter] public string TimeZoneId { get; set; } = "UTC";
+    [Parameter] public EventCallback<PollResponse> OnChanged { get; set; }
+    [Parameter] public EventCallback<int> OnDeleted { get; set; }
+    [Parameter] public EventCallback<PollResponse> OnEdit { get; set; }
+    [Parameter] public EventCallback OnReload { get; set; }
+
+    private HashSet<int> _selected = new();
+    private PollResponse? _seen;
+    private bool _busy, _confirmClose, _confirmDelete;
+    private string? _error;
+
+    private string Url => $"api/rooms/{RoomId}/polls/{Data.Id}";
+
+    protected override void OnParametersSet() {
+        if (ReferenceEquals(_seen, Data)) return;
+        _seen = Data;
+        _selected = Data.MyOptionIds.ToHashSet();
+    }
+
+    private bool CanSubmit => _selected.Count > 0 && !_selected.SetEquals(Data.MyOptionIds);
+
+    private string CloseText {
+        get {
+            var (date, time) = EventDays.ToLocal(Data.ClosedAtUtc ?? Data.ClosesAtUtc, TimeZoneId);
+            return $"{date:dd.MM.yyyy} {time:HH:mm}";
+        }
+    }
+
+    private int Percent(PollOptionResponse o) =>
+        Data.TotalVoters == 0 ? 0 : (int)Math.Round(100.0 * o.VoteCount / Data.TotalVoters);
+
+    private void SelectOne(int id) => _selected = new HashSet<int> { id };
+
+    private void Toggle(int id, bool on) {
+        if (on) _selected.Add(id);
+        else _selected.Remove(id);
+    }
+
+    private async Task Run(Func<Task> action) {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        try {
+            await action();
+        }
+        catch (ApiException e) when (e.Status == 409) {
+            _error = e.Message;
+            await OnReload.InvokeAsync();
+        }
+        catch (ApiException e) {
+            _error = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _error = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _busy = false;
+        }
+    }
+
+    private Task VoteAsync() => SendVoteAsync(_selected.ToArray());
+    private Task RetractAsync() => SendVoteAsync([]);
+
+    private Task SendVoteAsync(int[] ids) => Run(async () => {
+        using var res = await Api.SendAsync(HttpMethod.Put, $"{Url}/vote",
+            new VotePollRequest { OptionIds = ids });
+        await ApiClient.EnsureSuccessAsync(res);
+        var updated = await res.Content.ReadFromJsonAsync<PollResponse>();
+        if (updated is not null) await OnChanged.InvokeAsync(updated);
+    });
+
+
+    private async Task CloseAsync() {
+        using var res = await Api.PostAsync($"{Url}/close");
+        await ApiClient.EnsureSuccessAsync(res);
+        var updated = await res.Content.ReadFromJsonAsync<PollResponse>();
+        if (updated is not null) await OnChanged.InvokeAsync(updated);
+    }
+
+    private async Task DeleteAsync() {
+        using var res = await Api.SendAsync(HttpMethod.Delete, Url);
+        await ApiClient.EnsureSuccessAsync(res);
+        await OnDeleted.InvokeAsync(Data.Id);
+    }
+
 }
