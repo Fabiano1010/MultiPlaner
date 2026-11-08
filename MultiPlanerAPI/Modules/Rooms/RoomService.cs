@@ -366,6 +366,10 @@ public sealed class RoomService(
             .ExecuteDeleteAsync(cancellationToken);
         await operationDb.OutboxMessages.Where(m => m.RoomId == roomId)
             .ExecuteDeleteAsync(cancellationToken);
+        var pollIds = operationDb.Polls.Where(p => p.RoomId == roomId).Select(p => p.Id);
+        await operationDb.PollVotes.Where(v => pollIds.Contains(v.PollId)).ExecuteDeleteAsync(cancellationToken);
+        await operationDb.PollOptions.Where(o => pollIds.Contains(o.PollId)).ExecuteDeleteAsync(cancellationToken);
+        await operationDb.Polls.Where(p => p.RoomId == roomId).ExecuteDeleteAsync(cancellationToken);
         await operationDb.RoomMembers.Where(m => m.RoomId == roomId)
             .ExecuteDeleteAsync(cancellationToken);
     }

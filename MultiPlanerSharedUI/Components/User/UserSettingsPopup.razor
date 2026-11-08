@@ -1,7 +1,7 @@
-@using MultiPlanerSharedModels.Contracts.Auth
-@using MultiPlanerSharedModels.Contracts.Users
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.JSInterop
+@using MultiPlanerSharedModels.Contracts.Auth
+@using MultiPlanerSharedModels.Contracts.Users
 @inject ApiClient Api
 @inject ApiAuthStateProvider Auth
 @inject ImageUploadService Images
@@ -9,37 +9,84 @@
 <Popup IsSettings="true" IsVisible="IsVisible" Title="Account settings" OnClose="Close">
     <div class="settings-layout">
         <nav class="settings-nav" aria-label="Account settings">
-            @foreach (var entry in new[] { (0, "Profile"), (1, "Password"), (2, "Appearance") }) { <button type="button" aria-current="@(_tab == entry.Item1 ? "page" : null)" @onclick="() => SelectTab(entry.Item1)">@entry.Item2</button> }
+            @foreach (var entry in new[] { (0, "Profile"), (1, "Password"), (2, "Appearance") }) {
+                <button type="button" aria-current="@(_tab == entry.Item1 ? "page" : null)"
+                        @onclick="() => SelectTab(entry.Item1)">@entry.Item2</button>
+            }
         </nav>
         <div class="settings-content">
-            @if (_busy && _me == null) { <p role="status">Loading profile…</p> }
-            @if (_error != null) { <p class="form-error" role="alert">@_error</p><button class="btn-main btn-cancel" @onclick="() => Run(Reload)">Retry</button> }
-            @if (_message != null) { <p role="status">@_message</p> }
+            @if (_busy && _me == null) {
+                <LoadingSpinner/>
+            }
+            @if (_error != null) {
+                <p class="form-error" role="alert">@_error</p>
+                <button class="btn-main btn-cancel" @onclick="() => Run(Reload)">Retry</button>
+            }
+            @if (_message != null) {
+                <p role="status">@_message</p>
+            }
             @if (_me?.Kind == "user") {
                 @if (_tab == 0) {
-                    <h3>Profile</h3><div class="settings-grid">
-                        <section><AvatarImage Url="@_me.AvatarUrl" Class="settings-profile-avatar" />
-                            <div class="settings-actions"><label class="btn-main btn-cancel settings-file">Change photo<InputFile aria-label="Change photo" OnChange="Upload" accept="image/jpeg,image/png,image/webp" disabled="@_busy" /></label><button class="btn-main btn-cancel" disabled="@_busy" @onclick="DeleteAvatar">Remove photo</button></div>
+                    <h3>Profile</h3>
+                    <div class="settings-grid">
+                        <section>
+                            <AvatarImage Url="@_me.AvatarUrl" Class="settings-profile-avatar"/>
+                            <div class="settings-actions"><label class="btn-main btn-cancel settings-file">Change photo
+                                    <InputFile aria-label="Change photo" OnChange="Upload"
+                                               accept="image/jpeg,image/png,image/webp" disabled="@_busy"/>
+                                </label>
+                                <button class="btn-main btn-cancel" disabled="@_busy" @onclick="DeleteAvatar">Remove
+                                    photo
+                                </button>
+                            </div>
                             <p class="settings-note">@(_fileName ?? "JPEG, PNG or WebP · up to 5 MB")</p>
                         </section>
                         <form class="settings-fields" @onsubmit="SaveProfile" @onsubmit:preventDefault>
-                            <div class="form-group"><label for="profile-name">Global display name</label><input id="profile-name" class="input-main" @bind="_name" minlength="2" maxlength="64" required /></div>
+                            <div class="form-group"><label for="profile-name">Global display name</label><input
+                                    id="profile-name" class="input-main" @bind="_name" minlength="2" maxlength="64"
+                                    required/></div>
                             <p class="settings-note">Display names set in individual rooms remain independent.</p>
-                            <div class="settings-actions"><button class="btn-main btn-save" disabled="@_busy">Save profile</button></div>
+                            <div class="settings-actions">
+                                <button class="btn-main btn-save" disabled="@_busy">Save profile</button>
+                            </div>
                         </form>
                     </div>
-                } else if (_tab == 1) {
-                    <h3>Change password</h3><form class="settings-grid" @onsubmit="Password" @onsubmit:preventDefault>
-                        <div class="form-group"><label for="password-current">Current password</label><input class="input-main" id="password-current" type="password" autocomplete="current-password" @bind="_current" required /></div><div></div>
-                        <div class="form-group"><label for="password-new">New password</label><input class="input-main" id="password-new" type="password" autocomplete="new-password" @bind="_password" minlength="8" required /></div>
-                        <div class="form-group"><label for="password-repeat">Confirm new password</label><input class="input-main" id="password-repeat" type="password" autocomplete="new-password" @bind="_repeat" required /></div>
-                        <p class="settings-note settings-wide">Changing your password will sign out all other sessions.</p><div class="settings-actions settings-wide"><button class="btn-main btn-save" disabled="@_busy">Change password</button></div>
+                }
+                else if (_tab == 1) {
+                    <h3>Change password</h3>
+                    <form class="settings-grid" @onsubmit="Password" @onsubmit:preventDefault>
+                        <div class="form-group"><label for="password-current">Current password</label><input
+                                class="input-main" id="password-current" type="password" autocomplete="current-password"
+                                @bind="_current" required/></div>
+                        <div></div>
+                        <div class="form-group"><label for="password-new">New password</label><input class="input-main"
+                                                                                                     id="password-new"
+                                                                                                     type="password"
+                                                                                                     autocomplete="new-password"
+                                                                                                     @bind="_password"
+                                                                                                     minlength="8"
+                                                                                                     required/></div>
+                        <div class="form-group"><label for="password-repeat">Confirm new password</label><input
+                                class="input-main" id="password-repeat" type="password" autocomplete="new-password"
+                                @bind="_repeat" required/></div>
+                        <p class="settings-note settings-wide">Changing your password will sign out all other
+                            sessions.</p>
+                        <div class="settings-actions settings-wide">
+                            <button class="btn-main btn-save" disabled="@_busy">Change password</button>
+                        </div>
                     </form>
-                } else { <ThemeEditor @ref="_themeEditor" /> }
-            } else if (_me != null) { <p>Account settings are available when signed in to a registered account.</p> }
+                }
+                else {
+                    <ThemeEditor @ref="_themeEditor"/>
+                }
+            }
+            else if (_me != null) {
+                <p>Account settings are available when signed in to a registered account.</p>
+            }
         </div>
     </div>
 </Popup>
+
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string? Title { get; set; }
@@ -47,42 +94,104 @@
     private int _tab;
     private ThemeEditor? _themeEditor;
     private string? _fileName;
-    private Task SelectTab(int value) => LeaveTheme(() => { _tab = value; return Task.CompletedTask; });
-    private Task LeaveTheme(Func<Task> action) => _tab == 2 && _themeEditor != null ? _themeEditor.RequestLeave(action) : action();
+
+    private Task SelectTab(int value) {
+        return LeaveTheme(() => {
+            _tab = value;
+            return Task.CompletedTask;
+        });
+    }
+
+    private Task LeaveTheme(Func<Task> action) {
+        return _tab == 2 && _themeEditor != null ? _themeEditor.RequestLeave(action) : action();
+    }
+
     private SessionResponse? _me;
     private string _name = "", _current = "", _password = "", _repeat = "";
     private string? _error, _message;
     private bool _busy, _wasVisible;
-    protected override async Task OnParametersSetAsync() {
-        var opening = IsVisible && !_wasVisible; _wasVisible = IsVisible;
-        if (opening) { _tab = 0; _me = null; await Run(Reload); }
 
+    protected override async Task OnParametersSetAsync() {
+        var opening = IsVisible && !_wasVisible;
+        _wasVisible = IsVisible;
+        if (opening) {
+            _tab = 0;
+            _me = null;
+            await Run(Reload);
+        }
     }
-    private async Task Reload() { _me = await Api.GetAsync<SessionResponse>("api/me"); _name = _me?.DisplayName ?? ""; }
+
+    private async Task Reload() {
+        _me = await Api.GetAsync<SessionResponse>("api/me");
+        _name = _me?.DisplayName ?? "";
+    }
+
     private async Task Run(Func<Task> action) {
         if (_busy) return;
-        _busy = true; _error = _message = null;
-        try { await action(); }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException or IOException or JSException) { _error = ex.Message; }
-        finally { _busy = false; }
+        _busy = true;
+        _error = _message = null;
+        try {
+            await action();
+        }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or IOException or JSException) {
+            _error = ex.Message;
+        }
+        finally {
+            _busy = false;
+        }
     }
-    private Task SaveProfile() => Run(async () => {
-        using var response = await Api.PatchAsync("api/me", new UpdateProfileRequest { DisplayName = _name });
-        await ApiClient.EnsureSuccessAsync(response); await Reload(); Auth.NotifyAuthChanged(); _message = "Display name saved.";
-    });
-    private Task Upload(InputFileChangeEventArgs e) => Run(async () => {
-        _fileName = e.File.Name;
-        await Images.UploadAsWebpAsync("api/me/avatar", e.File,
-            maxSourceBytes: 25 * 1024 * 1024, maxWidth: 512, maxHeight: 512, crop: true);
-        await Reload();
-        Auth.NotifyAuthChanged();
-    });
-    private Task DeleteAvatar() => Run(async () => { using var response = await Api.SendAsync(HttpMethod.Delete, "api/me/avatar"); await ApiClient.EnsureSuccessAsync(response); await Reload(); Auth.NotifyAuthChanged(); });
-    private Task Password() => Run(async () => {
-        if (_password != _repeat) { _error = "The new passwords must match."; return; }
-        using var response = await Api.PostAsync("api/me/change-password", new ChangePasswordRequest { CurrentPassword = _current, NewPassword = _password });
-        await ApiClient.EnsureSuccessAsync(response); _current = _password = _repeat = ""; _message = "Password changed. All other sessions have been signed out.";
-    });
-    private Task Close() => LeaveTheme(CloseCore);
-    private async Task CloseCore() { _current = _password = _repeat = ""; _error = _message = null; await OnClose.InvokeAsync(); }
+
+    private Task SaveProfile() {
+        return Run(async () => {
+            using var response = await Api.PatchAsync("api/me", new UpdateProfileRequest { DisplayName = _name });
+            await ApiClient.EnsureSuccessAsync(response);
+            await Reload();
+            Auth.NotifyAuthChanged();
+            _message = "Display name saved.";
+        });
+    }
+
+    private Task Upload(InputFileChangeEventArgs e) {
+        return Run(async () => {
+            _fileName = e.File.Name;
+            await Images.UploadAsWebpAsync("api/me/avatar", e.File,
+                25 * 1024 * 1024, 512, 512, true);
+            await Reload();
+            Auth.NotifyAuthChanged();
+        });
+    }
+
+    private Task DeleteAvatar() {
+        return Run(async () => {
+            using var response = await Api.SendAsync(HttpMethod.Delete, "api/me/avatar");
+            await ApiClient.EnsureSuccessAsync(response);
+            await Reload();
+            Auth.NotifyAuthChanged();
+        });
+    }
+
+    private Task Password() {
+        return Run(async () => {
+            if (_password != _repeat) {
+                _error = "The new passwords must match.";
+                return;
+            }
+
+            using var response = await Api.PostAsync("api/me/change-password", new ChangePasswordRequest { CurrentPassword = _current, NewPassword = _password });
+            await ApiClient.EnsureSuccessAsync(response);
+            _current = _password = _repeat = "";
+            _message = "Password changed. All other sessions have been signed out.";
+        });
+    }
+
+    private Task Close() {
+        return LeaveTheme(CloseCore);
+    }
+
+    private async Task CloseCore() {
+        _current = _password = _repeat = "";
+        _error = _message = null;
+        await OnClose.InvokeAsync();
+    }
+
 }

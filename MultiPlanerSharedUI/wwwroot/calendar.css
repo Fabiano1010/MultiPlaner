@@ -81,8 +81,9 @@
     text-transform: uppercase;
     user-select: none;
 }
-.date-controls-today:active{
-    background-color: var(--surface);
+
+.date-controls-today:active {
+    background: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transform: translateY(-2px);
@@ -128,6 +129,7 @@
 .bell-btn {
     transform: rotate(25deg);
 }
+
 /*.bell-btn:active{*/
 /*    animation: ding_dong 1s forwards;*/
 /*}*/
@@ -198,18 +200,19 @@
 
 
 .calendar-cell.sunday {
-    background: color-mix(in srgb, var(--surface) 85%, red) ; 
-    color:var(--surface-text);
+    background: color-mix(in srgb, var(--surface) 75%, red);
+    color: var(--surface-text);
 }
 
 .calendar-cell.saturday {
-    background: var(--surface); color:var(--surface-text);
+    background: var(--surface);
+    color: var(--surface-text);
 }
 
 .calendar-cell:hover {
     background: var(--surface);
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .calendar-cell.other-month .day-number {
@@ -224,7 +227,7 @@
 }
 
 .calendar-cell.selected {
-    background: color-mix(in srgb, var(--accent) 85%, white);
+    background: color-mix(in srgb, var(--accent) 55%, white);
     color: var(--accent-text);
 }
 
@@ -235,7 +238,7 @@
 .calendar-cell.in-range {
     background: var(--selection-background);
 
-    color:var(--selection-text);
+    color: var(--selection-text);
 }
 
 .calendar-cell.range-start,
@@ -374,7 +377,7 @@
 
 
 .events-button:active {
-    background-color: var(--surface);
+    background: color-mix(in srgb, var(--accent) 55%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transform: translateY(-2px);
@@ -450,7 +453,7 @@
     font-size: 1.2rem;
     transition: background-color 0.25s ease-in-out;
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .events-item:hover {
@@ -556,7 +559,9 @@
     }
 }
 
-.action-buttons { position: relative; }
+.action-buttons {
+    position: relative;
+}
 
 .header-toast {
     position: absolute;
@@ -571,11 +576,23 @@
     z-index: 10;
 }
 
-.header-toast.error { background: #d90000; color: #fff; }
+.header-toast.error {
+    background: #d90000;
+    color: #fff;
+}
 
-.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number { color:var(--accent-text); }
-.calendar-cell.in-range { color:var(--selection-text); }
-.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) { background:var(--hover-background); color:var(--surface-text); }
+.calendar-cell.selected .day-number, .calendar-cell.today .day-number, .calendar-cell.range-start .day-number, .calendar-cell.range-end .day-number {
+    color: var(--accent-text);
+}
+
+.calendar-cell.in-range {
+    color: var(--selection-text);
+}
+
+.calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) {
+    background: var(--hover-background);
+    color: var(--surface-text);
+}
 
 
 

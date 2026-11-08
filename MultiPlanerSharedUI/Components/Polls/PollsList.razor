@@ -1,5 +1,32 @@
-﻿<h3>PollsList</h3>
+﻿@using MultiPlanerSharedModels.Contracts.Polls
+<div class="polls-list">
+    @if (Polls.Count == 0) {
+        <div class="polls-empty">No polls here.</div>
+    }
+    @foreach (var poll in Polls) {
+        <button type="button" class="poll-card @(poll.IsClosed ? "poll-closed" : "")" @key="poll.Id"
+                @onclick="() => OnOpen.InvokeAsync(poll.Id)">
+            <span class="poll-card-question">@poll.Question</span>
+            <span class="poll-badge">@(poll.IsClosed ? "Closed" : "Open")</span>
+            <span class="poll-card-meta">
+                @poll.TotalVoters @(poll.TotalVoters == 1 ? "voter" : "voters")
+                · @(poll.IsClosed ? "closed" : "closes") @CloseText(poll)
+                @if (poll.MyOptionIds.Count > 0) {
+                    <text> · you voted</text>
+                }
+            </span>
+        </button>
+    }
+</div>
 
 @code {
-    
+    [Parameter] public IReadOnlyList<PollResponse> Polls { get; set; } = Array.Empty<PollResponse>();
+    [Parameter] public string TimeZoneId { get; set; } = "UTC";
+    [Parameter] public EventCallback<int> OnOpen { get; set; }
+
+    private string CloseText(PollResponse p) {
+        var (date, time) = EventDays.ToLocal(p.ClosedAtUtc ?? p.ClosesAtUtc, TimeZoneId);
+        return $"{date:dd.MM.yyyy} {time:HH:mm}";
+    }
+
 }

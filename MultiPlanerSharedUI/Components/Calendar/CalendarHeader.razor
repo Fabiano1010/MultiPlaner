@@ -1,9 +1,7 @@
-﻿
+﻿@inject ApiClient Api
+@inject IJSRuntime JS
 @using Microsoft.JSInterop
 @using MultiPlanerSharedModels.Contracts.Rooms
-@using MultiPlanerSharedUI.Services
-@inject ApiClient Api
-@inject IJSRuntime JS
 @implements IDisposable
 
 <div class="header">
@@ -30,8 +28,7 @@
         <div class="calendar-data-owner">@Room.OwnerDisplayName</div>
     </div>
     <div class="action-buttons">
-        @if (CanInvite)
-        {
+        @if (CanInvite) {
             <button type="button" class="action-button" aria-label="Copy invitation link"
                     title="Copy invitation link" disabled="@_copying" @onclick="CopyLinkAsync">
                 <img src="_content/MultiPlanerSharedUI/images/link.svg" alt="" class="action-button-img">
@@ -40,8 +37,7 @@
         <button type="button" class="action-button" aria-label="Members" @onclick="OnOpenMembers">
             <img src="_content/MultiPlanerSharedUI/images/users.svg" alt="" class="action-button-img">
         </button>
-        @if(CanEdit)
-        {
+        @if (CanEdit) {
             <button type="button" class="action-button" aria-label="Settings" @onclick="OnOpenSettings">
                 <img src="_content/MultiPlanerSharedUI/images/settings.svg" alt="" class="action-button-img">
             </button>
@@ -51,8 +47,7 @@
                  alt="" class="action-button-img bell-btn">
         </button>
 
-        @if (_toast is not null)
-        {
+        @if (_toast is not null) {
             <div class="header-toast @(_toastError ? "error" : "")" role="status">@_toast</div>
         }
     </div>
@@ -75,7 +70,7 @@
     private string? _toast;
     private CancellationTokenSource? _toastCts;
 
-    
+
     private bool CanInvite =>
         Room.ArchivedAtUtc is null
         && Room.ExpiresAtUtc > DateTimeOffset.UtcNow
@@ -85,26 +80,25 @@
         Room.ArchivedAtUtc is null
         && Room.ExpiresAtUtc > DateTimeOffset.UtcNow
         && (Room.IsOwner || Room.IsAdmin);
-    
-    private async Task CopyLinkAsync()
-    {
+
+    private async Task CopyLinkAsync() {
         if (_copying) return;
         _copying = true;
 
-        try
-        {
+        try {
             var invitation = await GetCurrentInvitationAsync();
 
-            if (invitation is null)
-            {
-                
+            if (invitation is null) {
                 using var res = await Api.PostAsync($"api/rooms/{Room.Id}/invitations",
                     new CreateRoomInvitationRequest());
                 await ApiClient.EnsureSuccessAsync(res);
                 invitation = await GetCurrentInvitationAsync();
             }
 
-            if (invitation is null) { ShowToast("Could not get the invitation link.", true); return; }
+            if (invitation is null) {
+                ShowToast("Could not get the invitation link.", true);
+                return;
+            }
 
             await using var module = await JS.InvokeAsync<IJSObjectReference>(
                 "import", "./_content/MultiPlanerSharedUI/js/settings.js");
@@ -112,24 +106,24 @@
 
             ShowToast("Link copied.");
         }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException or JSException)
-        {
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or JSException) {
             ShowToast(ex.Message, true);
         }
-        finally
-        {
+        finally {
             _copying = false;
         }
     }
 
-    private async Task<RoomInvitationResponse?> GetCurrentInvitationAsync()
-    {
-        try { return await Api.GetAsync<RoomInvitationResponse>($"api/rooms/{Room.Id}/invitations/current"); }
-        catch (ApiException ex) when (ex.Status == 404) { return null; }
+    private async Task<RoomInvitationResponse?> GetCurrentInvitationAsync() {
+        try {
+            return await Api.GetAsync<RoomInvitationResponse>($"api/rooms/{Room.Id}/invitations/current");
+        }
+        catch (ApiException ex) when (ex.Status == 404) {
+            return null;
+        }
     }
 
-    private void ShowToast(string text, bool error = false)
-    {
+    private void ShowToast(string text, bool error = false) {
         _toastCts?.Cancel();
         _toastCts?.Dispose();
         _toastCts = new CancellationTokenSource();
@@ -140,19 +134,21 @@
         _ = HideToastLaterAsync(ct);
     }
 
-    private async Task HideToastLaterAsync(CancellationToken ct)
-    {
-        try { await Task.Delay(2500, ct); }
-        catch (TaskCanceledException) { return; }
+    private async Task HideToastLaterAsync(CancellationToken ct) {
+        try {
+            await Task.Delay(2500, ct);
+        }
+        catch (TaskCanceledException) {
+            return;
+        }
 
         _toast = null;
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
-    {
+    public void Dispose() {
         _toastCts?.Cancel();
         _toastCts?.Dispose();
     }
-    
+
 }

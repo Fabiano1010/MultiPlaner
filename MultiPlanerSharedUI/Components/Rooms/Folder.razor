@@ -17,14 +17,12 @@
         <div class="folder-content">
             @FolderData?.Name
         </div>
-        @if (Selection.Active)
-        {
+        @if (Selection.Active) {
             <button type="button" class="btn-main btn-save folder-add-btn"
                     disabled="@_isAdding" @onclick="AddSelectedAsync" @onclick:stopPropagation>
                 @(_isAdding ? "Adding..." : $"Add ({Selection.Count})")
             </button>
-            @if (!string.IsNullOrEmpty(_addError))
-            {
+            @if (!string.IsNullOrEmpty(_addError)) {
                 <div class="form-error">@_addError</div>
             }
         }
@@ -81,50 +79,41 @@
     //         :"#" + FolderData!.Color;
     //
 
-    protected override void OnInitialized()
-    {
+    protected override void OnInitialized() {
         Selection.Changed += OnSelectionChanged;
     }
 
-    private void OnSelectionChanged()
-    {
+    private void OnSelectionChanged() {
         InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
-    {
+    public void Dispose() {
         Selection.Changed -= OnSelectionChanged;
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
+    protected override async Task OnParametersSetAsync() {
         _isFavourite = FolderData?.IsFavourite ?? false;
         _rowVersion = FolderData?.RowVersion;
     }
 
-    private async Task StartRename()
-    {
+    private async Task StartRename() {
         _menu?.Hide();
         _showRename = true;
     }
 
-    private async Task StartDelete()
-    {
+    private async Task StartDelete() {
         _menu?.Hide();
         _showDelete = true;
     }
 
-    private async Task ToggleFavouriteAsync()
-    {
+    private async Task ToggleFavouriteAsync() {
         if (FolderData is null || _isSaving) return;
         var newValue = !_isFavourite;
         _isFavourite = newValue;
         _isSaving = true;
-        try
-        {
+        try {
             var res = await Api.PatchAsync($"api/me/folders/{FolderData!.Id}", new { isFavourite = newValue, rowVersion = _rowVersion });
-            if (res.StatusCode == HttpStatusCode.Conflict)
-            {
+            if (res.StatusCode == HttpStatusCode.Conflict) {
                 _isFavourite = !newValue;
                 await OnConflict.InvokeAsync();
                 return;
@@ -132,26 +121,22 @@
 
             await ApiClient.EnsureSuccessAsync(res);
             var updated = await res.Content.ReadFromJsonAsync<RoomResponse>();
-            if (updated is not null)
-            {
+            if (updated is not null) {
                 _rowVersion = updated.Membership?.RowVersion;
             }
 
             await OnFavouriteChanged.InvokeAsync();
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             _isFavourite = !newValue;
             Console.WriteLine($"Error toggling favourite: {ex.Message}");
         }
-        finally
-        {
+        finally {
             _isSaving = false;
         }
     }
 
-    private async Task RenameAsync(string name)
-    {
+    private async Task RenameAsync(string name) {
         if (FolderData is null) return;
         var res = await Api.PatchAsync($"api/me/folders/{FolderData.Id}",
             new { name, rowVersion = _rowVersion });
@@ -159,62 +144,51 @@
         await OnChanged.InvokeAsync();
     }
 
-    private async Task DeleteAsync()
-    {
+    private async Task DeleteAsync() {
         if (FolderData is null) return;
         var res = await Api.SendAsync(HttpMethod.Delete, $"api/me/folders/{FolderData.Id}");
         await ApiClient.EnsureSuccessAsync(res);
         await OnChanged.InvokeAsync();
     }
 
-    private async Task AddSelectedAsync()
-    {
+    private async Task AddSelectedAsync() {
         if (FolderData is null || _isAdding || !Selection.Active) return;
 
         _isAdding = true;
         _addError = null;
         var failed = 0;
 
-        try
-        {
-            foreach (var roomId in Selection.Ids.ToList())
-            {
-                try
-                {
+        try {
+            foreach (var roomId in Selection.Ids.ToList()) {
+                try {
                     var res = await Api.SendAsync(HttpMethod.Put,
                         $"api/me/folders/{FolderData.Id}/rooms/{roomId}");
                     await ApiClient.EnsureSuccessAsync(res);
                 }
-                catch (ApiException e)
-                {
+                catch (ApiException e) {
                     failed++;
                     _addError = e.Message;
                 }
-                catch (HttpRequestException)
-                {
+                catch (HttpRequestException) {
                     failed++;
                     _addError = "Cannot reach the server.";
                 }
             }
 
-            if (failed == 0)
-            {
+            if (failed == 0) {
                 await Selection.Clear();
                 await OnChanged.InvokeAsync();
             }
-            else
-            {
+            else {
                 _addError = $"{failed} of {Selection.Count} failed. {_addError}";
             }
         }
-        finally
-        {
+        finally {
             _isAdding = false;
         }
     }
 
-    private async Task HandleClickFolderAsync()
-    {
+    private async Task HandleClickFolderAsync() {
         if (FolderData is null) return;
         Nav.NavigateTo($"/FolderInsidePage/{FolderData.Id}");
     }

@@ -10,10 +10,8 @@ public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider>
     private static readonly AuthenticationState Anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
 
-    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
-    {
-        try
-        {
+    public override async Task<AuthenticationState> GetAuthenticationStateAsync() {
+        try {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             logger.LogDebug("ApiAuth: checking authentication state (GET api/me)");
             var response = await http.GetAsync("api/me", cts.Token);
@@ -23,8 +21,7 @@ public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider>
             var me = await response.Content.ReadFromJsonAsync<MeResponse>(cts.Token);
             if (me is null) return Anonymous;
 
-            var claims = new List<Claim>
-            {
+            var claims = new List<Claim> {
                 new(ClaimTypes.Name, me.DisplayName ?? ""),
                 new("kind", me.Kind),
                 new("avatar", me.AvatarUrl ?? "")
@@ -32,15 +29,13 @@ public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider>
             return new AuthenticationState(
                 new ClaimsPrincipal(new ClaimsIdentity(claims, "cookie")));
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "ApiAuth: error {0}: {1}", ex.GetType().Name, ex.Message);
             return Anonymous;
         }
     }
 
-    public void NotifyAuthChanged()
-    {
+    public void NotifyAuthChanged() {
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
 }

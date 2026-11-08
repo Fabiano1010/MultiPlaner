@@ -7,11 +7,11 @@ public sealed class ImageUploadService(ApiClient api, IJSRuntime js)
 {
     public async Task UploadAsWebpAsync(
         string url, IBrowserFile file, long maxSourceBytes,
-        int maxWidth, int maxHeight, bool crop = false, double quality = 0.8)
-    {
+        int maxWidth, int maxHeight, bool crop = false, double quality = 0.8) {
         using var source = new MemoryStream();
-        await using (var input = file.OpenReadStream(maxSourceBytes))
+        await using (var input = file.OpenReadStream(maxSourceBytes)) {
             await input.CopyToAsync(source);
+        }
 
         await using var module = await js.InvokeAsync<IJSObjectReference>(
             "import", "./_content/MultiPlanerSharedUI/js/image.js");

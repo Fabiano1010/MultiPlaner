@@ -1,12 +1,17 @@
 ﻿export async function toWebp(bytes, maxWidth, maxHeight, quality, crop = false) {
-    const bitmap = await createImageBitmap(new Blob([bytes]), { imageOrientation: "from-image" });
+    const bitmap = await createImageBitmap(new Blob([bytes]), {imageOrientation: "from-image"});
     try {
-        
+
         let sx = 0, sy = 0, sw = bitmap.width, sh = bitmap.height;
         if (crop) {
             const aspect = maxWidth / maxHeight;
-            if (sw / sh > aspect) { sw = Math.round(sh * aspect); sx = Math.round((bitmap.width - sw) / 2); }
-            else { sh = Math.round(sw / aspect); sy = Math.round((bitmap.height - sh) / 2); }
+            if (sw / sh > aspect) {
+                sw = Math.round(sh * aspect);
+                sx = Math.round((bitmap.width - sw) / 2);
+            } else {
+                sh = Math.round(sw / aspect);
+                sy = Math.round((bitmap.height - sh) / 2);
+            }
         }
 
 

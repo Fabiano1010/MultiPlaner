@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using MultiPlanerSharedModels.Contracts.Rooms;
 
 namespace MultiPlanerSharedUI.Services;
@@ -9,20 +10,22 @@ public class ApiClient(HttpClient http)
         using var response = await http.GetAsync(url);
         await EnsureSuccessAsync(response);
         var type = response.Content.Headers.ContentType?.MediaType;
-        if (type is not ("image/png" or "image/jpeg" or "image/webp")) throw new InvalidOperationException("Unsupported image format.");
+        if (type is not ("image/png" or "image/jpeg" or "image/webp"))
+            throw new InvalidOperationException("Unsupported image format.");
         return $"data:{type};base64,{Convert.ToBase64String(await response.Content.ReadAsByteArrayAsync())}";
     }
-    public async Task UploadAsync(string url, Stream data, string fileName, string contentType)
-    {
+
+    public async Task UploadAsync(string url, Stream data, string fileName, string contentType) {
         using var form = new MultipartFormDataContent();
         var content = new StreamContent(data);
-        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         form.Add(content, "file", fileName);
         using var request = new HttpRequestMessage(HttpMethod.Put, url) { Content = form };
         request.Headers.Add("X-CSRF-TOKEN", await GetCsrfAsync());
         using var response = await http.SendAsync(request);
         await EnsureSuccessAsync(response);
     }
+
     private async Task<string> GetCsrfAsync() {
         var r = await http.GetFromJsonAsync<CsrfResponse>("api/auth/csrf");
         return r!.Token;

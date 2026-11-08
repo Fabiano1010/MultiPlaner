@@ -9,26 +9,22 @@
     private string _source = Placeholder;
     private string? _loaded;
 
-    protected override async Task OnParametersSetAsync()
-    {
+    protected override async Task OnParametersSetAsync() {
         if (_loaded == Url) return;
         _loaded = Url;
         var requested = Url;
         _source = Placeholder;
         if (string.IsNullOrEmpty(requested)) return;
-        if (requested.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-        {
+        if (requested.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) {
             _source = requested;
             return;
         }
 
-        try
-        {
+        try {
             var data = await Api.ImageDataAsync(requested);
             if (_loaded == requested) _source = data;
         }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException or InvalidOperationException)
-        {
+        catch (Exception ex) when (ex is ApiException or HttpRequestException or InvalidOperationException) {
         }
     }
 

@@ -1,14 +1,12 @@
 ﻿@if (IsVisible) {
     <div class="info-popup">
-        <div class="info-popup-header">
+        <div class="info-popup-content">
             <div>@Message</div>
             <button class="popup-close" @onclick="OnClose">
                 <img src="_content/MultiPlanerSharedUI/images/x.svg" alt="Close"/>
             </button>
         </div>
-        <div class="info-popup-content">
-            @ChildContent
-        </div>
+
 
     </div>
 }
@@ -16,8 +14,7 @@
 
 @code {
     [Parameter] public string Message { get; set; } = string.Empty;
-    [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public bool IsVisible { get; set; }
-    
+
 }

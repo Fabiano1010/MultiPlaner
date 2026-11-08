@@ -1,0 +1,194 @@
+﻿@using MultiPlanerSharedModels.Contracts.Polls
+@using MultiPlanerSharedModels.Contracts.Rooms
+@inject ApiClient Api
+
+<div class="add-poll">
+    <div class="add-poll-top">
+        <button type="button" class="action-button goback-btn" title="Back" @onclick="OnBack">
+            <img src="_content/MultiPlanerSharedUI/images/arrow-left.svg" alt="Back" class="action-button-img">
+        </button>
+        <h3>@(Existing is null ? "New poll" : "Edit poll")</h3>
+    </div>
+
+    <form class="add-room-form" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="form-group">
+            <label>Question</label>
+            <input type="text" class="input-main" @bind="_question" @bind:event="oninput" maxlength="256"/>
+        </div>
+
+        <div class="form-group">
+            <label>Options (@_options.Count/@MaxOptions)</label>
+            @foreach (var o in _options) {
+                <div class="poll-option-row" @key="o">
+                    <input type="color" class="poll-color" @bind="o.Color" disabled="@_lock"/>
+                    <input type="text" class="input-main" placeholder="Option" maxlength="128"
+                           @bind="o.Text" @bind:event="oninput" disabled="@_lock"/>
+                    <button type="button" class="action-button remove-option-btn" title="Remove option"
+                            disabled="@(_lock || _options.Count <= 2)" @onclick="() => _options.Remove(o)">
+                        <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="Remove option"
+                             class="action-button-img remove-option-img">
+                    </button>
+                </div>
+            }
+            @if (!_lock && _options.Count < MaxOptions) {
+                <button type="button" class="btn-main btn-cancel" @onclick="AddOption">Add option</button>
+            }
+            @if (_lock) {
+                <p class="settings-note">Options and selection mode cannot change after the first vote.</p>
+            }
+        </div>
+
+        <div class="form-group">
+            <label>Selection</label>
+            <label class="inline">
+                <input type="radio" name="poll-mode" checked="@(!_multiple)" disabled="@_lock"
+                       @onchange="() => _multiple = false"/>
+                Single choice
+            </label>
+            <label class="inline">
+                <input type="radio" name="poll-mode" checked="@_multiple" disabled="@_lock"
+                       @onchange="() => _multiple = true"/>
+                Multiple choice
+            </label>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group"><label>Voting ends</label><input type="date" class="input-main" @bind="_closeDate"/>
+            </div>
+            <div class="form-group"><label>at</label><input type="time" class="input-main" @bind="_closeTime"/></div>
+        </div>
+        <p class="settings-note">Time zone of the calendar: @Room.TimeZoneId</p>
+
+        @if (!string.IsNullOrEmpty(_error)) {
+            <div class="form-error">@_error</div>
+        }
+
+        <div class="form-actions">
+            <button type="button" class="btn-main btn-cancel" @onclick="OnBack" disabled="@_saving">Cancel</button>
+            <button type="submit" class="btn-main btn-save" disabled="@_saving">Save</button>
+        </div>
+    </form>
+</div>
+
+@code {
+    [Parameter][EditorRequired] public RoomResponse Room { get; set; } = default!;
+    [Parameter] public PollResponse? Existing { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private const int MaxOptions = 10;
+
+    private static readonly string[] Palette =
+        ["#4F8EF7", "#F76B6B", "#5CC98C", "#F7B84F", "#A178F0", "#4FC7D9", "#F27AB0", "#8D9AA6", "#B5D94F", "#F78E4F"];
+
+    private sealed class OptionDraft
+    {
+        public string Text { get; set; } = "";
+        public string Color { get; set; } = "#999999";
+    }
+
+    private readonly List<OptionDraft> _options = new();
+    private string _question = "", _error = "";
+    private bool _multiple, _saving, _lock;
+    private DateOnly _closeDate;
+    private TimeOnly _closeTime;
+
+    protected override void OnInitialized() {
+        if (Existing is { } p) {
+            _question = p.Question;
+            _multiple = p.AllowMultiple;
+            _lock = p.TotalVoters > 0;
+            foreach (var o in p.Options) _options.Add(new OptionDraft { Text = o.Text, Color = "#" + o.Color });
+            (_closeDate, _closeTime) = EventDays.ToLocal(p.ClosesAtUtc, Room.TimeZoneId);
+        }
+        else {
+            AddOption();
+            AddOption();
+            (_closeDate, _closeTime) = EventDays.ToLocal(DateTimeOffset.UtcNow.AddDays(1), Room.TimeZoneId);
+        }
+    }
+
+    private void AddOption() {
+        _options.Add(new OptionDraft { Color = Palette[_options.Count % Palette.Length] });
+    }
+
+    private async Task SaveAsync() {
+        var question = _question.Trim();
+        if (question.Length is < 2 or > 256) {
+            _error = "The question must contain 2-256 characters.";
+            return;
+        }
+
+        var texts = _options.Select(o => o.Text.Trim()).ToList();
+        if (texts.Count is < 2 or > MaxOptions) {
+            _error = "A poll needs 2-10 options.";
+            return;
+        }
+
+        if (texts.Any(t => t.Length == 0)) {
+            _error = "Fill in or remove empty options.";
+            return;
+        }
+
+        if (texts.Distinct(StringComparer.CurrentCultureIgnoreCase).Count() != texts.Count) {
+            _error = "Options must be unique.";
+            return;
+        }
+
+        DateTimeOffset closes;
+        try {
+            closes = EventDays.ToUtc(_closeDate, _closeTime, Room.TimeZoneId);
+        }
+        catch (TimeZoneNotFoundException) {
+            _error = "Unknown calendar time zone.";
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (closes <= now) {
+            _error = "The end of voting must be in the future.";
+            return;
+        }
+
+        if (closes > now.AddDays(365)) {
+            _error = "Voting can last at most one year.";
+            return;
+        }
+
+        var options = _options.Select(o => new PollOptionRequest
+            { Text = o.Text.Trim(), Color = o.Color.TrimStart('#') }).ToList();
+
+        _saving = true;
+        _error = "";
+        try {
+            HttpResponseMessage res;
+            if (Existing is null) {
+                res = await Api.PostAsync($"api/rooms/{Room.Id}/polls", new CreatePollRequest {
+                    Question = question, Options = options, AllowMultiple = _multiple, ClosesAtUtc = closes
+                });
+            }
+            else {
+                res = await Api.PatchAsync($"api/rooms/{Room.Id}/polls/{Existing.Id}", new UpdatePollRequest {
+                    Question = question,
+                    ClosesAtUtc = closes,
+                    Options = _lock ? null : options,
+                    AllowMultiple = _lock ? null : _multiple,
+                    RowVersion = Existing.RowVersion
+                });
+            }
+
+            using (res) await ApiClient.EnsureSuccessAsync(res);
+            await OnSaved.InvokeAsync();
+        }
+        catch (ApiException e) {
+            _error = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _error = "Cannot reach the server. " + e.Message;
+        }
+        finally {
+            _saving = false;
+        }
+    }
+
+}

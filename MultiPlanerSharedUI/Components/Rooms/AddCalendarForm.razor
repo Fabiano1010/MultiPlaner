@@ -11,8 +11,7 @@
                 <input type="text" @bind="_calendarName" placeholder="Calendar name"
                        class="input-main @(HasError ? "error-input" : "")"/>
             </div>
-            @if (!string.IsNullOrEmpty(_errorMessage))
-            {
+            @if (!string.IsNullOrEmpty(_errorMessage)) {
                 <div class="form-error">@_errorMessage</div>
             }
             <div class="form-actions">
@@ -41,17 +40,14 @@
     private bool HasError => !string.IsNullOrEmpty(_errorMessage);
 
 
-    private async Task HandleCloseAsync()
-    {
+    private async Task HandleCloseAsync() {
         _errorMessage = "";
         await OnClose.InvokeAsync();
     }
 
-    private async Task HandleSaveAsync()
-    {
+    private async Task HandleSaveAsync() {
         var name = _calendarName?.Trim() ?? string.Empty;
-        if (name.Length is < 2 or > 128)
-        {
+        if (name.Length is < 2 or > 128) {
             _errorMessage = "Calendar name must be between 2 and 128 characters.";
             return;
         }
@@ -59,13 +55,11 @@
         _isSaving = true;
         _errorMessage = "";
 
-        try
-        {
+        try {
             var request = new CreateRoomRequest { Name = name };
             var response = await Api.PostAsync("api/rooms", request);
             await ApiClient.EnsureSuccessAsync(response);
-            if (!response.IsSuccessStatusCode)
-            {
+            if (!response.IsSuccessStatusCode) {
                 var body = await response.Content.ReadAsStringAsync();
                 _errorMessage = $"Error creating room: {response.StatusCode} - {body}";
                 return;
@@ -75,16 +69,13 @@
             await OnCreate.InvokeAsync(room!);
             await HandleCloseAsync();
         }
-        catch (ApiException e)
-        {
+        catch (ApiException e) {
             _errorMessage = e.Message;
         }
-        catch (HttpRequestException e)
-        {
+        catch (HttpRequestException e) {
             _errorMessage = "Cannot reach the server. " + e.Message;
         }
-        finally
-        {
+        finally {
             _isSaving = false;
             _calendarName = "New Calendar";
         }

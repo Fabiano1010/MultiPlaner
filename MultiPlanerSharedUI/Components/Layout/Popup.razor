@@ -1,7 +1,6 @@
-﻿@if (IsVisible)
-{
+﻿@if (IsVisible) {
     <div class="popup-overlay @(IsSettings ? "settings-overlay" : "")">
-        <div class="popup-container @(IsSettings ? "settings-popup" : "")" role="dialog" aria-modal="true"
+        <div class="popup-container @(IsSettings ? "settings-popup" : "") @(IsLarge ? "large-popup" : "")" role="dialog" aria-modal="true"
              aria-label="@Title"
              @ref="_container"
              tabindex="-1"
@@ -21,6 +20,7 @@
 
 @code {
     [Parameter] public bool IsSettings { get; set; }
+    [Parameter] public bool IsLarge { get; set; }
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string Title { get; set; } = "";
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -29,14 +29,12 @@
     private ElementReference _container;
     private bool _wasVisible;
 
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
+    private async Task HandleKeyDown(KeyboardEventArgs e) {
         if (e.Key == "Escape")
             await OnClose.InvokeAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (IsVisible && !_wasVisible)
             await _container.FocusAsync();
         _wasVisible = IsVisible;

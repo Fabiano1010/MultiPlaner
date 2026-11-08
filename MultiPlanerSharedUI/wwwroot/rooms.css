@@ -23,12 +23,12 @@
 }
 
 .add-room-button:active, .fab-item:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .add-room-button img {
@@ -99,13 +99,13 @@
 }
 
 .fab-item:active {
-    background-color: var(--surface);
+    background-color: color-mix(in srgb, var(--accent) 40%, white);
     filter: drop-shadow(0px 2px 6px var(--border));
     scale: 0.9;
     transition-duration: 0.08s;
 
 
-    color:var(--surface-text);
+    color: var(--surface-text);
 }
 
 .main-content-rooms {
@@ -154,7 +154,7 @@
     cursor: pointer;
     user-select: none;
 
-    color:var(--field-text);
+    color: var(--field-text);
 }
 
 .room {
@@ -188,7 +188,7 @@
     border-radius: 10px 10px 0 0;
     background: color-mix(in srgb, var(--field-background) 80%, var(--accent));
 
-    color:var(--field-text);
+    color: var(--field-text);
 }
 
 .folder:hover, .room:hover {
@@ -199,8 +199,9 @@
 .folder:active, .room:active {
     transform: scale(0.95);
 }
-.folder{
-    
+
+.folder {
+
 }
 
 .folder-body {
@@ -271,7 +272,7 @@
     justify-content: center;
     align-items: center;
     transition: transform 0.25s ease;
-    
+
 }
 
 .toggle-btn.down {
@@ -386,7 +387,7 @@
     background-color: color-mix(in srgb, var(--field-background) 90%, var(--accent));
     padding-left: 35px;
     border: var(--accent) 1px solid;
-    color:var(--field-text);
+    color: var(--field-text);
 }
 
 .search-wrapper {
@@ -410,7 +411,7 @@
     width: 20px;
     opacity: 0.6;
     transition: opacity 0.2s ease-in-out;
-    filter:var(--icon-filter,brightness(0) invert(1));
+    filter: var(--icon-filter, brightness(0) invert(1));
 }
 
 .search-img-btn:hover img {
@@ -421,14 +422,26 @@
     opacity: 1;
 }
 
-.room-image{
+.room-image {
     width: 80%;
     height: 100%;
     border-radius: var(--border-radius);
 }
 
 /* Membership colors are independent of the page theme. */
-.room { background:var(--room-background,var(--field-background)); color:var(--room-text,var(--field-text)); }
-.room .room-header, .room .room-footer { color:inherit; }
-.room .favourite-icon, .room .room-symbol { filter:var(--room-icon-filter,brightness(0)); }
-.folder .favourite-icon { filter:var(--field-icon-filter,brightness(0)); }
+.room {
+    background: var(--room-background, var(--field-background));
+    color: var(--room-text, var(--field-text));
+}
+
+.room .room-header, .room .room-footer {
+    color: inherit;
+}
+
+.room .favourite-icon, .room .room-symbol {
+    filter: var(--room-icon-filter, brightness(0));
+}
+
+.folder .favourite-icon {
+    filter: var(--field-icon-filter, brightness(0));
+}
