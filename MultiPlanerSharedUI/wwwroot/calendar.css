@@ -4,6 +4,10 @@
     height: 100dvh;
 }
 
+.calendar-month {
+    display: contents;
+}
+
 .header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -594,5 +598,25 @@
     color: var(--surface-text);
 }
 
+@media (max-width: 800px) {
+    .header {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "left right"
+            "title title";
+        height: auto;
+        row-gap: 0.5rem;
+    }
 
+    .date-controls-div {
+        grid-area: left;
+    }
 
+    .action-buttons {
+        grid-area: right;
+    }
+
+    .calendar-data {
+        grid-area: title;
+    }
+}

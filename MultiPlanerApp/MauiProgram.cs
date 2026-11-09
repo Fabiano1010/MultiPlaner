@@ -74,6 +74,11 @@ public static class MauiProgram
             ? config["Api:BaseUrlAndroid"]
             : config["Api:BaseUrlDefault"];
 
+#if DEBUG
+        if (DeviceInfo.Platform == DevicePlatform.Android && DeviceInfo.DeviceType == DeviceType.Physical)
+            apiBaseUrl = config["Api:BaseUrlAndroidDevice"] ?? apiBaseUrl;
+#endif
+
         if (string.IsNullOrWhiteSpace(apiBaseUrl))
             throw new InvalidOperationException(
                 "Configure Api:BaseUrlDefault / Api:BaseUrlAndroid w appsettings.json.");

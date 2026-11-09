@@ -70,4 +70,10 @@
         <None Include="Platforms\MacCatalyst\SceneDelegate.cs"/>
     </ItemGroup>
 
+    <Target Name="ConnectLocalAndroidApi" BeforeTargets="Install"
+            Condition="'$(ConnectLocalAndroidApi)' == 'true' and '$(Configuration)' == 'Debug' and '$(TargetPlatformIdentifier)' == 'android'">
+        <AndroidAdb ToolExe="$(AdbToolExe)" ToolPath="$(AdbToolPath)" AdbTarget="$(AdbTarget)"
+                    Command="reverse" Arguments="tcp:7157 tcp:7157" />
+    </Target>
+
 </Project>

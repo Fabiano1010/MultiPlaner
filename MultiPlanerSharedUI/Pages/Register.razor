@@ -8,80 +8,72 @@
 
 @attribute [AllowAnonymous]
 
-<AuthorizeView>
-    <Authorized>
-        <RedirectTo Url="/dashboard"/>
-    </Authorized>
-    <NotAuthorized>
-
-        <div class="main-content-box-auth ">
-            <h2>Register</h2>
-            <div class="form-box auth-register">
-                <form class="auth-form" @onsubmit="RegisterAsync" @onmsubit:preventDefault>
-                    <div class="input-group">
-                        <label for="name">Name</label>
-                        <input @bind="_name" id="name" placeholder="Name"
-                               class="auth-input @(_hasErrorName ? "error-input" : "")"/>
-                        <div class="input-error"></div>
-                    </div>
-                    <div class="input-group">
-                        <label for="email">Email</label>
-                        <input @bind="_email" id="email" placeholder="Email"
-                               class="auth-input @(_hasError ? "error-input" : "")"/>
-                        <div class="input-error"></div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="password">Password</label>
-                        <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
-                            <input @bind="_password" @bind:event="oninput"
-                                   type="@(_showPassword ? "text" : "password")"
-                                   id="password" placeholder="Password"
-                                   class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
-                            <button type="button" class="toggle-password"
-                                    @onclick="() => _showPassword = !_showPassword"
-                                    aria-label="@(_showPassword ? "Hide password" : "Show password")">
-                                <img
-                                    src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")"
-                                    alt=""/>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="passwordConfirm">Confirm Password</label>
-                        <div class="password-wrapper ">
-                            <input @bind="_passwordConfirm" @bind:event="oninput"
-                                   type="@(_showPasswordConfirm ? "text" : "password")"
-                                   id="passwordConfirm" placeholder="Confirm Password"
-                                   class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
-                            <button type="button" class="toggle-password"
-                                    @onclick="() => _showPasswordConfirm = !_showPasswordConfirm"
-                                    aria-label="@(_showPasswordConfirm ? "Hide password" : "Show password")">
-                                <img
-                                    src="_content/MultiPlanerSharedUI/images/@(_showPasswordConfirm ? "eye-off.svg" : "eye.svg")"
-                                    alt=""/>
-                            </button>
-                        </div>
-                        <div class="input-error"></div>
-                    </div>
-
-                    <button type="submit"
-                            class="auth-btn @(CanSubmit ? "btn-main" : "")"
-                            disabled="@(!CanSubmit)">Register
-                    </button>
-
-                    @if (_error is not null) {
-                        <span class="error">@_error</span>
-                    }
-                    <div class="register-direction">
-                        <p>Already have an account? <a href="/login">Log in</a></p>
-                    </div>
-                </form>
+<div class="main-content-box-auth ">
+    <h2>Register</h2>
+    <div class="form-box auth-register">
+        <form class="auth-form" @onsubmit="RegisterAsync" @onsubmit:preventDefault>
+            <div class="input-group">
+                <label for="name">Name</label>
+                <input @bind="_name" id="name" placeholder="Name"
+                       class="auth-input @(_hasErrorName ? "error-input" : "")"/>
+                <div class="input-error"></div>
             </div>
-        </div>
-    </NotAuthorized>
-</AuthorizeView>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input @bind="_email" id="email" placeholder="Email"
+                       class="auth-input @(_hasError ? "error-input" : "")"/>
+                <div class="input-error"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input @bind="_password" @bind:event="oninput"
+                           type="@(_showPassword ? "text" : "password")"
+                           id="password" placeholder="Password"
+                           class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => _showPassword = !_showPassword"
+                            aria-label="@(_showPassword ? "Hide password" : "Show password")">
+                        <img src="_content/MultiPlanerSharedUI/images/@(_showPassword ? "eye-off.svg" : "eye.svg")"
+                             alt=""/>
+                    </button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="passwordConfirm">Confirm Password</label>
+                <div class="password-wrapper ">
+                    <input @bind="_passwordConfirm" @bind:event="oninput"
+                           type="@(_showPasswordConfirm ? "text" : "password")"
+                           id="passwordConfirm" placeholder="Confirm Password"
+                           class="auth-input-pass @(_hasErrorPassword ? "error-input" : "")"/>
+                    <button type="button" class="toggle-password"
+                            @onclick="() => _showPasswordConfirm = !_showPasswordConfirm"
+                            aria-label="@(_showPasswordConfirm ? "Hide password" : "Show password")">
+                        <img
+                            src="_content/MultiPlanerSharedUI/images/@(_showPasswordConfirm ? "eye-off.svg" : "eye.svg")"
+                            alt=""/>
+                    </button>
+                </div>
+                <div class="input-error"></div>
+            </div>
+
+            <button type="submit"
+                    class="auth-btn @(CanSubmit ? "btn-main" : "")"
+                    disabled="@(!CanSubmit)">Register
+            </button>
+
+            @if (_error is not null) {
+                <span class="error">@_error</span>
+            }
+            <div class="register-direction">
+                <p>Already have an account? <a href="/login">Log in</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 
 @code {

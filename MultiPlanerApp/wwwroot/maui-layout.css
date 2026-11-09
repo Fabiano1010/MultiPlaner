@@ -1,0 +1,32 @@
+/* MAUI sizes the WebView inside the system bars and keyboard. */
+.maui-host {
+    --app-safe-top: 0px;
+    --app-safe-right: 0px;
+    --app-safe-bottom: 0px;
+    --app-safe-left: 0px;
+    height: 100%;
+    min-height: 0;
+}
+
+.maui-host #app,
+.maui-host .app-layout {
+    height: 100%;
+    min-height: 0;
+}
+
+.maui-host .app-layout > main > .main-content {
+    flex: none;
+    height: auto;
+    overflow: visible;
+}
+
+.maui-host .sidebar,
+.maui-host .popup-overlay {
+    inset-block: 0;
+    height: auto;
+}
+
+.maui-host .popup-overlay {
+    inset-inline: 0;
+    width: auto;
+}
