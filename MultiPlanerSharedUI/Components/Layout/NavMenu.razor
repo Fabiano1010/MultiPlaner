@@ -30,12 +30,14 @@
         </NavLink>
     </div>
     <div class="nav-items">
-        <button type="button" class="nav-item logout-btn" @onclick="LogoutAsync">
+        <button type="button" class="nav-item logout-btn" @onclick="OpenLogoutPopup">
             <img src="_content/MultiPlanerSharedUI/images/power.svg" alt="" class="nav-item-img">
             <div class="nav-text">Logout</div>
         </button>
     </div>
 </div>
+
+<ConfirmPopup IsVisible="_logout" Title="Logout" Message="Are you sure?" ConfirmText="Logout" OnConfirm="LogoutAsync" OnClose="OnCloseLogoutPopup"/>
 
 @code {
     [Parameter] public EventCallback OnNavigate { get; set; }
@@ -45,7 +47,7 @@
 
     private string _displayName = "User";
     private string? _avatar;
-
+    private bool _logout;
 
     protected override async Task OnParametersSetAsync() {
         if (AuthState is not null) {
@@ -64,6 +66,14 @@
         await OnNavigate.InvokeAsync();
         await Auth.LogoutAsync();
         Nav.NavigateTo("/", replace: true);
+    }
+    private async Task OnCloseLogoutPopup() {
+        _logout = false;
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task OpenLogoutPopup() {
+        _logout = true;
+        await InvokeAsync(StateHasChanged);
     }
 
 }
