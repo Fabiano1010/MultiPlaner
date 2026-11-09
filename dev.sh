@@ -13,7 +13,7 @@ ANDROID_RUNTIME_IDENTIFIER="${ANDROID_RUNTIME_IDENTIFIER:-android-x64}"
 
 require_docker() {
     if ! command -v docker >/dev/null 2>&1; then
-        echo "❌ Docker nie jest zainstalowany albo nie ma go w PATH." >&2
+        echo "Docker nie jest zainstalowany albo nie ma go w PATH." >&2
         exit 1
     fi
 
@@ -22,7 +22,7 @@ require_docker() {
     fi
 
     if command -v sudo >/dev/null 2>&1; then
-        echo "▶ Docker wymaga uprawnień administratora; proszę o hasło sudo..."
+        echo "Docker wymaga uprawnień administratora; proszę o hasło sudo..."
         if sudo docker info >/dev/null 2>&1; then
             DOCKER=(sudo docker)
             COMPOSE=("${DOCKER[@]}" compose -f "$COMPOSE_FILE")
@@ -30,8 +30,8 @@ require_docker() {
         fi
     fi
 
-    echo "❌ Docker Engine jest niedostępny dla bieżącego użytkownika." >&2
-    echo "   Uruchom Docker Desktop/daemon albo sprawdź uprawnienia sudo." >&2
+    echo "Docker Engine jest niedostępny dla bieżącego użytkownika." >&2
+    echo "Uruchom Docker Desktop/daemon albo sprawdź uprawnienia sudo." >&2
     exit 1
 }
 
@@ -39,7 +39,7 @@ show_database_failure() {
     local status
     status="$("${DOCKER[@]}" inspect --format '{{.State.Status}}' MultiPlanerSQLDb 2>/dev/null || true)"
     if [[ "$status" == "exited" || "$status" == "dead" ]]; then
-        echo "❌ Kontener SQL Server zakończył pracę. Ostatnie logi:" >&2
+        echo "Kontener SQL Server zakończył pracę. Ostatnie logi:" >&2
         "${DOCKER[@]}" logs --tail 80 MultiPlanerSQLDb >&2 || true
         exit 1
     fi
@@ -47,12 +47,10 @@ show_database_failure() {
 
 start_database() {
     require_docker
-    echo "▶ Uruchamianie bazy SQL Server..."
+    echo "Uruchamianie bazy SQL Server..."
     "${COMPOSE[@]}" up -d
     for _ in {1..60}; do
         show_database_failure
-        # An open Docker port does not mean SQL Server has finished starting.
-        # Read the password inside the container, including Compose .env overrides.
         if "${COMPOSE[@]}" exec -T sqlserver sh -c '
             sqlcmd=/opt/mssql-tools18/bin/sqlcmd
             [ -x "$sqlcmd" ] || sqlcmd=/opt/mssql-tools/bin/sqlcmd
@@ -65,7 +63,7 @@ start_database() {
         fi
         sleep 1
     done
-    echo "❌ SQL Server nie jest gotowy po 60 próbach logowania i wykonania SELECT 1." >&2
+    echo "SQL Server nie jest gotowy po 60 próbach logowania i wykonania SELECT 1." >&2
     "${COMPOSE[@]}" ps >&2 || true
     "${DOCKER[@]}" logs --tail 80 MultiPlanerSQLDb >&2 || true
     exit 1
@@ -84,31 +82,29 @@ COMMAND="${1:-help}"
 configure_dev_https() {
     if [[ "$(uname -s)" == "Linux" && -z "${DOTNET_DEV_CERTS_NSSDB_PATHS+x}" ]]; then
         export DOTNET_DEV_CERTS_NSSDB_PATHS=/dev/null
-        echo "▶ HTTPS: pomijanie sprawdzania magazynów przeglądarek (obejście blokady certutil)."
+        echo "HTTPS: pomijanie sprawdzania magazynów przeglądarek (obejście blokady certutil)."
     fi
 }
 
 function run_api {
     configure_dev_https
-    echo "▶ Uruchamianie Web API..."
+    echo "Uruchamianie Web API..."
     dotnet run --project "$API_PROJECT" --launch-profile https
 }
 
 function run_api_background {
     configure_dev_https
-    # SharedModels is also referenced by Web. Finish this build before any
-    # other frontend build starts, then keep runtime processes build-free.
     if [[ "${1:-}" != "--prebuilt" ]]; then
-        echo "▶ Kompilowanie Web API..."
+        echo "Kompilowanie Web API..."
         dotnet build "$API_PROJECT" --nologo
     fi
-    echo "▶ Uruchamianie Web API w tle..."
+    echo "Uruchamianie Web API w tle..."
     dotnet run --no-build --project "$API_PROJECT" --launch-profile https &
     API_PID=$!
     trap 'exit_status=$?; echo "Zatrzymywanie API..."; kill "$API_PID" 2>/dev/null || true; exit "$exit_status"' EXIT
     sleep 3
     if ! kill -0 "$API_PID" 2>/dev/null; then
-        echo "❌ API zakończyło pracę podczas startu; przerywam uruchamianie klienta." >&2
+        echo "API zakończyło pracę podczas startu; przerywam uruchamianie klienta." >&2
         wait "$API_PID" || return $?
         return 1
     fi
@@ -120,19 +116,19 @@ case "$COMMAND" in
         ;;
     "db-down")
         require_docker
-        echo "▶ Zatrzymywanie bazy danych..."
+        echo "Zatrzymywanie bazy danych..."
         "${COMPOSE[@]}" down
         ;;
     "db-reset")
         require_docker
-        echo "▶ Usuwanie developerskiego kontenera i całego wolumenu SQL Server..."
+        echo "Usuwanie developerskiego kontenera i całego wolumenu SQL Server..."
         "${COMPOSE[@]}" down --volumes --remove-orphans
-        echo "✅ Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte."
+        echo "Wszystkie bazy z tego developerskiego SQL Servera zostały usunięte."
         ;;
     "db-migrate")
         prepare_dotnet_ef
         start_database
-        echo "▶ Aplikowanie migracji EF Core..."
+        echo "Aplikowanie migracji EF Core..."
         run_dotnet_ef database update --project "$API_PROJECT" --startup-project "$API_PROJECT"
         ;;
     "db-status")
@@ -143,33 +139,32 @@ case "$COMMAND" in
         run_api
         ;;
     "web")
-        # Build both projects before launching either process. Rebuild Web so
-        # fingerprinted WASM/PDB files and static-asset manifests come from
-        # the same build, including after API/MAUI builds of shared projects.
-        echo "▶ Kompilowanie Web API..."
+        echo "Kompilowanie Web API..."
         dotnet build "$API_PROJECT" --nologo
-        echo "▶ Przebudowywanie aplikacji Blazor Web..."
+        echo "Przebudowywanie aplikacji Blazor Web..."
         dotnet build "$WEB_PROJECT" --nologo -t:Rebuild
         run_api_background --prebuilt
-        echo "▶ Uruchamianie aplikacji Blazor Web..."
+        echo "Uruchamianie aplikacji Blazor Web..."
         dotnet run --no-build --project "$WEB_PROJECT" --launch-profile https
         ;;
     "android")
         run_api_background
-        echo "▶ Uruchamianie MAUI Android ($ANDROID_RUNTIME_IDENTIFIER)..."
-        dotnet build "$APP_PROJECT" -t:Run -f net10.0-android "-p:RuntimeIdentifier=$ANDROID_RUNTIME_IDENTIFIER"
+        echo "Uruchamianie MAUI Android ($ANDROID_RUNTIME_IDENTIFIER)..."
+        dotnet build "$APP_PROJECT" -t:Run -f net10.0-android "-p:RuntimeIdentifier=$ANDROID_RUNTIME_IDENTIFIER" -p:ConnectLocalAndroidApi=true
+        echo "API działa w tle. Naciśnij Ctrl+C, aby je zatrzymać."
+        wait "$API_PID"
         ;;
     "windows")
-        echo "❌ Błąd: Kompilacja Windows nie jest wspierana na środowisku Linux/macOS."
+        echo "Błąd: Kompilacja Windows nie jest wspierana na środowisku Linux/macOS."
         exit 1
         ;;
     "db-add-migration")
         prepare_dotnet_ef
         if run_dotnet_ef migrations has-pending-model-changes --project "$API_PROJECT" --startup-project "$API_PROJECT"; then
-            echo "✅ Model nie zmienił się. Nie ma potrzeby tworzenia nowej migracji."
+            echo "Model nie zmienił się. Nie ma potrzeby tworzenia nowej migracji."
         else
             MIGRATION_NAME=${2:-"AutoMigration_$(date +%Y%m%d%H%M%S)"}
-            echo "▶ Tworzenie nowej migracji: $MIGRATION_NAME..."
+            echo "Tworzenie nowej migracji: $MIGRATION_NAME..."
             run_dotnet_ef migrations add "$MIGRATION_NAME" --project "$API_PROJECT" --startup-project "$API_PROJECT"
         fi
         ;;

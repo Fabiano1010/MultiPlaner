@@ -11,7 +11,7 @@
 <div class="main-content-box-auth ">
     <h2>Register</h2>
     <div class="form-box auth-register">
-        <form class="auth-form" @onsubmit="RegisterAsync" @onmsubit:preventDefault>
+        <form class="auth-form" @onsubmit="RegisterAsync" @onsubmit:preventDefault>
             <div class="input-group">
                 <label for="name">Name</label>
                 <input @bind="_name" id="name" placeholder="Name"
@@ -27,7 +27,7 @@
 
             <div class="input-group">
                 <label for="password">Password</label>
-                <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
+                <div class="password-wrapper">
                     <input @bind="_password" @bind:event="oninput"
                            type="@(_showPassword ? "text" : "password")"
                            id="password" placeholder="Password"

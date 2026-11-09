@@ -13,7 +13,8 @@
 @implements IDisposable
 
 
-<div class="calendar-page" tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
+<div class="calendar-page @(!_isLoading && string.IsNullOrEmpty(_errorMessage) && _roomData is not null ? "calendar-page-ready" : null)"
+     tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
     @if (_isLoading) {
         <LoadingSpinner/>
     }
@@ -33,13 +34,15 @@
                         OnNotifications="ToggleNotifications"
                         NotificationsState="_notificationsState"
         />
-        <CalendarGrid CurrentMonth="_month"
-                      IsAddingEvent="_isAddingEvent"
-                      SelectedDate="_selectedDate"
-                      Events="_events"
-                      RangeStart="_rangeStart"
-                      RangeEnd="_rangeEnd"
-                      OnDayClicked="HandleDayClicked"/>
+        <div class="calendar-month">
+            <CalendarGrid CurrentMonth="_month"
+                          IsAddingEvent="_isAddingEvent"
+                          SelectedDate="_selectedDate"
+                          Events="_events"
+                          RangeStart="_rangeStart"
+                          RangeEnd="_rangeEnd"
+                          OnDayClicked="HandleDayClicked"/>
+        </div>
         <CalendarEvents CurrentMonth="_month"
                         SelectedDate="_selectedDate"
                         OnAddEvent="ToggleAdding"

@@ -172,7 +172,7 @@ switch ($Command) {
     "android" {
         Start-ApiBackground
         Write-Host "▶ Uruchamianie MAUI Android ($AndroidRuntimeIdentifier)..." -ForegroundColor Green
-        Invoke-Checked -FilePath "dotnet" -Arguments @("build", $AppProject, "-t:Run", "-f", "net10.0-android", "-p:RuntimeIdentifiers=$AndroidRuntimeIdentifier")
+        Invoke-Checked -FilePath "dotnet" -Arguments @("build", $AppProject, "-t:Run", "-f", "net10.0-android", "-p:RuntimeIdentifiers=$AndroidRuntimeIdentifier", "-p:ConnectLocalAndroidApi=true")
     }
     "windows" {
         Start-ApiBackground

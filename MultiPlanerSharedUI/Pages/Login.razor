@@ -8,7 +8,7 @@
 <div class="main-content-box-auth">
     <h2>Login</h2>
     <div class="form-box">
-        <form class="auth-form" @onsubmit="LoginAsync" @onmsubit:preventDefault>
+        <form class="auth-form" @onsubmit="LoginAsync" @onsubmit:preventDefault>
             <div class="input-group">
                 <label for="email">Email</label>
                 <input @bind="_email" id="email" placeholder="Email"
@@ -18,7 +18,7 @@
 
             <div class="input-group">
                 <label for="password">Password</label>
-                <div class="password-wrapper" @(CanSubmit ? "error-input" : "")>
+                <div class="password-wrapper">
                     <input @bind="_password" @bind:event="oninput"
                            type="@(_showPassword ? "text" : "password")"
                            id="password" placeholder="Password"
