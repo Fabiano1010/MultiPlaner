@@ -38,6 +38,14 @@ public class ApiAuthStateProvider(HttpClient http, ILogger<ApiAuthStateProvider>
     public void NotifyAuthChanged() {
         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
+
+    public async Task<AuthenticationState> RefreshAuthStateAsync() {
+        var state = GetAuthenticationStateAsync();
+        var refreshed = await state;
+        // Keep the current route mounted while the new session is being checked.
+        NotifyAuthenticationStateChanged(state);
+        return refreshed;
+    }
 }
 
 public record MeResponse(string Kind, string? DisplayName, string? AvatarUrl);
