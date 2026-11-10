@@ -247,3 +247,44 @@ input[type="password"]::-ms-reveal {
         transform: translateY(0) scale(1);
     }
 }
+
+
+.invitation-calendar {
+    text-align: center;
+}
+
+.invitation-choices {
+    display: grid;
+    gap: 1rem;
+    width: min(100%, 26rem);
+}
+
+.invitation-choices.with-login {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 52rem);
+}
+
+.invitation-option.form-box {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.invitation-option h3 {
+    margin: 1.25rem 1rem 0;
+    text-align: center;
+}
+
+.invitation-option .auth-form {
+    height: auto;
+}
+
+@media (max-width: 768px) {
+    .invitation-choices.with-login {
+        grid-template-columns: 1fr;
+        width: min(100%, 26rem);
+    }
+}

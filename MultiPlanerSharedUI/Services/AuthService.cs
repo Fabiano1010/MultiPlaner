@@ -1,4 +1,6 @@
-﻿namespace MultiPlanerSharedUI.Services;
+﻿using Microsoft.AspNetCore.Components.Authorization;
+
+namespace MultiPlanerSharedUI.Services;
 
 public class ApiException(string message, int status, string? code = null) : Exception(message)
 {
@@ -17,10 +19,14 @@ public record CsrfResponse(string Token);
 
 public class AuthService(ApiAuthStateProvider state, ApiClient client)
 {
-    public async Task LoginAsync(string email, string password, bool rememberMe) {
-        var res = await client.PostAsync("api/auth/login", new { email, password, rememberMe });
+    public async Task<AuthenticationState> LoginAsync(string email, string password, bool rememberMe) {
+        using var res = await client.PostAsync("api/auth/login", new { email, password, rememberMe });
         await ApiClient.EnsureSuccessAsync(res);
-        state.NotifyAuthChanged();
+        var refreshed = await state.RefreshAuthStateAsync();
+        if (!refreshed.User.HasClaim("kind", "user"))
+            throw new ApiException("Could not verify your account session. Try again.", 503);
+
+        return refreshed;
     }
 
     public async Task RegisterAsync(string name, string email, string password,
