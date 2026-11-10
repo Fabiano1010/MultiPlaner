@@ -152,7 +152,7 @@ public sealed class EventService(
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
-            RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId);
+            RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId, room.OwnerUserId);
             if (request.Title is not null)
             {
                 ev.Title = Title(request.Title);
@@ -228,7 +228,7 @@ public sealed class EventService(
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
-            RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId);
+            RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId, room.OwnerUserId);
             await context.EventParticipants.Where(p => p.EventId == eventId).ExecuteDeleteAsync(ct);
             await context.EventAttachments.Where(a => a.EventId == eventId).ExecuteDeleteAsync(ct);
             context.CalendarEvents.Remove(ev);
@@ -287,7 +287,7 @@ public sealed class EventService(
     {
         var ev = row.Event;
         var active = row.Room.ArchivedAtUtc is null && row.Room.ExpiresAtUtc > clock.GetUtcNow();
-        var own = row.ViewerMemberId == ev.AuthorMemberId;
+        var own = row.ViewerMemberId == ev.AuthorMemberId || row.Room.OwnerUserId == actor.UserId;
         return new EventResponse(ev.Id, ev.RoomId, row.Room.Name, row.Room.TimeZoneId,
             row.Room.GetArchivedAtUtc(clock.GetUtcNow()) is not null,
             ev.Title, ev.Description, ev.StartsAtUtc, ev.EndsAtUtc, ev.IsAllDay, ev.StartDate, ev.EndDateExclusive,
