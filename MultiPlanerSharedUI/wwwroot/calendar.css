@@ -213,15 +213,23 @@
     color: var(--surface-text);
 }
 
+.calendar-cell.other-month{
+    /*background: color-mix(in srgb, var(--surface) 86%, black);*/
+    opacity: 0.5;
+    
+}
+.calendar-cell.other-month .day-number {
+    color: color-mix(in srgb, var(--app-text) 85%, black);
+}
+
 .calendar-cell:hover {
     background: var(--surface);
 
     color: var(--surface-text);
 }
 
-.calendar-cell.other-month .day-number {
-    color: var(--app-text);
-}
+
+
 
 .calendar-cell.today {
     font-weight: 700;
