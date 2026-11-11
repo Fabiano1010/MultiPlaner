@@ -39,7 +39,7 @@
 
     <ItemGroup>
         <!-- App Icon -->
-        <MauiIcon Include="..\MultiPlanerSharedUI\wwwroot\images\icon.svg" ForegroundFile="..\MultiPlanerSharedUI\wwwroot\images\icon.svg" Link="Resources\AppIcon\appicon.svg" Color="#512BD4"/>
+        <MauiIcon Include="..\MultiPlanerSharedUI\wwwroot\images\icon.svg" ForegroundFile="..\MultiPlanerSharedUI\wwwroot\images\icon.svg" BackgroundColor="#00000000" Link="Resources\AppIcon\appicon.svg" />
 
         <!-- Images -->
         <MauiImage Include="Resources\Images\*"/>
