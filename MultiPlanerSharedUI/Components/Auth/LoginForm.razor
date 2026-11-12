@@ -42,16 +42,15 @@
     @if (_error is not null) {
         <span class="error" role="alert">@_error</span>
     }
-    <div class="register-direction">
-        <span>Don't have an account? <a href="/register">Register here</a></span>
-    </div>
+    @ChildContent
 </form>
 
 @code {
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public EventCallback<bool> BusyChanged { get; set; }
     [Parameter] public EventCallback<AuthenticationState> OnSuccess { get; set; }
-
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    
     private string _email = string.Empty;
     private string _password = string.Empty;
     private string? _error;

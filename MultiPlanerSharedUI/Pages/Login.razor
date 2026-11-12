@@ -7,10 +7,14 @@
 <div class="main-content-box-auth">
     <h2>Login</h2>
     <div class="form-box">
-        <LoginForm OnSuccess="NavigateHome"/>
+        <LoginForm OnSuccess="NavigateHome">
+        <div class="register-direction">
+            <span>Don't have an account? <a href="/register">Register here</a></span>
+        </div>
+        </LoginForm>
     </div>
 </div>
 
 @code {
-    private void NavigateHome() => Nav.NavigateTo("/");
+    private void NavigateHome() => Nav.NavigateTo("/dashboard");
 }
