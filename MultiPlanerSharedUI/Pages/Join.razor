@@ -17,7 +17,7 @@
         <p class="invitation-calendar">@_preview.RoomName</p>
     }
     @if (_loading) {
-        <p role="status">Loading invitation…</p>
+        <LoadingSpinner />
     }
     else if (_preview is not null) {
         var version = _routeVersion;
