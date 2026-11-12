@@ -1,11 +1,11 @@
-﻿@using System.Net.Http.Json
-@using MultiPlanerSharedModels.Contracts.Rooms
+﻿@using MultiPlanerSharedModels.Contracts.Rooms
 @inject ApiClient Api
+@inject NavigationManager Nav
 
 <Popup IsVisible="IsVisible" Title="Join calendar" OnClose="@HandleCloseAsync">
 
     <div class="add-room-form-box">
-        <form class="add-room-form" @onsubmit="" @onsubmit:preventDefault>
+        <form class="add-room-form" @onsubmit="HandleJoinAsync" @onsubmit:preventDefault>
             <div class="form-group">
                 <label>Calendar link</label>
                 <input type="text" @bind="_calendarLink" placeholder="Calendar link"
@@ -56,17 +56,12 @@
         _errorMessage = "";
     
         try {
-            // var request = new();
-            // var response = await Api.PostAsync("api/rooms", request);
-            // await ApiClient.EnsureSuccessAsync(response);
-            // if (!response.IsSuccessStatusCode) {
-            //     var body = await response.Content.ReadAsStringAsync();
-            //     _errorMessage = $"Error joining room: {response.StatusCode} - {body}";
-            //     return;
-            // }
-            //
-            // var room = await response.Content.ReadFromJsonAsync<RoomResponse>();
-            // await OnJoin.InvokeAsync(room!);
+            if(!Uri.TryCreate(link, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) {
+                _errorMessage = "Invalid calendar link. Please provide a valid HTTPS URL.";
+                return;
+            }
+            var token = link.Split("/").LastOrDefault() ?? "";
+            Nav.NavigateTo($"/join/{token}");
             await HandleCloseAsync();
         }
         catch (ApiException e) {
