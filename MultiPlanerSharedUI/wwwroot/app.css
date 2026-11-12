@@ -668,11 +668,12 @@ button.nav-user {
 .invite-header {
     display: flex;
     justify-content: center;
+    align-items: center;
     padding: 1rem;
-    width: 20vh;
+    width: 12vw;
     background: var(--surface);
     border-radius: var(--border-radius);
-    min-width: 190px;
+    min-width: 220px;
 }
 
 .invite-header img {
@@ -687,4 +688,8 @@ button.nav-user {
     align-items: flex-start;
     padding: 1rem;
 
+}
+.invite-back{
+    margin-right: 1rem;
+    margin-left: 1rem;
 }
