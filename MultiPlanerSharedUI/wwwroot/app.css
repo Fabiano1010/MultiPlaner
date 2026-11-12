@@ -635,3 +635,10 @@ button.nav-user {
     transform: translateY(-2px);
     background: #d90000;
 }
+.join-btn{
+    background: var(--surface);
+    color: var(--surface-text);
+}
+.invitation-calendar{
+    font-size: var(--font-size-large);
+}

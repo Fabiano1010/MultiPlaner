@@ -40,7 +40,7 @@
                                    required minlength="2" maxlength="64" disabled="@JoinDisabled"/>
                         </div>
                     }
-                    <button type="submit" class="auth-btn btn-main" disabled="@JoinDisabled">
+                    <button type="submit" class="btn-main join-btn" disabled="@JoinDisabled">
                         @(_joining ? "Please wait…" : _joinedRoomId is null ? "Join" : "Open calendar")
                     </button>
                 </form>
