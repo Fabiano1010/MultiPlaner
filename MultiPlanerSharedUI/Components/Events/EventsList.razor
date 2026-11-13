@@ -1,0 +1,17 @@
+@using MultiPlanerSharedModels.Contracts.Events
+
+<div class="my-events-list">
+    @if (Events.Count == 0) {
+        <div class="my-events-empty">@EmptyText</div>
+    }
+    @foreach (var ev in Events) {
+        <Event @key="ev.Id" Data="ev" OnOpen="OnOpen" OnOpenCalendar="OnOpenCalendar"/>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<EventResponse> Events { get; set; } = Array.Empty<EventResponse>();
+    [Parameter] public string EmptyText { get; set; } = "No events.";
+    [Parameter] public EventCallback<EventResponse> OnOpen { get; set; }
+    [Parameter] public EventCallback<int> OnOpenCalendar { get; set; }
+}

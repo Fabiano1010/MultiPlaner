@@ -1,0 +1,206 @@
+@page "/events"
+@layout MainLayout
+@attribute [Authorize]
+@implements IDisposable
+@using System.Text.Json
+@using MultiPlanerSharedModels.Contracts.Common
+@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedUI.Components.Events
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="my-events-page">
+    <div class="my-events-toolbar">
+        <div class="password-wrapper search-wrapper">
+            <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="" class="search-icon"/>
+            <input class="auth-input-pass input-search" type="search" placeholder="Search by event or calendar"
+                   value="@_search" @oninput="OnSearch"/>
+            @if (_search.Length > 0) {
+                <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button>
+            }
+        </div>
+
+        <select class="input-main" value="@_priority" @onchange="OnPriority">
+            <option value="all">All priorities</option>
+            <option value="high">High priority</option>
+            <option value="normal">Normal priority</option>
+        </select>
+
+        <select class="input-main" value="@_time" @onchange="OnTime">
+            <option value="all">All</option>
+            <option value="incoming">Incoming</option>
+            <option value="outdated">Outdated</option>
+        </select>
+    </div>
+
+    @if (_loading) {
+        <LoadingSpinner/>
+    }
+    else if (_error is not null) {
+        <div class="error-message">@_error</div>
+        <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
+    }
+    else {
+        <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div>
+
+        <EventsList Events="_pageItems"
+                    EmptyText="@(_all.Count == 0 ? "You have no events yet." : "No events match your filters.")"
+                    OnOpen="OpenDetails"
+                    OnOpenCalendar="OpenCalendar"/>
+
+        @if (_totalPages > 1) {
+            <nav class="my-events-pager" aria-label="Pages">
+                <button type="button" class="btn-main btn-cancel" disabled="@(_page <= 1)"
+                        @onclick="() => GoTo(_page - 1)">‹ Previous
+                </button>
+                <span>Page @_page of @_totalPages</span>
+                <button type="button" class="btn-main btn-cancel" disabled="@(_page >= _totalPages)"
+                        @onclick="() => GoTo(_page + 1)">Next ›
+                </button>
+            </nav>
+        }
+    }
+</div>
+
+<EventDetails IsVisible="_showDetails" Event="_selected"
+              OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)"/>
+
+@code {
+    private const int PageSize = 15;
+    private const int PastDays = 730, FutureDays = 730;
+    private const int FetchPageSize = 100;
+
+    private List<EventResponse> _all = new();
+    private List<EventResponse> _filtered = new();
+    private List<EventResponse> _pageItems = new();
+
+    private string _search = "", _priority = "all", _time = "all";
+    private int _page = 1, _totalPages = 1;
+    private bool _loading = true, _showDetails;
+    private string? _error;
+    private EventResponse? _selected;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync(bool silent = false) {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        if (!silent) _loading = true;
+        _error = null;
+
+        var now = DateTimeOffset.UtcNow;
+        var from = Uri.EscapeDataString(now.AddDays(-PastDays).ToString("O"));
+        var to = Uri.EscapeDataString(now.AddDays(FutureDays).ToString("O"));
+
+        try {
+            var all = new List<EventResponse>();
+            for (var page = 1; page <= 50; page++) {
+                var url = $"api/me/events?from={from}&to={to}&status=all&page={page}&pageSize={FetchPageSize}";
+                var result = await Api.GetAsync<PagedResponse<EventResponse>>(url, ct);
+                if (result is null || result.Items.Count == 0) break;
+
+                all.AddRange(result.Items);
+                if (all.Count >= result.TotalCount) break;
+            }
+
+            if (ct.IsCancellationRequested) return;
+            _all = all;
+            Apply();
+        }
+        catch (OperationCanceledException) {
+        }
+        catch (ApiException e) {
+            _error = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _error = "Cannot load events. " + e.Message;
+        }
+        catch (JsonException) {
+            _error = "Unexpected response from the server.";
+        }
+        finally {
+            if (!ct.IsCancellationRequested) _loading = false;
+        }
+    }
+
+
+    private void Apply(bool resetPage = false) {
+        var now = DateTimeOffset.UtcNow;
+        var term = _search.Trim();
+
+        IEnumerable<EventResponse> query = _all;
+
+        if (term.Length > 0)
+            query = query.Where(e => Contains(e.Title, term) || Contains(e.RoomName, term));
+
+        query = _priority switch {
+            "high" => query.Where(e => e.IsHighPriority),
+            "normal" => query.Where(e => !e.IsHighPriority),
+            _ => query
+        };
+
+        var incoming = query.Where(e => e.EndsAtUtc > now);
+        var outdated = query.Where(e => e.EndsAtUtc <= now);
+
+        var ordered = Enumerable.Empty<EventResponse>();
+        if (_time != "outdated")
+            ordered = ordered.Concat(incoming.OrderBy(e => e.StartsAtUtc).ThenBy(e => e.Id));
+        if (_time != "incoming")
+            ordered = ordered.Concat(outdated.OrderByDescending(e => e.StartsAtUtc).ThenBy(e => e.Id));
+
+        _filtered = ordered.ToList();
+        _totalPages = Math.Max(1, (int)Math.Ceiling(_filtered.Count / (double)PageSize));
+        _page = resetPage ? 1 : Math.Clamp(_page, 1, _totalPages);
+        _pageItems = _filtered.Skip((_page - 1) * PageSize).Take(PageSize).ToList();
+    }
+
+    private static bool Contains(string? value, string term) =>
+        value is not null && value.Contains(term, StringComparison.CurrentCultureIgnoreCase);
+
+    private void OnSearch(ChangeEventArgs e) {
+        _search = e.Value?.ToString() ?? "";
+        Apply(resetPage: true);
+    }
+
+    private void ClearSearch() {
+        _search = "";
+        Apply(resetPage: true);
+    }
+
+    private void OnPriority(ChangeEventArgs e) {
+        _priority = e.Value?.ToString() ?? "all";
+        Apply(resetPage: true);
+    }
+
+    private void OnTime(ChangeEventArgs e) {
+        _time = e.Value?.ToString() ?? "all";
+        Apply(resetPage: true);
+    }
+
+    private void GoTo(int page) {
+        _page = Math.Clamp(page, 1, _totalPages);
+        _pageItems = _filtered.Skip((_page - 1) * PageSize).Take(PageSize).ToList();
+    }
+
+    private void OpenDetails(EventResponse ev) {
+        _selected = ev;
+        _showDetails = true;
+    }
+
+    private void CloseDetails() {
+        _showDetails = false;
+        _selected = null;
+    }
+
+    private void OpenCalendar(int roomId) => Nav.NavigateTo($"/calendar/{roomId}");
+
+    public void Dispose() {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
+}

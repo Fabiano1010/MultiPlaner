@@ -1,0 +1,64 @@
+﻿@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedUI.Services
+
+<div class="my-event @(_past ? "past" : "")" style="border-left: 5px solid #@Data.Color"
+     role="button" tabindex="0"
+     @onclick="() => OnOpen.InvokeAsync(Data)" @onkeydown="HandleKey">
+    <div class="my-event-top">
+        <h4 class="my-event-title">@(Data.IsHighPriority ? "HIGH" : "")@Data.Title</h4>
+        <span class="my-event-status @(_past ? "ended" : "")">@_status</span>
+    </div>
+
+    <div class="my-event-when">@_when</div>
+
+    <div class="my-event-meta">
+        <span>@Data.RoomName@(Data.RoomIsArchived ? " (archived)" : "")</span>
+        <span>· @Data.EventTypeName</span>
+        <span>· @Data.Author.DisplayName</span>
+    </div>
+
+    <button type="button" class="my-event-open" @onclick="() => OnOpenCalendar.InvokeAsync(Data.RoomId)"
+            @onclick:stopPropagation>
+        Open calendar
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public EventResponse Data { get; set; } = default!;
+    [Parameter] public EventCallback<EventResponse> OnOpen { get; set; }
+    [Parameter] public EventCallback<int> OnOpenCalendar { get; set; }
+
+    private string _when = "", _status = "";
+    private bool _past;
+
+    protected override void OnParametersSet() {
+        var span = EventDays.Span(Data);
+        var now = DateTimeOffset.UtcNow;
+
+        static string D(DateOnly x) => x.ToString("dd.MM.yyyy");
+        static string T(TimeOnly? x) => x?.ToString("HH:mm") ?? "";
+
+        if (Data.IsAllDay)
+            _when = span.StartDate == span.EndDate
+                ? $"{D(span.StartDate)} · all day"
+                : $"{D(span.StartDate)} – {D(span.EndDate)} · all day";
+        else if (span.StartDate == span.EndDate)
+            _when = $"{D(span.StartDate)} {T(span.StartTime)} – {T(span.EndTime)}";
+        else
+            _when = $"{D(span.StartDate)} {T(span.StartTime)} – {D(span.EndDate)} {T(span.EndTime)}";
+
+        _past = Data.EndsAtUtc <= now;
+        if (_past) _status = "Ended";
+        else if (Data.StartsAtUtc <= now) _status = "Ongoing";
+        else {
+            var (today, _) = EventDays.ToLocal(now, Data.RoomTimeZoneId);
+            var days = span.StartDate.DayNumber - today.DayNumber;
+            _status = days switch { <= 0 => "Today", 1 => "Tomorrow", _ => $"In {days} days" };
+        }
+    }
+
+    private async Task HandleKey(KeyboardEventArgs e) {
+        if (e.Key is "Enter" or " ") await OnOpen.InvokeAsync(Data);
+    }
+
+}
