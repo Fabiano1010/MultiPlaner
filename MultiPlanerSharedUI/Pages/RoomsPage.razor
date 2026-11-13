@@ -12,6 +12,10 @@
     </div>
 
     <div class="fab-menu @(_isOpen ? "open" : "")">
+        <div class="fab-item fab-item-3" title="Join Room"
+             @onclick="OpenCalendarJoinPopup">
+            <img src="_content/MultiPlanerSharedUI/images/link.svg" alt="Join Room"/>
+        </div>
         <div class="fab-item fab-item-2" title="Add Folder"
              @onclick="OpenFloderPopup">
             <img src="_content/MultiPlanerSharedUI/images/folder-plus.svg" alt="Add Folder"/>
@@ -31,6 +35,7 @@
                      OnClose="() => _showCalendarPopup = false"/>
     <AddFolderForm IsVisible="_showFolderPopup" OnCreate="HandleFolderCreated"
                    OnClose="() => _showFolderPopup = false"/>
+    <JoinCalendarPopup IsVisible="_showCalendarJoinPopup" OnJoin="HandleCalendarJoined" OnClose="() => _showCalendarJoinPopup = false"/>
 </div>
 
 @code {
@@ -39,6 +44,7 @@
     private bool _isOpen;
     private bool _showCalendarPopup;
     private bool _showFolderPopup;
+    private bool _showCalendarJoinPopup;
     private Rooms? _rooms;
     private Folders? _folders;
 
@@ -51,6 +57,12 @@
         _isOpen = false;
         _showFolderPopup = true;
     }
+    
+    private async Task OpenCalendarJoinPopup() {
+        _isOpen = false;
+        _showCalendarJoinPopup = true;
+    }
+
 
 
     private async Task HandleRoomCreated() {
@@ -62,6 +74,11 @@
     private async Task HandleFolderCreated() {
         if (_folders is not null) {
             await _folders.LoadFoldersAsync(true);
+        }
+    }
+    private async  Task HandleCalendarJoined() {
+        if (_rooms is not null) {
+            await _rooms.LoadRoomsAsync(true);
         }
     }
 

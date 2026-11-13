@@ -1,0 +1,41 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+
+<MultiPlanerSharedUI.Components.User.ThemeLoader />
+
+<AuthorizeView>
+    <Authorized>
+        
+            
+            <div class="invite-layout">
+                <header class="invite-header">
+                    <button type="button" class="action-button goback-btn invite-back" title="Back" @onclick="OnBack">
+                        <img src="_content/MultiPlanerSharedUI/images/arrow-left.svg" alt="Back" class="action-button-img">
+                    </button>
+                    <img src="_content/MultiPlanerSharedUI/images/banner-light.svg" alt="MultiPlaner"/>
+                </header>
+                <main class="invite-main">@Body</main>
+            </div>
+        
+    </Authorized>
+    <NotAuthorized>
+        
+            <div class="invite-layout">
+                <header class="invite-header">
+                    <img src="_content/MultiPlanerSharedUI/images/banner-light.svg" alt="MultiPlaner" />
+                </header>
+                <main class="invite-main">@Body</main>
+            </div>
+        
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+
+    private void OnBack()
+    {
+        Nav.NavigateTo("/dashboard");
+    }
+
+}
