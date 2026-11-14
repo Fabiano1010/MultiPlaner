@@ -11,14 +11,6 @@
 
 <div class="my-events-page">
     <div class="my-events-toolbar">
-        @* <div class="password-wrapper search-wrapper"> *@
-        @*     <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="" class="search-icon"/> *@
-        @*     <input class="auth-input-pass input-search" type="search" placeholder="Search by event or calendar" *@
-        @*            value="@_search" @oninput="OnSearch"/> *@
-        @*     @if (_search.Length > 0) { *@
-        @*         <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button> *@
-        @*     } *@
-        @* </div> *@
         <div class="password-wrapper search-wrapper">
             <button type="button" class="search-img-btn" @onclick="ApplySearchNow">
                 <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="search">
@@ -74,8 +66,12 @@
     }
 </div>
 
-<EventDetails IsVisible="_showDetails" Event="_selected"
-              OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)"/>
+<EventDetails IsVisible="_showDetails" 
+              Event="_selected" 
+              RoomId="_roomId"
+              OnClose="CloseDetails" 
+              OnChanged="() => LoadAsync(silent: true)"
+              />
 
 @code {
     private const int PageSize = 15;
@@ -92,6 +88,7 @@
     private string? _error;
     private EventResponse? _selected;
     private CancellationTokenSource? _cts;
+    private int _roomId;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -181,6 +178,7 @@
         _search = e.Value?.ToString() ?? "";
         Apply(resetPage: true);
     }
+
     private void ApplySearchNow() {
         Apply(resetPage: true);
     }
@@ -207,6 +205,7 @@
 
     private void OpenDetails(EventResponse ev) {
         _selected = ev;
+        _roomId = _selected.RoomId;
         _showDetails = true;
     }
 
