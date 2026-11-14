@@ -11,13 +11,25 @@
 
 <div class="my-events-page">
     <div class="my-events-toolbar">
+        @* <div class="password-wrapper search-wrapper"> *@
+        @*     <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="" class="search-icon"/> *@
+        @*     <input class="auth-input-pass input-search" type="search" placeholder="Search by event or calendar" *@
+        @*            value="@_search" @oninput="OnSearch"/> *@
+        @*     @if (_search.Length > 0) { *@
+        @*         <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button> *@
+        @*     } *@
+        @* </div> *@
         <div class="password-wrapper search-wrapper">
-            <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="" class="search-icon"/>
-            <input class="auth-input-pass input-search" type="search" placeholder="Search by event or calendar"
-                   value="@_search" @oninput="OnSearch"/>
-            @if (_search.Length > 0) {
+            <button type="button" class="search-img-btn" @onclick="ApplySearchNow">
+                <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="search">
+            </button>
+            <input class="auth-input-pass input-search" type="search" placeholder="Search"
+                   value="@_search"
+                   @oninput="OnSearch"/>
+            @if (!string.IsNullOrEmpty(_search)) {
                 <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button>
             }
+
         </div>
 
         <select class="input-main" value="@_priority" @onchange="OnPriority">
@@ -167,6 +179,9 @@
 
     private void OnSearch(ChangeEventArgs e) {
         _search = e.Value?.ToString() ?? "";
+        Apply(resetPage: true);
+    }
+    private void ApplySearchNow() {
         Apply(resetPage: true);
     }
 
