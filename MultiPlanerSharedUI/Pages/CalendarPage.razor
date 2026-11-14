@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject ApiClient Api
 @using System.Text.Json
+@using Microsoft.JSInterop
 @using MultiPlanerSharedModels.Contracts.Common
 @using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedModels.Contracts.Rooms
@@ -88,6 +89,8 @@
 
 @code {
     [Parameter] public int RoomId { get; set; }
+    
+    [Inject] private IJSRuntime JS { get; set; }
 
     private DateTime _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateOnly? _selectedDate = DateOnly.FromDateTime(DateTime.Today);
@@ -155,8 +158,9 @@
         _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     }
 
-    private void GoBack() {
-        Nav.NavigateTo("/Rooms");
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
     }
 
     private async Task ToggleAdding() {
