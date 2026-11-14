@@ -1,11 +1,16 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedUI.Services
 
-<div class="my-event @(_past ? "past" : "")" style="border-left: 5px solid #@Data.Color"
+<div class="my-event @(_past ? "past" : "")" style="border-left: 5px solid #@Data.Color; border-right: 5px solid #@Data.Color;"
      role="button" tabindex="0"
      @onclick="() => OnOpen.InvokeAsync(Data)" @onkeydown="HandleKey">
     <div class="my-event-top">
-        <h4 class="my-event-title">@(Data.IsHighPriority ? "HIGH" : "")@Data.Title</h4>
+        <h4 class="my-event-title">
+            @if (Data.IsHighPriority) {
+                <img src="_content/MultiPlanerSharedUI/images/alert-triangle.svg" alt="High Priority" />
+            }
+            @Data.Title
+        </h4>
         <span class="my-event-status @(_past ? "ended" : "")">@_status</span>
     </div>
 
