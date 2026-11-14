@@ -338,6 +338,9 @@
     background: var(--app-background);
     color: var(--app-text);
 }
+.sidebar .logout-btn:hover{
+    background: #c70000;
+}
 
 .sidebar .nav-item:hover .nav-item-img {
     filter: var(--icon-filter, brightness(0));
