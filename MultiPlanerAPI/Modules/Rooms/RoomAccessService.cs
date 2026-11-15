@@ -71,11 +71,12 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         }
     }
 
-    public static void RequireOwnEntry(int actorMemberId, int authorMemberId, int ownerUserId)
+    public static void RequireOwnEntry(RoomMember actor, int authorMemberId, int ownerUserId)
     {
-        if (actorMemberId != authorMemberId && actorMemberId != ownerUserId)
+        if (actor.Id != authorMemberId && actor.UserId != ownerUserId)
         {
-            throw new ApiException(403, "entry_author_required", "Only the author or room owner may edit this entry.");
+            throw new ApiException(403, "entry_author_required",
+                "Only the author or room owner may edit this entry.");
         }
     }
 }

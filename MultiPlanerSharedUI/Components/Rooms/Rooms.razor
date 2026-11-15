@@ -127,13 +127,12 @@
         _errorMessage = null;
 
         try {
-            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status) ?? new List<RoomResponse>();
+            var result = await Http.GetFromJsonAsync<List<RoomResponse>>("api/rooms?status=" + _status)
+                         ?? new List<RoomResponse>();
 
-            if (FolderId is { } folderId) {
-                var folders = await Http.GetFromJsonAsync<List<UserFolderResponse>>("api/me/folders") ?? new List<UserFolderResponse>();
-                var ids = folders.FirstOrDefault(f => f.Id == folderId)?.RoomIds;
-                result = result.Where(r => ids != null && ids.Contains(r.Id)).ToList();
-            }
+            result = FolderId is { } folderId
+                ? result.Where(r => r.FolderId == folderId).ToList()
+                : result.Where(r => !r.IsFoldered).ToList();
 
             _rooms = result;
             ApplyFilter();

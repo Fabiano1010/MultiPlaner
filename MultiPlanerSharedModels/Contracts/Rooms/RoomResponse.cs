@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace MultiPlanerSharedModels.Contracts.Rooms;
 
 public sealed record RoomResponse(
@@ -15,4 +16,8 @@ public sealed record RoomResponse(
     string? OwnerDisplayName = null,
     byte[]? RowVersion = null,
     bool HasCover = false,
-    bool IsAdmin = false);
+    bool IsAdmin = false,
+    int? FolderId = null)
+{
+    [JsonIgnore] public bool IsFoldered => FolderId is not null;
+}

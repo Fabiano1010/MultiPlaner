@@ -30,8 +30,9 @@
                 foreach (var folder in _folders.OrderByDescending(f => f.IsFavourite)) {
                     <Folder @key="folder.Id" FolderData="folder"
                             OnConflict="() => LoadFoldersAsync()"
-                            OnFavouriteChanged="() => LoadFoldersAsync(true)"
-                            OnChanged="() => LoadFoldersAsync(true)"/>
+                            OnFavouriteChanged="() => LoadFoldersAsync(silent: true)"
+                            OnChanged="() => LoadFoldersAsync(silent: true)"
+                            OnRoomsChanged="HandleRoomsChanged"/>
                 }
             }
             else {
@@ -42,6 +43,8 @@
 </div>
 
 @code {
+    [Parameter] public EventCallback OnRoomsChanged { get; set; }
+
     private bool _isLoading = true;
     private string? _errorMessage;
     private List<UserFolderResponse>? _folders = new();
@@ -73,5 +76,9 @@
         }
     }
 
+    private async Task HandleRoomsChanged() {
+        await LoadFoldersAsync(silent: true);
+        await OnRoomsChanged.InvokeAsync();
+    }
 
 }
