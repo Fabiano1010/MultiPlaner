@@ -11,12 +11,38 @@
 .my-events-toolbar {
     display: flex;
     flex-wrap: wrap;
+    flex-direction: column;
     gap: 0.5rem;
     align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    background: var(--app-background);
+    z-index: 1000;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
 }
 
 .my-events-toolbar select {
     width: auto;
+}
+.my-events-toolbar-controlls {
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.my-events-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    width: 80%;
+    margin: 100px;
 }
 
 .my-events-count {
@@ -24,11 +50,12 @@
     opacity: 0.8;
 }
 
+
 .my-events-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    width: 70%;
+    width: 100%;
 }
 
 .my-events-empty {
@@ -36,11 +63,7 @@
     text-align: center;
     opacity: 0.7;
 }
-@media (max-width: 768px) {
-    .my-events-list {
-        width: 100%;
-    }
-}
+
 
 .my-event {
     display: flex;
@@ -123,4 +146,24 @@
     height: 2rem;
     margin-right: 0.3rem;
     filter: drop-shadow(0 0 3px red);
+}
+@media (max-width: 768px) {
+    .my-events-page {
+        grid-template-columns: 1fr;
+        padding: 0;
+    }
+
+    .my-events-toolbar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        z-index: 1000;
+    }
+    .my-events-content {
+        width: 100%;
+        margin-top: 20px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
 }

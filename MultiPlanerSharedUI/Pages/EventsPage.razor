@@ -11,67 +11,73 @@
 
 <div class="my-events-page">
     <div class="my-events-toolbar">
-        <div class="password-wrapper search-wrapper">
-            <button type="button" class="search-img-btn" @onclick="ApplySearchNow">
-                <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="search">
-            </button>
-            <input class="auth-input-pass input-search" type="search" placeholder="Search"
-                   value="@_search"
-                   @oninput="OnSearch"/>
-            @if (!string.IsNullOrEmpty(_search)) {
-                <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button>
-            }
+        <div class="my-events-toolbar-controlls">
+            <div class="password-wrapper search-wrapper">
+                <button type="button" class="search-img-btn" @onclick="ApplySearchNow">
+                    <img src="_content/MultiPlanerSharedUI/images/search.svg" alt="search">
+                </button>
+                <input class="auth-input-pass input-search" type="search" placeholder="Search"
+                       value="@_search"
+                       @oninput="OnSearch"/>
+                @if (!string.IsNullOrEmpty(_search)) {
+                    <button type="button" class="toggle-password" title="Clear" @onclick="ClearSearch">✕</button>
+                }
 
+            </div>
+
+            <select class="input-main" value="@_priority" @onchange="OnPriority">
+                <option value="all">All priorities</option>
+                <option value="high">High priority</option>
+                <option value="normal">Normal priority</option>
+            </select>
+
+            <select class="input-main" value="@_time" @onchange="OnTime">
+                <option value="all">All</option>
+                <option value="incoming">Incoming</option>
+                <option value="outdated">Outdated</option>
+            </select>
         </div>
-
-        <select class="input-main" value="@_priority" @onchange="OnPriority">
-            <option value="all">All priorities</option>
-            <option value="high">High priority</option>
-            <option value="normal">Normal priority</option>
-        </select>
-
-        <select class="input-main" value="@_time" @onchange="OnTime">
-            <option value="all">All</option>
-            <option value="incoming">Incoming</option>
-            <option value="outdated">Outdated</option>
-        </select>
-    </div>
-
-    @if (_loading) {
-        <LoadingSpinner/>
-    }
-    else if (_error is not null) {
-        <div class="error-message">@_error</div>
-        <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
-    }
-    else {
-        <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div>
-
-        <EventsList Events="_pageItems"
-                    EmptyText="@(_all.Count == 0 ? "You have no events yet." : "No events match your filters.")"
-                    OnOpen="OpenDetails"
-                    OnOpenCalendar="OpenCalendar"/>
-
-        @if (_totalPages > 1) {
-            <nav class="my-events-pager" aria-label="Pages">
-                <button type="button" class="btn-main btn-cancel" disabled="@(_page <= 1)"
-                        @onclick="() => GoTo(_page - 1)">‹ Previous
-                </button>
-                <span>Page @_page of @_totalPages</span>
-                <button type="button" class="btn-main btn-cancel" disabled="@(_page >= _totalPages)"
-                        @onclick="() => GoTo(_page + 1)">Next ›
-                </button>
-            </nav>
+        @if (!_loading) {
+            <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div>
         }
-    }
-</div>
 
-<EventDetails IsVisible="_showDetails" 
-              Event="_selected" 
+    </div>
+    <div class="my-events-content">
+        @if (_loading) {
+            <LoadingSpinner/>
+        }
+        else if (_error is not null) {
+            <div class="error-message">@_error</div>
+            <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
+        }
+        else {
+            @* <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div> *@
+
+            <EventsList Events="_pageItems"
+                        EmptyText="@(_all.Count == 0 ? "You have no events yet." : "No events match your filters.")"
+                        OnOpen="OpenDetails"
+                        OnOpenCalendar="OpenCalendar"/>
+
+            @if (_totalPages > 1) {
+                <nav class="my-events-pager" aria-label="Pages">
+                    <button type="button" class="btn-main btn-cancel" disabled="@(_page <= 1)"
+                            @onclick="() => GoTo(_page - 1)">‹ Previous
+                    </button>
+                    <span>Page @_page of @_totalPages</span>
+                    <button type="button" class="btn-main btn-cancel" disabled="@(_page >= _totalPages)"
+                            @onclick="() => GoTo(_page + 1)">Next ›
+                    </button>
+                </nav>
+            }
+        }
+    </div>
+</div>
+<EventDetails IsVisible="_showDetails"
+              Event="_selected"
               RoomId="_roomId"
-              OnClose="CloseDetails" 
+              OnClose="CloseDetails"
               OnChanged="() => LoadAsync(silent: true)"
-              />
+/>
 
 @code {
     private const int PageSize = 15;
