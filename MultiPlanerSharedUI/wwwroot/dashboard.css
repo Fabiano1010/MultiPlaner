@@ -33,7 +33,7 @@
 .dashboard-left{
     display: flex;
     flex-direction: column;
-    width: 70%;
+    width: 55%;
 }
 .dashboard-left-header{
     
@@ -44,7 +44,7 @@
 .dashboard-right{
     display: flex;
     flex-direction: column;
-    width: 30%;
+    width: 45%;
 }
 .dashboard-right-ongoing-events, .dashboard-right-upcoming-events{
     height: 50%;
@@ -53,5 +53,20 @@
     gap: 0.5rem;
 }
 .dashboard-events{
-    transform: scale(0.8);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+@media (max-width: 768px){
+    .dashboard-events{
+        grid-template-columns: 1fr;
+    }
+    .dashboard-content{
+        flex-direction: column;
+        width: 100%;
+    }
+    .dashboard-left, .dashboard-right{
+        width: 100%;
+    }
+    
 }

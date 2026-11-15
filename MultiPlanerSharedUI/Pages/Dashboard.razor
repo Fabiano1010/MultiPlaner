@@ -61,7 +61,7 @@
               OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)" />
 
 @code {
-    private const int Take = 3;
+    private const int Take = 4;
     private const int WindowDays = 60;
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }

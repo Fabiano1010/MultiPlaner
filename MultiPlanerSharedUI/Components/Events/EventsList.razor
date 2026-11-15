@@ -1,6 +1,6 @@
 @using MultiPlanerSharedModels.Contracts.Events
 
-<div class="my-events-list">
+<div class="my-events-list @(DashboarEvents ? "dashboard-events" : "")">
     @if (Events.Count == 0) {
         <div class="my-events-empty">@EmptyText</div>
     }
