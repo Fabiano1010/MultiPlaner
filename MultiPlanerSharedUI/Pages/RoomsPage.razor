@@ -7,7 +7,7 @@
 <div class="main-content main-content-rooms">
 
     <div class="rooms-folders-container">
-        <Folders @ref="_folders"/>
+        <Folders @ref="_folders" OnRoomsChanged="ReloadRoomsAsync"/>
         <Rooms @ref="_rooms"/>
     </div>
 
@@ -35,7 +35,8 @@
                      OnClose="() => _showCalendarPopup = false"/>
     <AddFolderForm IsVisible="_showFolderPopup" OnCreate="HandleFolderCreated"
                    OnClose="() => _showFolderPopup = false"/>
-    <JoinCalendarPopup IsVisible="_showCalendarJoinPopup" OnJoin="HandleCalendarJoined" OnClose="() => _showCalendarJoinPopup = false"/>
+    <JoinCalendarPopup IsVisible="_showCalendarJoinPopup" OnJoin="HandleCalendarJoined"
+                       OnClose="() => _showCalendarJoinPopup = false"/>
 </div>
 
 @code {
@@ -57,12 +58,11 @@
         _isOpen = false;
         _showFolderPopup = true;
     }
-    
+
     private async Task OpenCalendarJoinPopup() {
         _isOpen = false;
         _showCalendarJoinPopup = true;
     }
-
 
 
     private async Task HandleRoomCreated() {
@@ -76,10 +76,15 @@
             await _folders.LoadFoldersAsync(true);
         }
     }
-    private async  Task HandleCalendarJoined() {
+
+    private async Task HandleCalendarJoined() {
         if (_rooms is not null) {
             await _rooms.LoadRoomsAsync(true);
         }
+    }
+
+    private async Task ReloadRoomsAsync() {
+        if (_rooms is not null) await _rooms.LoadRoomsAsync(silent: true);
     }
 
 }
