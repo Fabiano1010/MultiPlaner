@@ -152,7 +152,7 @@ public sealed class EventService(
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
-            RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId, room.OwnerUserId);
+            RoomAccessService.RequireOwnEntry(member, ev.AuthorMemberId, room.OwnerUserId);
             if (request.Title is not null)
             {
                 ev.Title = Title(request.Title);
@@ -228,7 +228,7 @@ public sealed class EventService(
         {
             var member = await RequireWriterAsync(context, room, ct);
             var ev = await RequireEventAsync(context, roomId, eventId, request.RowVersion, ct);
-            RoomAccessService.RequireOwnEntry(member.Id, ev.AuthorMemberId, room.OwnerUserId);
+            RoomAccessService.RequireOwnEntry(member, ev.AuthorMemberId, room.OwnerUserId);
             await context.EventParticipants.Where(p => p.EventId == eventId).ExecuteDeleteAsync(ct);
             await context.EventAttachments.Where(a => a.EventId == eventId).ExecuteDeleteAsync(ct);
             context.CalendarEvents.Remove(ev);
