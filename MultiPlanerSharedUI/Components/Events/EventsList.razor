@@ -5,7 +5,7 @@
         <div class="my-events-empty">@EmptyText</div>
     }
     @foreach (var ev in Events) {
-        <Event @key="ev.Id" Data="ev" OnOpen="OnOpen" OnOpenCalendar="OnOpenCalendar"/>
+        <Event @key="ev.Id" Data="ev" OnOpen="OnOpen" OnOpenCalendar="OnOpenCalendar" DashboarEvents="DashboarEvents"/>
     }
 </div>
 
@@ -14,5 +14,5 @@
     [Parameter] public string EmptyText { get; set; } = "No events.";
     [Parameter] public EventCallback<EventResponse> OnOpen { get; set; }
     [Parameter] public EventCallback<int> OnOpenCalendar { get; set; }
-    
+    [Parameter] public bool DashboarEvents { get; set; } = false;
 }

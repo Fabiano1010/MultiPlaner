@@ -1,7 +1,7 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedUI.Services
 
-<div class="my-event @(_past ? "past" : "")" style="border-left: 5px solid #@Data.Color; border-right: 5px solid #@Data.Color;"
+<div class="my-event @(_past ? "past" : "") @(DashboarEvents ? "dashboard-event" : "")" style="border-left: 5px solid #@Data.Color; border-right: 5px solid #@Data.Color;"
      role="button" tabindex="0"
      @onclick="() => OnOpen.InvokeAsync(Data)" @onkeydown="HandleKey">
     <div class="my-event-top">
@@ -32,7 +32,8 @@
     [Parameter, EditorRequired] public EventResponse Data { get; set; } = default!;
     [Parameter] public EventCallback<EventResponse> OnOpen { get; set; }
     [Parameter] public EventCallback<int> OnOpenCalendar { get; set; }
-
+    [Parameter] public bool DashboarEvents { get; set; } = false;
+    
     private string _when = "", _status = "";
     private bool _past;
 

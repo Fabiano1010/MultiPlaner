@@ -1,6 +1,13 @@
 ﻿@page "/Dashboard"
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.Authorization
-
+@using MultiPlanerSharedModels.Contracts.Common
+@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedUI.Components.Events
+@attribute [Authorize]
+@implements IDisposable
+@inject ApiClient Api
+@inject NavigationManager Nav
 @layout MainLayout
 @attribute [Authorize]
 
@@ -16,36 +23,127 @@
                 <h3>Your recent calendars</h3>
             </div>
             <div class="dashboard-left-content">
-                
+
             </div>
         </div>
         <div class="dashboard-right">
-            <div class="dashboard-ongoing-events">
-                <h3>Ongoing events</h3>
-                
-            </div>
-            <div class="dashboard-upcoming-events">
-                <h3>Upcoming events</h3>
-                
-            </div>
+            @if (_loading) {
+                <LoadingSpinner/>
+            }
+            else if (_error is not null) {
+                <div class="error-message">@_error</div>
+                <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
+            }
+            else {
+                <section class="dashboard-ongoing-events">
+                    <h3>Ongoing events</h3>
+                    <EventsList Events="_ongoing" EmptyText="Nothing is happening right now."
+                                OnOpen="OpenDetails" OnOpenCalendar="OpenCalendar" DashboarEvents="true"/>
+                    @if (_ongoingTotal > Take) {
+                        <a class="dashboard-more" href="/events">+@(_ongoingTotal - Take) more</a>
+                    }
+                </section>
+
+                <section class="dashboard-upcoming-events">
+                    <h3>Upcoming events</h3>
+                    <EventsList Events="_upcoming" EmptyText="No upcoming events."
+                                OnOpen="OpenDetails" OnOpenCalendar="OpenCalendar" DashboarEvents="true"/>
+                    @if (_upcomingTotal > Take) {
+                        <a class="dashboard-more" href="/events">+@(_upcomingTotal - Take) more</a>
+                    }
+                </section>
+            }
         </div>
     </div>
 </div>
 
-
+<EventDetails IsVisible="_showDetails" Event="_selected"
+              OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)" />
 
 @code {
+    private const int Take = 3;
+    private const int WindowDays = 60;
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     private string? _username;
+    private List<EventResponse> _ongoing = new(), _upcoming = new();
+    private int _ongoingTotal, _upcomingTotal;
+    private bool _loading = true, _showDetails;
+    private string? _error;
+    private EventResponse? _selected;
+    private CancellationTokenSource? _cts;
+
 
     protected override async Task OnInitializedAsync() {
-        if (AuthenticationState != null) {
-            var authState = await AuthenticationState;
-            var user = authState.User;
-            _username = user.Identity?.Name;
+        if (AuthenticationState is not null)
+            _username = (await AuthenticationState).User.Identity?.Name;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync(bool silent = false) {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        if (!silent) _loading = true;
+        _error = null;
+
+        var now = DateTimeOffset.UtcNow;
+        var from = Uri.EscapeDataString(now.ToString("O"));
+        var to = Uri.EscapeDataString(now.AddDays(WindowDays).ToString("O"));
+
+        try {
+            var result = await Api.GetAsync<PagedResponse<EventResponse>>(
+                $"api/me/events?from={from}&to={to}&status=active&page=1&pageSize=100", ct);
+            if (ct.IsCancellationRequested) return;
+
+            var items = result?.Items ?? Array.Empty<EventResponse>();
+
+            var ongoing = items.Where(e => e.StartsAtUtc <= now && e.EndsAtUtc > now)
+                .OrderBy(e => e.EndsAtUtc).ThenBy(e => e.Id).ToList(); // najpierw te, które kończą się najszybciej
+            var upcoming = items.Where(e => e.StartsAtUtc > now)
+                .OrderBy(e => e.StartsAtUtc).ThenBy(e => e.Id).ToList(); // najbliższy start pierwszy
+
+            _ongoingTotal = ongoing.Count;
+            _upcomingTotal = upcoming.Count;
+            _ongoing = ongoing.Take(Take).ToList();
+            _upcoming = upcoming.Take(Take).ToList();
+        }
+        catch (OperationCanceledException) {
+        }
+        catch (ApiException e) {
+            _error = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _error = "Cannot load events. " + e.Message;
+        }
+        catch (JsonException) {
+            _error = "Unexpected response from the server.";
+        }
+        finally {
+            if (!ct.IsCancellationRequested) _loading = false;
         }
     }
 
+    private void OpenDetails(EventResponse ev) {
+        _selected = ev;
+        _showDetails = true;
+    }
+
+    private void CloseDetails() {
+        _showDetails = false;
+        _selected = null;
+    }
+
+    private void OpenCalendar(int roomId) => Nav.NavigateTo($"/calendar/{roomId}");
+
+    public void Dispose() {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
 }
+
