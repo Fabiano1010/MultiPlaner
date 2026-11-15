@@ -58,5 +58,9 @@
         <AdditionalFiles Include="Components\Layout\Popup.razor"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Components\Dashboard\" />
+    </ItemGroup>
+
 
 </Project>

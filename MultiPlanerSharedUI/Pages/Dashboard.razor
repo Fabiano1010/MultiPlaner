@@ -4,9 +4,35 @@
 @layout MainLayout
 @attribute [Authorize]
 
-<div class="main-content main-content-dashboard">
-    <h2 class="welcome-msg">Hello @_username</h2>
+
+<div class="main-content-dashboard">
+    <div class="dashboard-header">
+        <h2 class="welcome-msg">Hello @_username</h2>
+        <p>What are we planning to do today?</p>
+    </div>
+    <div class="dashboard-content">
+        <div class="dashboard-left">
+            <div class="dashboard-left-header">
+                <h3>Your recent calendars</h3>
+            </div>
+            <div class="dashboard-left-content">
+                
+            </div>
+        </div>
+        <div class="dashboard-right">
+            <div class="dashboard-ongoing-events">
+                <h3>Ongoing events</h3>
+                
+            </div>
+            <div class="dashboard-upcoming-events">
+                <h3>Upcoming events</h3>
+                
+            </div>
+        </div>
+    </div>
 </div>
+
+
 
 @code {
 
