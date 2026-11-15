@@ -10,6 +10,11 @@
 }
 .dashboard-header{
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 .dashboard-header p{
     width: 100%;
@@ -17,12 +22,17 @@
     text-align: center;
 }
 .welcome-msg {
-    font-size: var(--font-size-large);
+    font-size: var(--font-size-xl);
     font-weight: bold;
     text-align: center;
     color: var(--app-text);
+    width: 100%;
 }
-
+.welcome-msg-sub{
+    width: 100%;
+    text-align: center;
+    
+}
 
 .dashboard-content {
     width: 80%;
