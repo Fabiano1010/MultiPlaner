@@ -52,6 +52,6 @@
     flex-direction: column;
     gap: 0.5rem;
 }
-.dashboard-events-list{
-    transform: scale(0.6);
+.dashboard-events{
+    transform: scale(0.8);
 }
