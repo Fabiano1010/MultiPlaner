@@ -43,7 +43,8 @@
                           Events="_events"
                           RangeStart="_rangeStart"
                           RangeEnd="_rangeEnd"
-                          OnDayClicked="HandleDayClicked"/>
+                          OnDayClicked="HandleDayClicked"
+                          OnAddEventOnDay="OpenQuickAdd"/>
         </div>
         <CalendarEvents CurrentMonth="_month"
                         SelectedDate="_selectedDate"
@@ -216,6 +217,13 @@
 
         var first = _rangeStart.Value;
         (_rangeStart, _rangeEnd) = day < first ? (day, first) : (first, day);
+        _showAddForm = true;
+    }
+
+    private void OpenQuickAdd(DateOnly day) {
+        _selectedDate = day;
+        _isAddingEvent = false;
+        _rangeStart = _rangeEnd = day;
         _showAddForm = true;
     }
 

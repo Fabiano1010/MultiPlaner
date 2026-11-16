@@ -213,11 +213,12 @@
     color: var(--surface-text);
 }
 
-.calendar-cell.other-month{
+.calendar-cell.other-month {
     /*background: color-mix(in srgb, var(--surface) 86%, black);*/
     opacity: 0.5;
-    
+
 }
+
 .calendar-cell.other-month .day-number {
     color: color-mix(in srgb, var(--app-text) 85%, black);
 }
@@ -227,9 +228,6 @@
 
     color: var(--surface-text);
 }
-
-
-
 
 .calendar-cell.today {
     font-weight: 700;
@@ -265,7 +263,7 @@
     justify-content: center;
     align-items: center;
     gap: 2px;
-    height: 80%;
+    height: 60%;
     width: 90%;
     padding: 5px;
     overflow: hidden;
@@ -555,24 +553,6 @@
     background: none;
 }
 
-@media (max-width: 1145px) {
-    .events-list {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 890px) {
-    .events-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    .events-list {
-        grid-template-columns: 1fr;
-    }
-}
-
 .action-buttons {
     position: relative;
 }
@@ -606,6 +586,60 @@
 .calendar-cell:hover:not(.selected):not(.today):not(.range-start):not(.range-end) {
     background: var(--hover-background);
     color: var(--surface-text);
+}
+
+.cell-footer {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.4rem;
+    width: auto;
+    display: flex;
+}
+
+.add-event-ongrid-btn {
+    height: 1.5rem;
+    width: 1.5rem;
+    padding: 0.2rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.add-event-ongrid-btn img {
+    width: 1.5rem;
+}
+
+.calendar-cell:hover .add-event-ongrid-btn,
+.add-event-ongrid-btn:focus-visible {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .add-event-ongrid-btn {
+        opacity: 0.6;
+    }
+}
+
+@media (max-width: 1145px) {
+    .events-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 890px) {
+    .events-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .events-list {
+        grid-template-columns: 1fr;
+    }
+    .add-event-ongrid-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+    }
 }
 
 @media (max-width: 800px) {
