@@ -22,14 +22,14 @@
     <div class="dashboard-content">
         <div class="dashboard-left">
             <div class="dashboard-left-header">
-                <h3>Your recent calendar</h3>
+                <h3>Your recent calendars</h3>
             </div>
             <div class="dashboard-left-content">
                 @if (_recent.Count == 0) {
                     <div class="dashboard-empty">Open a calendar and it will show up here.</div>
                 }
                 else {
-                    <div class="rooms-container">
+                    <div class="rooms-container rooms-container-dashboard">
                         @foreach (var room in _recent) {
                             <Room @key="room.Id" RoomData="room"
                                   OnConflict="LoadRecentAsync"
@@ -77,7 +77,7 @@
 @code {
     private const int Take = 4;
     private const int WindowDays = 60;
-    private const int RecentCount = 1;
+    private const int RecentCount = 4;
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 

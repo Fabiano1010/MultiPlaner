@@ -43,6 +43,7 @@
     display: flex;
     flex-direction: row;
     justify-content: center;
+
 }
 
 .dashboard-left {
@@ -52,11 +53,12 @@
 }
 
 .dashboard-left-header {
-
+    width: 100%;
+    text-align: center;
 }
 
 .dashboard-left-content {
-
+    height: 100%;
 }
 
 .dashboard-right {
@@ -78,6 +80,26 @@
     gap: 1rem;
 }
 
+.rooms-container-dashboard {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    height: 100%;
+    width: 100%;
+}
+
+.rooms-container-dashboard .room {
+    width: 45%;
+    max-width: 30rem;
+}
+
+.rooms-container-dashboard .room .room-body .room-content .room-image {
+    width: 95%;
+}
+
 @media (max-width: 1090px) {
     .dashboard-right .my-event-top {
         flex-wrap: wrap;
@@ -86,6 +108,10 @@
     .dashboard-right .my-event-meta {
         flex-direction: column;
         gap: 0.1rem;
+    }
+
+    .rooms-container-dashboard {
+        flex-direction: row;
     }
 }
 
@@ -101,5 +127,25 @@
 
     .dashboard-left, .dashboard-right {
         width: 100%;
+    }
+
+    .rooms-container-dashboard .room {
+        width: 70%;
+        max-width: 20rem;
+    }
+}
+
+@media (max-width: 769px) {
+    .rooms-container-dashboard {
+        flex-direction: column;
+    }
+
+    .rooms-container-dashboard .room {
+        width: 70%;
+        max-width: none;
+    }
+    
+    .rooms-container-dashboard > :nth-child(n + 2) {
+        display: none;
     }
 }
