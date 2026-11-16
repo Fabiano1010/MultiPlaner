@@ -41,7 +41,7 @@
             </div>
         </div>
         <div class="dashboard-right">
-            @if (_loading) {
+            @if (_loadingRight) {
                 <LoadingSpinner/>
             }
             else if (_error is not null) {
@@ -84,7 +84,7 @@
     private string? _username;
     private List<EventResponse> _ongoing = new(), _upcoming = new();
     private int _ongoingTotal, _upcomingTotal;
-    private bool _loading = true, _showDetails;
+    private bool _loadingLeft = true, _loadingRight = true, _showDetails;
     private string? _error;
     private EventResponse? _selected;
     private CancellationTokenSource? _cts;
@@ -103,7 +103,7 @@
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
 
-        if (!silent) _loading = true;
+        if (!silent) _loadingRight = true;
         _error = null;
 
         var now = DateTimeOffset.UtcNow;
@@ -139,11 +139,12 @@
             _error = "Unexpected response from the server.";
         }
         finally {
-            if (!ct.IsCancellationRequested) _loading = false;
+            if (!ct.IsCancellationRequested) _loadingRight = false;
         }
     }
 
     private async Task LoadRecentAsync() {
+        _loadingLeft = true;
         try {
             var rooms = await Api.GetAsync<List<RoomResponse>>("api/rooms?status=active") ?? new();
             _recent = rooms.Where(r => r.LastOpenedAtUtc is not null)
@@ -152,6 +153,9 @@
         }
         catch (Exception ex) when (ex is ApiException or HttpRequestException) {
             _recent = new();
+        }
+        finally {
+            _loadingLeft = false;
         }
     }
 
