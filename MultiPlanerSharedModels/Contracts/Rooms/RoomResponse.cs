@@ -17,7 +17,9 @@ public sealed record RoomResponse(
     byte[]? RowVersion = null,
     bool HasCover = false,
     bool IsAdmin = false,
-    int? FolderId = null)
+    int? FolderId = null,
+    DateTimeOffset? LastOpenedAtUtc = null)
+
 {
     [JsonIgnore] public bool IsFoldered => FolderId is not null;
 }
