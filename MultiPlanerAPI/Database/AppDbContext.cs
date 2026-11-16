@@ -28,6 +28,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<Poll> Polls => Set<Poll>();
     public DbSet<PollOption> PollOptions => Set<PollOption>();
     public DbSet<PollVote> PollVotes => Set<PollVote>();
+    public DbSet<RoomVisit> RoomVisits => Set<RoomVisit>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -109,6 +109,8 @@ public sealed class RoomService(
                 join placement in db.UserFolderRooms.AsNoTracking().Where(p => p.OwnerUserId == userId)
                     on room.Id equals placement.RoomId into placements
                 from placement in placements.DefaultIfEmpty()
+                join visit in db.RoomVisits.AsNoTracking() on member.Id equals visit.MemberId into visits
+                from visit in visits.DefaultIfEmpty()
                 where member.LeftAtUtc == null && ((userId != null && member.UserId == userId) ||
                                                    (guestId != null && member.GuestSessionId == guestId)) &&
                       ((status == "active" && room.ArchivedAtUtc == null && room.ExpiresAtUtc > now) ||
@@ -119,12 +121,14 @@ public sealed class RoomService(
                 orderby room.Id descending
                 select new
                 {
-                    Room = room, Member = member, OwnerName = owner.DisplayName,
-                    FolderId = placement == null ? (int?)null : placement.FolderId
+                    Room = room,
+                    Member = member,
+                    OwnerName = owner.DisplayName,
+                    FolderId = placement == null ? (int?)null : placement.FolderId,
+                    LastOpened = visit == null ? (DateTimeOffset?)null : visit.LastOpenedAtUtc
                 })
             .ToListAsync(cancellationToken);
-        return rooms.Select(item =>
-            ToResponse(item.Room, item.Member, now, item.OwnerName, item.FolderId)).ToList();
+        return rooms.Select(item => ToResponse(item.Room, item.Member, now, item.OwnerName, item.FolderId, item.LastOpened)).ToList();
     }
 
     public async Task<RoomResponse> GetAsync(int roomId, CancellationToken cancellationToken)
@@ -366,6 +370,31 @@ public sealed class RoomService(
             .SingleOrDefaultAsync(ct);
     }
 
+    public async Task RecordVisitAsync(int roomId, CancellationToken ct) {
+        var (room, member) = await access.RequireMemberAsync(roomId, ct);
+        access.RequireReadable(room);
+        
+        var now = clock.GetUtcNow();
+        var threshold = now.AddMinutes(-1);
+        
+        var updated = await db.RoomVisits
+            .Where(v => v.MemberId == member.Id && v.LastOpenedAtUtc<threshold)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.LastOpenedAtUtc, now), ct);
+        if(updated > 0) {
+            return;
+        }
+        if(await db.RoomVisits.AnyAsync(v => v.MemberId == member.Id, ct)) {
+            return;
+        }
+        db.RoomVisits.Add(new RoomVisit { MemberId = member.Id, LastOpenedAtUtc = now });
+        try {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException) {
+            // already exists
+        }
+    }
+    
     private static async Task DeleteRoomContentsAsync(AppDbContext operationDb, int roomId,
         CancellationToken cancellationToken)
     {
@@ -393,19 +422,20 @@ public sealed class RoomService(
         await operationDb.PollVotes.Where(v => pollIds.Contains(v.PollId)).ExecuteDeleteAsync(cancellationToken);
         await operationDb.PollOptions.Where(o => pollIds.Contains(o.PollId)).ExecuteDeleteAsync(cancellationToken);
         await operationDb.Polls.Where(p => p.RoomId == roomId).ExecuteDeleteAsync(cancellationToken);
+        var memberIds = operationDb.RoomMembers.Where(m => m.RoomId == roomId).Select(m => m.Id);
+        await operationDb.RoomVisits.Where(v => memberIds.Contains(v.MemberId)).ExecuteDeleteAsync(cancellationToken);
         await operationDb.RoomMembers.Where(m => m.RoomId == roomId)
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    internal static RoomResponse ToResponse(Room room, RoomMember member, DateTimeOffset now,
-        string? ownerDisplayName = null, int? folderId = null)
+    internal static RoomResponse ToResponse(Room room, RoomMember member, DateTimeOffset now, string? ownerDisplayName = null, int? folderId = null, DateTimeOffset? lastOpenedAtUtc = null)
     {
         return new RoomResponse(room.Id, room.Name, room.TimeZoneId, room.OwnerUserId, member.Id,
             room.OwnerUserId == member.UserId, room.ExpiresAtUtc, room.GetArchivedAtUtc(now),
             Membership: ToMembershipResponse(member), ArchiveOnExpiry: room.ArchiveOnExpiry,
             OwnerDisplayName: ownerDisplayName, RowVersion: room.RowVersion,
             HasCover: room.CoverStorageKey is not null, IsAdmin: member.IsAdmin,
-            FolderId: folderId);
+            FolderId: folderId, LastOpenedAtUtc: lastOpenedAtUtc);
     }
 
     private static RoomMembershipResponse ToMembershipResponse(RoomMember member)
