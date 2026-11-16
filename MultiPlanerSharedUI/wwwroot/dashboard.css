@@ -1,14 +1,15 @@
-.main-content-dashboard{
+.main-content-dashboard {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
     align-items: center;
     width: 100%;
-    height: 100vh;
-    
+    min-height: 100dvh;
+
 }
-.dashboard-header{
+
+.dashboard-header {
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -16,11 +17,13 @@
     justify-content: center;
     gap: 0.5rem;
 }
-.dashboard-header p{
+
+.dashboard-header p {
     width: 100%;
     font-weight: bold;
     text-align: center;
 }
+
 .welcome-msg {
     font-size: var(--font-size-xl);
     font-weight: bold;
@@ -28,55 +31,75 @@
     color: var(--app-text);
     width: 100%;
 }
-.welcome-msg-sub{
+
+.welcome-msg-sub {
     width: 100%;
     text-align: center;
-    
+
 }
 
 .dashboard-content {
-    width: 80%;
+    width: min(100%, 90rem);
     display: flex;
     flex-direction: row;
     justify-content: center;
 }
-.dashboard-left{
+
+.dashboard-left {
     display: flex;
     flex-direction: column;
     width: 55%;
 }
-.dashboard-left-header{
-    
-}
-.dashboard-left-content{
+
+.dashboard-left-header {
 
 }
-.dashboard-right{
+
+.dashboard-left-content {
+
+}
+
+.dashboard-right {
     display: flex;
     flex-direction: column;
     width: 45%;
 }
-.dashboard-right-ongoing-events, .dashboard-right-upcoming-events{
+
+.dashboard-right-ongoing-events, .dashboard-right-upcoming-events {
     height: 50%;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
-.dashboard-events{
+
+.dashboard-events {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
 }
-@media (max-width: 768px){
-    .dashboard-events{
+
+@media (max-width: 1090px) {
+    .dashboard-right .my-event-top {
+        flex-wrap: wrap;
+    }
+
+    .dashboard-right .my-event-meta {
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+}
+
+@media (max-width: 880px) {
+    .dashboard-events {
         grid-template-columns: 1fr;
     }
-    .dashboard-content{
+
+    .dashboard-content {
         flex-direction: column;
         width: 100%;
     }
-    .dashboard-left, .dashboard-right{
+
+    .dashboard-left, .dashboard-right {
         width: 100%;
     }
-    
 }
