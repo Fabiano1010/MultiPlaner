@@ -82,7 +82,7 @@
                 Room="_roomData"
                 OnClose="ClosePopup"
             />
-            <InformationPopup IsVisible="_isAddingEvent && _rangeEnd is null" Message="Adding event"
+            <InformationPopup IsVisible="_isAddingEvent && _rangeEnd is null" Message="Adding event: Plese select two dates"
                               OnClose="CloseInformationPopup"/>
             <PollsPopup IsVisible="_showPolls" Room="_roomData" OnClose="() => _showPolls = false"/>
         }
