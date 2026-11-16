@@ -34,6 +34,8 @@
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
+    width: 100%;
+    gap: 1rem;
 }
 
 .my-events-content {
@@ -166,4 +168,21 @@
         padding-right: 1rem;
     }
     
+}
+@media (max-width: 510px) {
+    .my-events-toolbar {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+    .my-events-toolbar-controlls {
+        gap: 0.25rem;
+    }
+    .my-events-toolbar-controlls .search-wrapper{
+        width: auto;
+        padding-right: 0.25rem;
+        max-width: 155px;
+    }
+    .my-events-toolbar-controlls input {
+        max-width: 155px;
+    }
 }
