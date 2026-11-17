@@ -64,6 +64,7 @@
     [Parameter] public EventCallback OnChanged { get; set; }
     [Parameter] public EventCallback OnConflict { get; set; }
     [Parameter] public EventCallback OnFavouriteChanged { get; set; }
+    [Parameter] public EventCallback OnRoomsChanged { get; set; }
 
     private bool _isFavourite;
     private bool _isSaving;
@@ -72,12 +73,6 @@
     private ContextMenu? _menu;
     private bool _isAdding;
     private string? _addError;
-
-    // private string _background => 
-    //     string.IsNullOrWhiteSpace(FolderData?.Color)
-    //         ? "var(--field-background)"
-    //         :"#" + FolderData!.Color;
-    //
 
     protected override void OnInitialized() {
         Selection.Changed += OnSelectionChanged;
@@ -149,6 +144,7 @@
         var res = await Api.SendAsync(HttpMethod.Delete, $"api/me/folders/{FolderData.Id}");
         await ApiClient.EnsureSuccessAsync(res);
         await OnChanged.InvokeAsync();
+        await OnRoomsChanged.InvokeAsync();
     }
 
     private async Task AddSelectedAsync() {
@@ -157,9 +153,9 @@
         _isAdding = true;
         _addError = null;
         var failed = 0;
-
+        var ids = Selection.Ids.ToList();
         try {
-            foreach (var roomId in Selection.Ids.ToList()) {
+            foreach (var roomId in ids) {
                 try {
                     var res = await Api.SendAsync(HttpMethod.Put,
                         $"api/me/folders/{FolderData.Id}/rooms/{roomId}");
@@ -175,9 +171,9 @@
                 }
             }
 
+            if (failed < ids.Count) await OnRoomsChanged.InvokeAsync();
             if (failed == 0) {
                 await Selection.Clear();
-                await OnChanged.InvokeAsync();
             }
             else {
                 _addError = $"{failed} of {Selection.Count} failed. {_addError}";

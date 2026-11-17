@@ -1,1 +1,151 @@
+.main-content-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    align-items: center;
+    width: 100%;
+    min-height: 100dvh;
 
+}
+
+.dashboard-header {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.dashboard-header p {
+    width: 100%;
+    font-weight: bold;
+    text-align: center;
+}
+
+.welcome-msg {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    text-align: center;
+    color: var(--app-text);
+    width: 100%;
+}
+
+.welcome-msg-sub {
+    width: 100%;
+    text-align: center;
+
+}
+
+.dashboard-content {
+    width: min(100%, 90rem);
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+
+}
+
+.dashboard-left {
+    display: flex;
+    flex-direction: column;
+    width: 55%;
+}
+
+.dashboard-left-header {
+    width: 100%;
+    text-align: center;
+}
+
+.dashboard-left-content {
+    height: 100%;
+}
+
+.dashboard-right {
+    display: flex;
+    flex-direction: column;
+    width: 45%;
+}
+
+.dashboard-right-ongoing-events, .dashboard-right-upcoming-events {
+    height: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dashboard-events {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.rooms-container-dashboard {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    height: 100%;
+    width: 100%;
+}
+
+.rooms-container-dashboard .room {
+    width: 45%;
+    max-width: 30rem;
+}
+
+.rooms-container-dashboard .room .room-body .room-content .room-image {
+    width: 95%;
+}
+
+@media (max-width: 1090px) {
+    .dashboard-right .my-event-top {
+        flex-wrap: wrap;
+    }
+
+    .dashboard-right .my-event-meta {
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+
+    .rooms-container-dashboard {
+        flex-direction: row;
+    }
+}
+
+@media (max-width: 880px) {
+    .dashboard-events {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-content {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .dashboard-left, .dashboard-right {
+        width: 100%;
+    }
+
+    .rooms-container-dashboard .room {
+        width: 70%;
+        max-width: 20rem;
+    }
+}
+
+@media (max-width: 769px) {
+    .rooms-container-dashboard {
+        flex-direction: column;
+    }
+
+    .rooms-container-dashboard .room {
+        width: 70%;
+        max-width: none;
+    }
+    
+    .rooms-container-dashboard > :nth-child(n + 2) {
+        display: none;
+    }
+}

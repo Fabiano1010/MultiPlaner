@@ -45,7 +45,12 @@
                                  style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
                                  @onclick="() => OpenDetails(ev)">
                                 <div class="events-item-details">
-                                    <div class="events-item-name">@(ev.IsPinned ? "x" : "")@ev.Title</div>
+                                    <div class="events-item-name">
+                                        @if (ev.IsHighPriority) {
+                                            <img src="_content/MultiPlanerSharedUI/images/alert-triangle.svg" alt="High Priority" class="high-priority-img"/>
+                                        }
+                                        @ev.Title
+                                    </div>
                                     <div class="events-item-user">@ev.Author.DisplayName</div>
                                 </div>
 

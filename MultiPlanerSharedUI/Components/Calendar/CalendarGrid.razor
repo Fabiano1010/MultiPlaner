@@ -19,12 +19,25 @@
             <div class="dots">
                 @foreach (var dot in dots.Take(MaxDots)) {
                     <div class="event-dot @(dot.IsHighPriority ? "high" : "")"
+                         title="@dot.Title"
                          style="background-color: #@dot.Color;"></div>
                 }
                 @if (dots.Count > MaxDots) {
                     <span class="dots-more">+@(dots.Count - MaxDots)</span>
                 }
             </div>
+            <div class="cell-footer">
+                @if (CanAdd) {
+                    <button type="button" class="action-button add-event-ongrid-btn"
+                            title="Add event on @date.ToString("dd.MM.yyyy")"
+                            aria-label="Add event on @date.ToString("dd.MM.yyyy")"
+                            @onclick="() => OnAddEventOnDay.InvokeAsync(date)"
+                            @onclick:stopPropagation>
+                        <img src="_content/MultiPlanerSharedUI/images/plus.svg" alt="" class="action-button-img">
+                    </button>
+                }
+            </div>
+
         </div>
     }
 </div>
@@ -37,10 +50,11 @@
     [Parameter] public bool IsAddingEvent { get; set; }
     [Parameter] public IReadOnlyList<EventResponse> Events { get; set; } = Array.Empty<EventResponse>();
     [Parameter] public EventCallback<DateOnly> OnDayClicked { get; set; }
+    [Parameter] public EventCallback<DateOnly> OnAddEventOnDay { get; set; }
 
     private sealed record Cell(DateOnly Date, bool IsCurrentMonth);
 
-    private record EventDot(string Color, bool IsHighPriority);
+    private record EventDot(string Color, bool IsHighPriority, string Title);
 
     private const int MaxDots = 6;
 
@@ -51,6 +65,7 @@
     private DateOnly _generatedFor;
     private IReadOnlyList<EventResponse>? _eventsSeen;
     private Dictionary<DateOnly, List<EventDot>> _dots = new();
+    private bool CanAdd => !IsAddingEvent;
 
     protected override void OnParametersSet() {
         var month = new DateOnly(CurrentMonth.Year, CurrentMonth.Month, 1);
@@ -95,7 +110,7 @@
                 .OrderByDescending(e => e.IsPinned)
                 .ThenByDescending(e => e.IsHighPriority)
                 .ThenBy(e => e.StartsAtUtc)
-                .Select(e => new EventDot(e.Color, e.IsHighPriority))
+                .Select(e => new EventDot(e.Color, e.IsHighPriority, e.Title))
                 .ToList());
     }
 

@@ -3,8 +3,9 @@
 @import url("login.css");
 @import url("homePage.css");
 @import url("rooms.css");
-@import url("dashboard.css");
 @import url("popup.css");
 @import url("settings.css");
 @import url("polls.css");
 @import url("responsive.css");
+@import url("events.css");
+@import url("dashboard.css");

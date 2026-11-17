@@ -1,25 +1,180 @@
 ﻿@page "/Dashboard"
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.Authorization
-
+@using MultiPlanerSharedModels.Contracts.Common
+@using MultiPlanerSharedModels.Contracts.Events
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Events
+@using MultiPlanerSharedUI.Components.Rooms
+@attribute [Authorize]
+@implements IDisposable
+@inject ApiClient Api
+@inject NavigationManager Nav
 @layout MainLayout
 @attribute [Authorize]
 
-<div class="main-content main-content-dashboard">
-    <h2 class="welcome-msg">Hello @_username</h2>
+
+<div class="main-content-dashboard">
+    <div class="dashboard-header">
+        <span class="welcome-msg">Hello @_username</span>
+        <span class="welcome-msg-sub">What are we planning today?</span>
+    </div>
+    <div class="dashboard-content">
+        <div class="dashboard-left">
+            <div class="dashboard-left-header">
+                <h3>Your recent calendars</h3>
+            </div>
+            <div class="dashboard-left-content">
+                @if (_recent.Count == 0) {
+                    <div class="dashboard-empty">Open a calendar and it will show up here.</div>
+                }
+                else {
+                    <div class="rooms-container rooms-container-dashboard">
+                        @foreach (var room in _recent) {
+                            <Room @key="room.Id" RoomData="room"
+                                  OnConflict="LoadRecentAsync"
+                                  OnFavouriteChanged="LoadRecentAsync"
+                                  OnChanged="LoadRecentAsync"/>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="dashboard-right">
+            @if (_loadingRight) {
+                <LoadingSpinner/>
+            }
+            else if (_error is not null) {
+                <div class="error-message">@_error</div>
+                <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
+            }
+            else {
+                <section class="dashboard-ongoing-events">
+                    <h3>Ongoing events</h3>
+                    <EventsList Events="_ongoing" EmptyText="Nothing is happening right now."
+                                OnOpen="OpenDetails" OnOpenCalendar="OpenCalendar" DashboarEvents="true"/>
+                    @if (_ongoingTotal > Take) {
+                        <a class="dashboard-more" href="/events">+@(_ongoingTotal - Take) more</a>
+                    }
+                </section>
+
+                <section class="dashboard-upcoming-events">
+                    <h3>Upcoming events</h3>
+                    <EventsList Events="_upcoming" EmptyText="No upcoming events."
+                                OnOpen="OpenDetails" OnOpenCalendar="OpenCalendar" DashboarEvents="true"/>
+                    @if (_upcomingTotal > Take) {
+                        <a class="dashboard-more" href="/events">+@(_upcomingTotal - Take) more</a>
+                    }
+                </section>
+            }
+        </div>
+    </div>
 </div>
 
+<EventDetails IsVisible="_showDetails" Event="_selected"
+              OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)"/>
+
 @code {
+    private const int Take = 4;
+    private const int WindowDays = 60;
+    private const int RecentCount = 4;
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     private string? _username;
+    private List<EventResponse> _ongoing = new(), _upcoming = new();
+    private int _ongoingTotal, _upcomingTotal;
+    private bool _loadingLeft = true, _loadingRight = true, _showDetails;
+    private string? _error;
+    private EventResponse? _selected;
+    private CancellationTokenSource? _cts;
+    private List<RoomResponse> _recent = new();
 
     protected override async Task OnInitializedAsync() {
-        if (AuthenticationState != null) {
-            var authState = await AuthenticationState;
-            var user = authState.User;
-            _username = user.Identity?.Name;
+        if (AuthenticationState is not null)
+            _username = (await AuthenticationState).User.Identity?.Name;
+
+        await Task.WhenAll(LoadAsync(), LoadRecentAsync());
+    }
+
+    private async Task LoadAsync(bool silent = false) {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        if (!silent) _loadingRight = true;
+        _error = null;
+
+        var now = DateTimeOffset.UtcNow;
+        var from = Uri.EscapeDataString(now.ToString("O"));
+        var to = Uri.EscapeDataString(now.AddDays(WindowDays).ToString("O"));
+
+        try {
+            var result = await Api.GetAsync<PagedResponse<EventResponse>>(
+                $"api/me/events?from={from}&to={to}&status=active&page=1&pageSize=100", ct);
+            if (ct.IsCancellationRequested) return;
+
+            var items = result?.Items ?? Array.Empty<EventResponse>();
+
+            var ongoing = items.Where(e => e.StartsAtUtc <= now && e.EndsAtUtc > now)
+                .OrderBy(e => e.EndsAtUtc).ThenBy(e => e.Id).ToList();
+            var upcoming = items.Where(e => e.StartsAtUtc > now)
+                .OrderBy(e => e.StartsAtUtc).ThenBy(e => e.Id).ToList();
+
+            _ongoingTotal = ongoing.Count;
+            _upcomingTotal = upcoming.Count;
+            _ongoing = ongoing.Take(Take).ToList();
+            _upcoming = upcoming.Take(Take).ToList();
+        }
+        catch (OperationCanceledException) {
+        }
+        catch (ApiException e) {
+            _error = e.Message;
+        }
+        catch (HttpRequestException e) {
+            _error = "Cannot load events. " + e.Message;
+        }
+        catch (JsonException) {
+            _error = "Unexpected response from the server.";
+        }
+        finally {
+            if (!ct.IsCancellationRequested) _loadingRight = false;
         }
     }
 
+    private async Task LoadRecentAsync() {
+        _loadingLeft = true;
+        try {
+            var rooms = await Api.GetAsync<List<RoomResponse>>("api/rooms?status=active") ?? new();
+            _recent = rooms.Where(r => r.LastOpenedAtUtc is not null)
+                .OrderByDescending(r => r.LastOpenedAtUtc)
+                .Take(RecentCount).ToList();
+        }
+        catch (Exception ex) when (ex is ApiException or HttpRequestException) {
+            _recent = new();
+        }
+        finally {
+            _loadingLeft = false;
+        }
+    }
+
+    private void OpenDetails(EventResponse ev) {
+        _selected = ev;
+        _showDetails = true;
+    }
+
+    private void CloseDetails() {
+        _showDetails = false;
+        _selected = null;
+    }
+
+    private void OpenCalendar(int roomId) => Nav.NavigateTo($"/calendar/{roomId}");
+
+    public void Dispose() {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
 }
+

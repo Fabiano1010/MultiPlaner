@@ -1,0 +1,188 @@
+﻿.my-events-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.my-events-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    background: var(--app-background);
+    z-index: 1000;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.my-events-toolbar select {
+    width: auto;
+}
+.my-events-toolbar-controlls {
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 1rem;
+}
+
+.my-events-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    width: 80%;
+    margin: 100px;
+}
+
+.my-events-count {
+    font-size: var(--font-size-small);
+    opacity: 0.8;
+}
+
+
+.my-events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.my-events-empty {
+    padding: 2rem;
+    text-align: center;
+    opacity: 0.7;
+}
+
+
+.my-event {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--accent);
+    border-radius: var(--border-radius);
+    background: var(--surface);
+    opacity: 0.9;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+}
+
+.my-event:hover {
+    filter: drop-shadow(0 0 3px var(--accent));
+    transform: translateY(-1px);
+    opacity: 1;
+}
+
+.my-event.past {
+    opacity: 0.65;
+}
+
+.my-event-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: baseline;
+}
+
+.my-event-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.my-event-status {
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.my-event-status.ended {
+    opacity: 0.7;
+}
+
+.my-event-when {
+    font-weight: 600;
+}
+
+.my-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: var(--font-size-small);
+    opacity: 0.85;
+}
+
+.my-event-open {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.my-events-pager {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+}
+.high-priority-img{
+    width: 2rem;
+    height: 2rem;
+    margin-right: 0.3rem;
+    filter: drop-shadow(0 0 3px red);
+}
+@media (max-width: 768px) {
+    .my-events-page {
+        grid-template-columns: 1fr;
+        padding: 0;
+    }
+
+    .my-events-toolbar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        z-index: 1000;
+    }
+    .my-events-content {
+        width: 100%;
+        margin-top: 20px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+}
+@media (max-width: 510px) {
+    .my-events-toolbar {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+    .my-events-toolbar-controlls {
+        gap: 0.25rem;
+    }
+    .my-events-toolbar-controlls .search-wrapper{
+        width: auto;
+        padding-right: 0.25rem;
+        max-width: 155px;
+    }
+    .my-events-toolbar-controlls input {
+        max-width: 155px;
+    }
+}

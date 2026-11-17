@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject ApiClient Api
 @using System.Text.Json
+@using Microsoft.JSInterop
 @using MultiPlanerSharedModels.Contracts.Common
 @using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedModels.Contracts.Rooms
@@ -13,8 +14,9 @@
 @implements IDisposable
 
 
-<div class="calendar-page @(!_isLoading && string.IsNullOrEmpty(_errorMessage) && _roomData is not null ? "calendar-page-ready" : null)"
-     tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
+<div
+    class="calendar-page @(!_isLoading && string.IsNullOrEmpty(_errorMessage) && _roomData is not null ? "calendar-page-ready" : null)"
+    tabindex="-1" @ref="_pageRef" @onkeydown="HandleKeyDown">
     @if (_isLoading) {
         <LoadingSpinner/>
     }
@@ -41,7 +43,8 @@
                           Events="_events"
                           RangeStart="_rangeStart"
                           RangeEnd="_rangeEnd"
-                          OnDayClicked="HandleDayClicked"/>
+                          OnDayClicked="HandleDayClicked"
+                          OnAddEventOnDay="OpenQuickAdd"/>
         </div>
         <CalendarEvents CurrentMonth="_month"
                         SelectedDate="_selectedDate"
@@ -79,7 +82,7 @@
                 Room="_roomData"
                 OnClose="ClosePopup"
             />
-            <InformationPopup IsVisible="_isAddingEvent && _rangeEnd is null" Message="Adding event"
+            <InformationPopup IsVisible="_isAddingEvent && _rangeEnd is null" Message="Adding event: Plese select two dates"
                               OnClose="CloseInformationPopup"/>
             <PollsPopup IsVisible="_showPolls" Room="_roomData" OnClose="() => _showPolls = false"/>
         }
@@ -88,6 +91,8 @@
 
 @code {
     [Parameter] public int RoomId { get; set; }
+
+    [Inject] private IJSRuntime JS { get; set; }
 
     private DateTime _month = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateOnly? _selectedDate = DateOnly.FromDateTime(DateTime.Today);
@@ -122,32 +127,56 @@
         await LoadEventsAsync();
     }
 
+    private int _roomLoadVersion;
+
     private async Task LoadRoomAsync() {
+        var roomId = RoomId;
+        var version = ++_roomLoadVersion;
+
         _isLoading = true;
         _errorMessage = null;
         _roomData = null;
 
         try {
-            _roomData = await Api.GetRoomAsync(RoomId);
-            _eventTypes = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? [];
+            var room = await Api.GetRoomAsync(roomId);
+            if (room is null) {
+                if (version == _roomLoadVersion) _errorMessage = "Calendar not found.";
+                return;
+            }
+
+            var types = await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{roomId}/event-types") ?? [];
+            if (version != _roomLoadVersion) return;
+
+            _roomData = room;
+            _eventTypes = types;
             if (!_eventTypes.Any(t => t.Id == _typeFilter)) _typeFilter = 0;
-            if (_roomData is null) _errorMessage = "Calendar not found.";
         }
         catch (ApiException e) when (e.Status is 403 or 404) {
-            _errorMessage = "Calendar not found or you don't have access.";
+            if (version == _roomLoadVersion) _errorMessage = "Calendar not found or you don't have access.";
         }
         catch (ApiException e) {
-            _errorMessage = e.Message;
+            if (version == _roomLoadVersion) _errorMessage = e.Message;
         }
         catch (HttpRequestException e) {
-            _errorMessage = "Cannot reach the server. " + e.Message;
+            if (version == _roomLoadVersion) _errorMessage = "Cannot reach the server. " + e.Message;
         }
         finally {
-            _isLoading = false;
+            if (version == _roomLoadVersion) _isLoading = false;
         }
 
-        if (_roomData is not null)
+        if (version == _roomLoadVersion && _roomData is not null) {
+            _ = RecordVisitAsync(roomId);
             await LoadEventsAsync();
+        }
+    }
+
+    private async Task RecordVisitAsync(int roomId) {
+        try {
+            using var res = await Api.PostAsync($"api/rooms/{roomId}/visit");
+        }
+        catch (Exception) {
+            // This is an auxiliary record, and there is no one to handle the exception in a "fire and forget" task.
+        }
     }
 
     private async Task GoToTodayAsync() {
@@ -155,8 +184,8 @@
         _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     }
 
-    private void GoBack() {
-        Nav.NavigateTo("/Rooms");
+    private async Task GoBack() {
+        await JS.InvokeVoidAsync("history.back");
     }
 
     private async Task ToggleAdding() {
@@ -188,6 +217,13 @@
 
         var first = _rangeStart.Value;
         (_rangeStart, _rangeEnd) = day < first ? (day, first) : (first, day);
+        _showAddForm = true;
+    }
+
+    private void OpenQuickAdd(DateOnly day) {
+        _selectedDate = day;
+        _isAddingEvent = false;
+        _rangeStart = _rangeEnd = day;
         _showAddForm = true;
     }
 
