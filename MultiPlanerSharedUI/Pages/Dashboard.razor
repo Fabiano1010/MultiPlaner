@@ -34,7 +34,8 @@
                             <Room @key="room.Id" RoomData="room"
                                   OnConflict="LoadRecentAsync"
                                   OnFavouriteChanged="LoadRecentAsync"
-                                  OnChanged="LoadRecentAsync"/>
+                                  OnChanged="LoadRecentAsync"
+                                  IsDashboard="true"/>
                         }
                     </div>
                 }
@@ -72,7 +73,9 @@
 </div>
 
 <EventDetails IsVisible="_showDetails" Event="_selected"
-              OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)"/>
+              OnClose="CloseDetails" OnChanged="() => LoadAsync(silent: true)" 
+              RoomId="_selected?.RoomId ?? 0"
+              />
 
 @code {
     private const int Take = 4;

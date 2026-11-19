@@ -48,11 +48,13 @@
 </div>
 
 <ContextMenu @ref="_menu">
-    @if (Selection.IsSelected(RoomData?.Id ?? -1)) {
-        <button class="ctx-item" @onclick="StartDeSelect">Deselect</button>
-    }
-    else {
-        <button class="ctx-item" @onclick="StartSelect">Select</button>
+    @if (!IsDashboard) {
+        @if (Selection.IsSelected(RoomData?.Id ?? -1)) {
+            <button class="ctx-item" @onclick="StartDeSelect">Deselect</button>
+        }
+        else {
+            <button class="ctx-item" @onclick="StartSelect">Select</button>
+        }   
     }
     @if (RoomData?.IsOwner == true) {
         <button class="ctx-item" @onclick="StartRenameAsync">Rename</button>
@@ -83,7 +85,8 @@
     [Parameter] public EventCallback OnConflict { get; set; }
     [Parameter] public EventCallback OnFavouriteChanged { get; set; }
     [Parameter] public EventCallback OnChanged { get; set; }
-
+    [Parameter] public bool IsDashboard { get; set; } = false;
+    
     private bool _isFavourite;
     private bool _isSaving;
     private byte[]? _rowVersion;
