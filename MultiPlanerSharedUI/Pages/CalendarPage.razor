@@ -306,8 +306,6 @@
                 if (all.Count >= result.TotalCount) break;
             }
 
-            _events = all;
-
             if (ct.IsCancellationRequested) return;
             _events = all;
             _errorMessage = null;
