@@ -305,6 +305,7 @@
                 all.AddRange(result.Items);
                 if (all.Count >= result.TotalCount) break;
             }
+            Console.WriteLine($"events: {all.Count}, distinct ids: {all.Select(e => e.Id).Distinct().Count()}");
 
             if (ct.IsCancellationRequested) return;
             _events = all;

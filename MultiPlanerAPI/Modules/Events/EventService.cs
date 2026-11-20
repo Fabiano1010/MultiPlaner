@@ -77,101 +77,100 @@ public sealed class EventService(
             }
         }
 
-        query = query.Where(x => x.Event.StartsAtUtc < filter.To && x.Event.EndsAtUtc > filter.From);
         if (filter.EventTypeId is { } typeId)
-    {
-        query = query.Where(x => x.Event.EventTypeId == typeId);
-    }
-
-    if (filter.AuthorMemberId is { } authorId)
-    {
-        query = query.Where(x => x.Event.AuthorMemberId == authorId);
-    }
-
-    if (filter.IsPinned is { } pinned)
-    {
-        query = query.Where(x => x.Event.IsPinned == pinned);
-    }
-
-    if (filter.IsHighPriority is { } priority)
-    {
-        query = query.Where(x => x.Event.IsHighPriority == priority);
-    }
-
-    var from = filter.From!.Value;
-    var to = filter.To!.Value;
-    
-    var singlesQuery = query.Where(x => x.Event.Recurrence == RecurrenceFrequency.None
-                                        && x.Event.StartsAtUtc < to && x.Event.EndsAtUtc > from);
-    
-    var expandTo = to < from.AddDays(MaxWindowDays) ? to : from.AddDays(MaxWindowDays);
-    var fromDay = DateOnly.FromDateTime(from.UtcDateTime.AddDays(-1));
-    var series = await query
-        .Where(x => x.Event.Recurrence != RecurrenceFrequency.None
-                    && x.Event.StartsAtUtc < expandTo
-                    && (x.Event.RecurrenceUntil == null || x.Event.RecurrenceUntil >= fromDay))
-        .Take(MaxSeriesPerQuery)
-        .ToListAsync(ct);
-    
-    if (series.Count == 0)
-    {
-        var count = await singlesQuery.CountAsync(ct);
-        var offset = (long)(filter.Page - 1) * filter.PageSize;
-        if (offset > int.MaxValue)
         {
-            return new PagedResponse<EventResponse>([], count, filter.Page, filter.PageSize);
+            query = query.Where(x => x.Event.EventTypeId == typeId);
         }
 
-        var rows = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
-            .Skip((int)offset).Take(filter.PageSize).ToListAsync(ct);
-        var ids = rows.Select(x => x.Event.Id).ToArray();
-        var participants = await db.EventParticipants.AsNoTracking().Where(p => ids.Contains(p.EventId))
-            .OrderBy(p => p.MemberId).ToListAsync(ct);
-        return new PagedResponse<EventResponse>(rows.Select(x => Map(x, participants
-            .Where(p => p.EventId == x.Event.Id).Select(p => p.MemberId).ToArray())).ToArray(),
-            count, filter.Page, filter.PageSize);
-    }
-    
-    var singles = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
-        .Take(MaxMergedRows).ToListAsync(ct);
-
-    var zones = new Dictionary<string, TimeZoneInfo>();
-    TimeZoneInfo Zone(string id) =>
-        zones.TryGetValue(id, out var z) ? z : zones[id] = TimeZoneInfo.FindSystemTimeZoneById(id);
-
-    var seriesIds = series.Select(x => x.Event.Id).ToArray();
-    var skipped = (await db.EventOccurrenceExceptions.AsNoTracking()
-            .Where(x => seriesIds.Contains(x.EventId)).ToListAsync(ct))
-        .Select(x => (x.EventId, x.OccurrenceDate)).ToHashSet();
-
-    var items = singles
-        .Select(r => (Row: r, Occ: (RecurrenceExpander.Occurrence?)null, Start: r.Event.StartsAtUtc))
-        .ToList();
-
-    foreach (var s in series)
-    {
-        foreach (var o in RecurrenceExpander.Expand(s.Event, Zone(s.Room.TimeZoneId), from, expandTo,
-                     MaxOccurrencesPerSeries))
+        if (filter.AuthorMemberId is { } authorId)
         {
-            if (skipped.Contains((s.Event.Id, o.Date))) continue;
-            items.Add((s, o, o.StartsAtUtc));
+            query = query.Where(x => x.Event.AuthorMemberId == authorId);
         }
 
-        if (items.Count >= MaxMergedRows) break;
+        if (filter.IsPinned is { } pinned)
+        {
+            query = query.Where(x => x.Event.IsPinned == pinned);
+        }
+
+        if (filter.IsHighPriority is { } priority)
+        {
+            query = query.Where(x => x.Event.IsHighPriority == priority);
+        }
+
+        var from = filter.From!.Value;
+        var to = filter.To!.Value;
+        
+        var singlesQuery = query.Where(x => x.Event.Recurrence == RecurrenceFrequency.None
+                                            && x.Event.StartsAtUtc < to && x.Event.EndsAtUtc > from);
+        
+        var expandTo = to < from.AddDays(MaxWindowDays) ? to : from.AddDays(MaxWindowDays);
+        var fromDay = DateOnly.FromDateTime(from.UtcDateTime.AddDays(-1));
+        var series = await query
+            .Where(x => x.Event.Recurrence != RecurrenceFrequency.None
+                        && x.Event.StartsAtUtc < expandTo
+                        && (x.Event.RecurrenceUntil == null || x.Event.RecurrenceUntil >= fromDay))
+            .Take(MaxSeriesPerQuery)
+            .ToListAsync(ct);
+        
+        if (series.Count == 0)
+        {
+            var count = await singlesQuery.CountAsync(ct);
+            var offset = (long)(filter.Page - 1) * filter.PageSize;
+            if (offset > int.MaxValue)
+            {
+                return new PagedResponse<EventResponse>([], count, filter.Page, filter.PageSize);
+            }
+
+            var rows = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
+                .Skip((int)offset).Take(filter.PageSize).ToListAsync(ct);
+            var ids = rows.Select(x => x.Event.Id).ToArray();
+            var participants = await db.EventParticipants.AsNoTracking().Where(p => ids.Contains(p.EventId))
+                .OrderBy(p => p.MemberId).ToListAsync(ct);
+            return new PagedResponse<EventResponse>(rows.Select(x => Map(x, participants
+                .Where(p => p.EventId == x.Event.Id).Select(p => p.MemberId).ToArray())).ToArray(),
+                count, filter.Page, filter.PageSize);
+        }
+        
+        var singles = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
+            .Take(MaxMergedRows).ToListAsync(ct);
+
+        var zones = new Dictionary<string, TimeZoneInfo>();
+        TimeZoneInfo Zone(string id) =>
+            zones.TryGetValue(id, out var z) ? z : zones[id] = TimeZoneInfo.FindSystemTimeZoneById(id);
+
+        var seriesIds = series.Select(x => x.Event.Id).ToArray();
+        var skipped = (await db.EventOccurrenceExceptions.AsNoTracking()
+                .Where(x => seriesIds.Contains(x.EventId)).ToListAsync(ct))
+            .Select(x => (x.EventId, x.OccurrenceDate)).ToHashSet();
+
+        var items = singles
+            .Select(r => (Row: r, Occ: (RecurrenceExpander.Occurrence?)null, Start: r.Event.StartsAtUtc))
+            .ToList();
+
+        foreach (var s in series)
+        {
+            foreach (var o in RecurrenceExpander.Expand(s.Event, Zone(s.Room.TimeZoneId), from, expandTo,
+                         MaxOccurrencesPerSeries))
+            {
+                if (skipped.Contains((s.Event.Id, o.Date))) continue;
+                items.Add((s, o, o.StartsAtUtc));
+            }
+
+            if (items.Count >= MaxMergedRows) break;
+        }
+
+        var ordered = items.OrderBy(i => i.Start).ThenBy(i => i.Row.Event.Id).ToList();
+        var skip = (int)Math.Min((long)(filter.Page - 1) * filter.PageSize, int.MaxValue);
+        var pageItems = ordered.Skip(skip).Take(filter.PageSize).ToList();
+
+        var pageIds = pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray();
+        var pageParticipants = await db.EventParticipants.AsNoTracking()
+            .Where(p => pageIds.Contains(p.EventId)).OrderBy(p => p.MemberId).ToListAsync(ct);
+
+        return new PagedResponse<EventResponse>(
+            pageItems.Select(i => Map(i.Row, pageParticipants.Where(p => p.EventId == i.Row.Event.Id).Select(p => p.MemberId).ToArray(), i.Occ)).ToArray(),
+            ordered.Count, filter.Page, filter.PageSize);
     }
-
-    var ordered = items.OrderBy(i => i.Start).ThenBy(i => i.Row.Event.Id).ToList();
-    var skip = (int)Math.Min((long)(filter.Page - 1) * filter.PageSize, int.MaxValue);
-    var pageItems = ordered.Skip(skip).Take(filter.PageSize).ToList();
-
-    var pageIds = pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray();
-    var pageParticipants = await db.EventParticipants.AsNoTracking()
-        .Where(p => pageIds.Contains(p.EventId)).OrderBy(p => p.MemberId).ToListAsync(ct);
-
-    return new PagedResponse<EventResponse>(
-        pageItems.Select(i => Map(i.Row, pageParticipants.Where(p => p.EventId == i.Row.Event.Id).Select(p => p.MemberId).ToArray(), i.Occ)).ToArray(),
-        ordered.Count, filter.Page, filter.PageSize);
-}
 
     public async Task<EventResponse> GetAsync(int roomId, int eventId, CancellationToken ct)
     {
