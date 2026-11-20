@@ -100,12 +100,10 @@ public sealed class EventService(
 
     var from = filter.From!.Value;
     var to = filter.To!.Value;
-
-    // zwykłe wydarzenia: okno dat jak dotąd
+    
     var singlesQuery = query.Where(x => x.Event.Recurrence == RecurrenceFrequency.None
                                         && x.Event.StartsAtUtc < to && x.Event.EndsAtUtc > from);
-
-    // serie, które mogą mieć wystąpienia w oknie
+    
     var expandTo = to < from.AddDays(MaxWindowDays) ? to : from.AddDays(MaxWindowDays);
     var fromDay = DateOnly.FromDateTime(from.UtcDateTime.AddDays(-1));
     var series = await query
@@ -114,8 +112,7 @@ public sealed class EventService(
                     && (x.Event.RecurrenceUntil == null || x.Event.RecurrenceUntil >= fromDay))
         .Take(MaxSeriesPerQuery)
         .ToListAsync(ct);
-
-    // ---- brak serii w oknie: dotychczasowa ścieżka z paginacją w SQL ----
+    
     if (series.Count == 0)
     {
         var count = await singlesQuery.CountAsync(ct);
@@ -134,8 +131,7 @@ public sealed class EventService(
             .Where(p => p.EventId == x.Event.Id).Select(p => p.MemberId).ToArray())).ToArray(),
             count, filter.Page, filter.PageSize);
     }
-
-    // ---- są serie: łączymy zwykłe wydarzenia z rozwiniętymi wystąpieniami w pamięci ----
+    
     var singles = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
         .Take(MaxMergedRows).ToListAsync(ct);
 
@@ -376,7 +372,7 @@ public sealed class EventService(
                 context.EventOccurrenceExceptions.Add(new EventOccurrenceException
                     { EventId = eventId, OccurrenceDate = date });
 
-            context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;   // podbija RowVersion serii
+            context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
             return true;
         }, ct);
@@ -396,7 +392,6 @@ public sealed class EventService(
     }
     private static void RequireCanModify(RoomMember viewer, Room room, int authorMemberId)
     {
-        // viewer.UserId jest null dla gościa, więc gość nigdy nie jest właścicielem
         if (viewer.Id == authorMemberId || viewer.UserId == room.OwnerUserId) return;
 
         throw new ApiException(403, "event_forbidden",
@@ -434,9 +429,7 @@ public sealed class EventService(
         var now = clock.GetUtcNow();
         var active = row.Room.ArchivedAtUtc is null && row.Room.ExpiresAtUtc > now;
         var own = row.ViewerMemberId == ev.AuthorMemberId || row.Room.OwnerUserId == actor.UserId;
-
-        // dla zwykłego wydarzenia: jego pierwszy dzień w strefie pokoju
-        // dla serii: dzień klikniętego wystąpienia (nadpisujemy niżej)
+        
         var zone = TimeZoneInfo.FindSystemTimeZoneById(row.Room.TimeZoneId);
 
         var response = new EventResponse(ev.Id, ev.RoomId, row.Room.Name, row.Room.TimeZoneId,
@@ -455,8 +448,7 @@ public sealed class EventService(
             OccurrenceDate: RecurrenceExpander.FirstDate(ev, zone));
 
         if (occurrence is not { } o) return response;
-
-        // wystąpienie serii: daty tego wystąpienia, a Id i RowVersion zostają od serii
+        
         return response with
         {
             StartsAtUtc = o.StartsAtUtc,

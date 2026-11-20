@@ -1,7 +1,7 @@
 ﻿@using MultiPlanerSharedModels.Contracts.Events
 @inject ApiClient Api
 
-<Popup IsVisible="IsVisible" Title="@(_editing ? "Edit event" : "Event details")" OnClose="HandleClose">
+<Popup IsVisible="IsVisible" Title="@(_editing ? "Edit event " : "Event details")" OnClose="HandleClose">
     @if (Event is not null) {
         @if (!_editing) {
             <div class="event-details">
@@ -47,6 +47,17 @@
                         @(Event.IsHighPriority ? "High" : "Normal")
                     </span>
                 </div>
+                @if (Event.Recurrence != RecurrenceFrequency.None) {
+                    <div class="event-details-row event-details-row-column">
+                        <span class="event-details-label">Repeats every @Event.Recurrence</span>
+                        <span class="event-details-value">
+                            @if (Event.RecurrenceUntil is not null) {   
+                                <span>Until @Event.RecurrenceUntil</span>
+                            }
+                            
+                        </span>
+                    </div>
+                }
                 @if (!string.IsNullOrEmpty(Event.Description)) {
                     <div class="event-details-row event-details-row-column">
                         <span class="event-details-label">Description</span>
@@ -60,7 +71,11 @@
 
                 <div class="form-actions">
                     @if (Event.Permissions.CanDelete) {
-                        <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">Delete
+                        <button type="button" class="btn-main btn-danger" @onclick="() => _showDelete = true">Delete this
+                        </button>
+                    }
+                    @if (Event.Permissions.CanDelete && Event.Recurrence != RecurrenceFrequency.None) {
+                        <button type="button" class="btn-main btn-danger" @onclick="() => _showDeleteSeries = true">Delete All
                         </button>
                     }
                     @if (Event.Permissions.CanEdit) {
@@ -95,7 +110,24 @@
                             <input type="time" class="input-main" @bind="_endTime"/></div>
                     </div>
                 }
-
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Repeat</label>
+                        <select class="input-main" @bind="_repeat">
+                            <option value="@RecurrenceFrequency.None">Does not repeat</option>
+                            <option value="@RecurrenceFrequency.Daily">Every day</option>
+                            <option value="@RecurrenceFrequency.Weekly">Every week</option>
+                            <option value="@RecurrenceFrequency.Monthly">Every month</option>
+                            <option value="@RecurrenceFrequency.Yearly">Every year</option>
+                        </select>
+                    </div>
+                    @if (_repeat != RecurrenceFrequency.None) {
+                        <div class="form-group">
+                            <label>Repeat until (optional)</label>
+                            <input type="date" class="input-main" @bind="_until"/>
+                        </div>
+                    }
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Event type</label>
@@ -132,6 +164,9 @@
                     <button type="submit" class="btn-main btn-save" disabled="@_isSaving">Save</button>
                 </div>
             </form>
+            @if (Event.Recurrence != RecurrenceFrequency.None) {
+                <span>This changes all events in the series</span>
+            }
         }
     }
 </Popup>
@@ -139,6 +174,9 @@
 <ConfirmPopup IsVisible="_showDelete" Title="Delete event" Danger="true" ConfirmText="Delete"
               Message="@($"Delete \"{Event?.Title}\"? This cannot be undone.")"
               OnConfirm="DeleteAsync" OnClose="() => _showDelete = false"/>
+<ConfirmPopup IsVisible="_showDeleteSeries" Title="Delete all events" Danger="true" ConfirmText="Delete"
+              Message="@($"Delete all \"{Event?.Title}\"? This cannot be undone.")"
+              OnConfirm="DeleteSeriesAsync" OnClose="() => _showDeleteSeries = false"/>
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
@@ -150,6 +188,7 @@
 
     private bool _editing;
     private bool _showDelete;
+    private bool _showDeleteSeries;
     private bool _isSaving;
     private bool _wasVisible;
 
@@ -162,6 +201,9 @@
     private string? _description = "";
     private string _color = "#999999";
 
+    private RecurrenceFrequency _repeat;
+    
+    private DateOnly? _until;
     private DateOnly _start;
     private DateOnly _end;
     private TimeOnly _startTime;
@@ -170,6 +212,7 @@
     private List<EventTypeResponse> _types = [];
 
     private string EventUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
+    private string EventSeriesUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
 
     protected override void OnParametersSet() {
         if (IsVisible && !_wasVisible) {
@@ -303,6 +346,17 @@
     }
 
     private async Task DeleteAsync() {
+        if (Event is null) return;
+
+        var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
+            new EventVersionRequest { RowVersion = Event.RowVersion });
+        await ApiClient.EnsureSuccessAsync(res);
+
+        await OnChanged.InvokeAsync();
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task DeleteSeriesAsync() {
         if (Event is null) return;
 
         var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
