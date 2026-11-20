@@ -30,6 +30,24 @@
                 <div class="form-group"><label>To</label><input type="time" class="input-main" @bind="_endTime"/></div>
             </div>
         }
+        <div class="form-row">
+            <div class="form-group">
+                <label>Repeat</label>
+                <select class="input-main" @bind="_repeat">
+                    <option value="@RecurrenceFrequency.None">Does not repeat</option>
+                    <option value="@RecurrenceFrequency.Daily">Every day</option>
+                    <option value="@RecurrenceFrequency.Weekly">Every week</option>
+                    <option value="@RecurrenceFrequency.Monthly">Every month</option>
+                    <option value="@RecurrenceFrequency.Yearly">Every year</option>
+                </select>
+            </div>
+            @if (_repeat != RecurrenceFrequency.None) {
+                <div class="form-group">
+                    <label>Repeat until (optional)</label>
+                    <input type="date" class="input-main" @bind="_until"/>
+                </div>
+            }
+        </div>
 
         <div class="form-row">
             <div class="form-group">
@@ -83,6 +101,9 @@
     private bool _allDay = true, _highPriority, _defaultColor = true, _isSaving, _wasVisible;
     private int _eventTypeId;
     private List<EventTypeResponse> _types = [];
+    private RecurrenceFrequency _repeat;
+    private DateOnly? _until;
+
 
     protected override async Task OnParametersSetAsync() {
         if (IsVisible && !_wasVisible) {
@@ -108,6 +129,7 @@
         _wasVisible = IsVisible;
     }
 
+
     private async Task SaveAsync() {
         var title = _title.Trim();
         if (title.Length is < 1 or > 128) {
@@ -117,6 +139,11 @@
 
         if (_end < _start) {
             _error = "End date must not be before start date.";
+            return;
+        }
+
+        if (_repeat != RecurrenceFrequency.None && _until is { } u && u < _start) {
+            _error = "Repeat end must not be before the start date.";
             return;
         }
 
@@ -150,7 +177,10 @@
                 Time = time,
                 EventTypeId = _eventTypeId,
                 Color = _defaultColor ? null : _color.TrimStart('#'),
-                IsHighPriority = _highPriority
+                IsHighPriority = _highPriority,
+                Recurrence = _repeat == RecurrenceFrequency.None
+                    ? null
+                    : new RecurrenceRequest { Frequency = _repeat, Until = _until }
             });
             await ApiClient.EnsureSuccessAsync(res);
             await OnSaved.InvokeAsync();
