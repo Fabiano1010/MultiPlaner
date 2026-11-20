@@ -28,6 +28,9 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<CalendarEvent>
         b.HasIndex(x => new { x.RoomId, x.EventTypeId });
         b.HasIndex(x => new { x.RoomId, x.IsPinned });
         b.HasIndex(x => new { x.RoomId, x.AuthorMemberId, x.StartsAtUtc });
+        b.Property(x => x.RecurrenceInterval).HasDefaultValue(1);
+        b.ToTable(t => t.HasCheckConstraint("CK_Event_Recurrence", "[RecurrenceInterval] BETWEEN 1 AND 12"));
+        b.HasIndex(x => x.RoomId).HasFilter("[Recurrence] <> 0");
     }
 }
 
@@ -65,5 +68,14 @@ public sealed class AvailabilityConfiguration : IEntityTypeConfiguration<Availab
         b.HasOne<RoomMember>().WithMany().HasForeignKey(x => new { x.MemberId, x.RoomId })
             .HasPrincipalKey(x => new { x.Id, x.RoomId }).OnDelete(DeleteBehavior.NoAction);
         b.HasIndex(x => new { x.RoomId, x.MemberId, x.StartsAtUtc, x.EndsAtUtc });
+    }
+}
+public sealed class EventOccurrenceExceptionConfiguration : IEntityTypeConfiguration<EventOccurrenceException>
+{
+    public void Configure(EntityTypeBuilder<EventOccurrenceException> b)
+    {
+        b.ToTable("EventOccurrenceExceptions");
+        b.HasKey(x => new { x.EventId, x.OccurrenceDate });
+        b.HasOne<CalendarEvent>().WithMany().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -54,8 +54,6 @@
                     </div>
                 }
 
-
-
                 @if (!string.IsNullOrEmpty(_errorMessage)) {
                     <div class="form-error">@_errorMessage</div>
                 }
@@ -186,6 +184,13 @@
     private async Task StartEdit() {
         if (Event is null) return;
         var e = Event;
+        if (e.Recurrence != RecurrenceFrequency.None && e.SeriesStartsAtUtc is { } ss && e.SeriesEndsAtUtc is { } se)
+        {
+            (_start, _startTime) = EventDays.ToLocal(ss, e.RoomTimeZoneId);
+            var (endDate, endTime) = EventDays.ToLocal(se, e.RoomTimeZoneId);
+            _end = e.IsAllDay ? endDate.AddDays(-1) : endDate;
+            _endTime = endTime;
+        }
         try {
             _types = (await Api.GetAsync<List<EventTypeResponse>>($"api/rooms/{RoomId}/event-types") ?? []).Where(t => !t.IsArchived || t.Id == e.EventTypeId).ToList();
         }
