@@ -3,8 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace MultiPlanerSharedModels.Contracts.Events;
 
-public sealed class EventTimeRequest
-{
+public sealed class EventTimeRequest {
     public bool IsAllDay { get; init; }
     public DateTimeOffset? StartsAtUtc { get; init; }
     public DateTimeOffset? EndsAtUtc { get; init; }
@@ -12,8 +11,7 @@ public sealed class EventTimeRequest
     public DateOnly? EndDateExclusive { get; init; }
 }
 
-public sealed class CreateEventRequest
-{
+public sealed class CreateEventRequest {
     [Required]
     [StringLength(128, MinimumLength = 1)]
     public string Title { get; init; } = string.Empty;
@@ -28,10 +26,11 @@ public sealed class CreateEventRequest
     public bool IsHighPriority { get; init; }
     public bool IsPinned { get; init; }
     [MaxLength(1000)] public int[]? ParticipantMemberIds { get; init; }
+
+    public RecurrenceRequest? Recurrence { get; init; }
 }
 
-public sealed class UpdateEventRequest
-{
+public sealed class UpdateEventRequest {
     [StringLength(128, MinimumLength = 1)] public string? Title { get; init; }
 
     // Null leaves optional values unchanged; empty strings clear description/color.
@@ -46,22 +45,22 @@ public sealed class UpdateEventRequest
     public bool? IsPinned { get; init; }
     [MaxLength(1000)] public int[]? ParticipantMemberIds { get; init; }
 
+    public RecurrenceRequest? Recurrence { get; init; }
+
     [Required]
     [MinLength(8)]
     [MaxLength(8)]
     public byte[] RowVersion { get; init; } = [];
 }
 
-public sealed class EventVersionRequest
-{
+public sealed class EventVersionRequest {
     [Required]
     [MinLength(8)]
     [MaxLength(8)]
     public byte[] RowVersion { get; init; } = [];
 }
 
-public sealed class PinEventRequest
-{
+public sealed class PinEventRequest {
     public bool IsPinned { get; init; }
 
     [Required]
@@ -70,8 +69,7 @@ public sealed class PinEventRequest
     public byte[] RowVersion { get; init; } = [];
 }
 
-public sealed class EventListRequest : IValidatableObject
-{
+public sealed class EventListRequest : IValidatableObject {
     [Required] public DateTimeOffset? From { get; init; }
     [Required] public DateTimeOffset? To { get; init; }
     [Range(1, int.MaxValue)] public int? EventTypeId { get; init; }
@@ -86,8 +84,7 @@ public sealed class EventListRequest : IValidatableObject
     [Range(1, int.MaxValue)] public int Page { get; init; } = 1;
     [Range(1, 100)] public int PageSize { get; init; } = 50;
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {
         if (From is { } from && To is { } to && to <= from)
             yield return new ValidationResult("To must be later than From.", [nameof(To)]);
     }
@@ -121,4 +118,11 @@ public sealed record EventResponse(
     EventAuthorResponse Author,
     IReadOnlyList<int> ParticipantMemberIds,
     byte[] RowVersion,
-    EventPermissions Permissions);
+    EventPermissions Permissions,
+    RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
+    int RecurrenceInterval = 1,
+    DateOnly? RecurrenceUntil = null,
+    DateOnly OccurrenceDate = default,          // the day of this appearance in room
+    DateTimeOffset? SeriesStartsAtUtc = null,   // first occurrence of the series (to be edited)
+    DateTimeOffset? SeriesEndsAtUtc = null
+);
