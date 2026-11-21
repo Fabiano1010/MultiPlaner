@@ -25,13 +25,13 @@
                 <div class="event-details-row">
                     <span class="event-details-label">Start</span>
                     <span class="event-details-value">
-                        @span.StartDate.ToString("dd/MM/yyyy")@(span.StartTime is { } st ? $" at {st:HH:mm}" : "")
+                        @span.StartDate.ToString("dd.MM.yyyy")@(span.StartTime is { } st ? $" at {st:HH:mm}" : "")
                     </span>
                 </div>
                 <div class="event-details-row">
                     <span class="event-details-label">End</span>
                     <span class="event-details-value">
-                        @span.EndDate.ToString("dd/MM/yyyy")@(span.EndTime is { } et ? $" at {et:HH:mm}" : "")
+                        @span.EndDate.ToString("dd.MM.yyyy")@(span.EndTime is { } et ? $" at {et:HH:mm}" : "")
                     </span>
                 </div>
 
