@@ -38,7 +38,7 @@
             </select>
             <button type="button" class="btn-main @(_adv is null ? "btn-cancel" : "btn-save")"
                     @onclick="() => _showAdvanced = true">
-                Advanced search
+                <img src="_content/MultiPlanerSharedUI/images/adjustments-horizontal.svg" alt="Advanced Search" class="adv-search-img"/>
             </button>
         </div>
         @if (!_loading) {
@@ -67,8 +67,6 @@
             <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
         }
         else {
-            @* <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div> *@
-
             <EventsList Events="_pageItems"
                         EmptyText="@(_all.Count == 0 ? (_adv is null ? "You have no events yet." : "No events in this range.") : "No events match your filters.")"
                         OnOpen="OpenDetails"
