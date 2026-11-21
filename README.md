@@ -125,16 +125,6 @@ Git Workflow
 
 
 
-<img width="1920" height="1036" alt="image_2026-06-08_19-12-52" src="https://github.com/user-attachments/assets/31ee3d72-7c50-4196-9f46-63ed30883eb5" />
-
-<img width="1920" height="1038" alt="image_2026-06-08_19-13-05" src="https://github.com/user-attachments/assets/b6b8218c-7593-4617-958a-0867324a76e8" />
-
-<img width="1280" height="691" alt="image" src="https://github.com/user-attachments/assets/87317117-3937-40bb-8a6a-87163207a4d9" />
-
-<img width="1920" height="1038" alt="image_2026-06-08_19-16-40" src="https://github.com/user-attachments/assets/25c51672-a1bd-4803-a1f8-2a63d425bcbe" />
-
-<img width="1916" height="1016" alt="image" src="https://github.com/user-attachments/assets/5b10cb67-9052-499e-bbc5-109efde86136" />
-
 <img width="1917" height="1016" alt="image" src="https://github.com/user-attachments/assets/1015f4e4-44a5-40ea-bcd5-e09859c89d90" />
 
 <img width="1917" height="1015" alt="image" src="https://github.com/user-attachments/assets/337e41fd-c9b7-4692-a882-3baa2235c1f1" />
