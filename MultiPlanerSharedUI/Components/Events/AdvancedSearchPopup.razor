@@ -11,13 +11,26 @@
             </div>
         </div>
 
-        <label class="switch-row">
-            <span class="switch">
-                <input type="checkbox" role="switch" @bind="_collapse"/>
-                <span class="switch-slider"></span>
-            </span>
-            <span>Show recurring events only once</span>
-        </label>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Priority</label>
+                <select class="input-main" @bind="_priority">
+                    <option value="all">All priorities</option>
+                    <option value="high">High priority</option>
+                    <option value="normal">Normal priority</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Time</label>
+                <select class="input-main" @bind="_time">
+                    <option value="all">All</option>
+                    <option value="incoming">Incoming</option>
+                    <option value="outdated">Outdated</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="settings-note">Leave the dates empty to use the default range.</p>
 
         @if (!string.IsNullOrEmpty(_error)) {
             <div class="form-error">@_error</div>
@@ -42,16 +55,17 @@
 
     private const int MaxRangeDays = 400;
 
-    private DateOnly _from, _to;
-    private bool _collapse = true, _wasVisible;
+    private DateOnly? _from, _to;
+    private string _priority = "all", _time = "all";
+    private bool _wasVisible;
     private string? _error;
 
     protected override void OnParametersSet() {
         if (IsVisible && !_wasVisible) {
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            _from = Current?.From ?? today;
-            _to = Current?.To ?? today.AddDays(30);
-            _collapse = Current?.CollapseRecurring ?? true;
+            _from = Current?.From;
+            _to = Current?.To;
+            _priority = Current?.Priority ?? "all";
+            _time = Current?.Time ?? "all";
             _error = null;
         }
 
@@ -59,18 +73,24 @@
     }
 
     private async Task Submit() {
-        if (_to < _from) {
-            _error = "End date must not be before start date.";
+        if (_from is null != _to is null) {
+            _error = "Set both dates or leave both empty.";
             return;
         }
 
-        if (_to.DayNumber - _from.DayNumber >= MaxRangeDays) {
-            _error = $"Range can be at most {MaxRangeDays} days.";
-            return;
+        if (_from is { } f && _to is { } t) {
+            if (t < f) {
+                _error = "End date must not be before start date.";
+                return;
+            }
+
+            if (t.DayNumber - f.DayNumber >= MaxRangeDays) {
+                _error = $"Range can be at most {MaxRangeDays} days.";
+                return;
+            }
         }
 
         _error = null;
-        await OnApply.InvokeAsync(new AdvancedSearchFilter(_from, _to, _collapse));
+        await OnApply.InvokeAsync(new AdvancedSearchFilter(_from, _to, _priority, _time));
     }
-
 }

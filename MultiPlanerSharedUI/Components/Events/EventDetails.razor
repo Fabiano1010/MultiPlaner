@@ -171,11 +171,13 @@
     }
 </Popup>
 
-<ConfirmPopup IsVisible="_showDelete" Title="Delete event" Danger="true" ConfirmText="Delete"
-              Message="@($"Delete \"{Event?.Title}\"? This cannot be undone.")"
+<ConfirmPopup IsVisible="_showDelete"
+              Title="@(IsSeries ? "Delete occurrence" : "Delete event")"
+              Danger="true" ConfirmText="Delete"
+              Message="@DeleteMessage"
               OnConfirm="DeleteAsync" OnClose="() => _showDelete = false"/>
-<ConfirmPopup IsVisible="_showDeleteSeries" Title="Delete all events" Danger="true" ConfirmText="Delete"
-              Message="@($"Delete all \"{Event?.Title}\"? This cannot be undone.")"
+<ConfirmPopup IsVisible="_showDeleteSeries" Title="Delete all events" Danger="true" ConfirmText="Delete all"
+              Message="@($"Delete the whole series \"{Event?.Title}\"? This cannot be undone.")"
               OnConfirm="DeleteSeriesAsync" OnClose="() => _showDeleteSeries = false"/>
 
 @code {
@@ -212,7 +214,12 @@
     private List<EventTypeResponse> _types = [];
 
     private string EventUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
-    private string EventSeriesUrl => $"api/rooms/{RoomId}/events/{Event?.Id}";
+   
+    private bool IsSeries => Event is { Recurrence: not RecurrenceFrequency.None };
+
+    private string DeleteMessage => Event is null ? "" : IsSeries
+        ? $"Delete \"{Event.Title}\" on {Event.OccurrenceDate:dd.MM.yyyy} only? Other occurrences stay in the calendar."
+        : $"Delete \"{Event.Title}\"? This cannot be undone.";
 
     protected override void OnParametersSet() {
         if (IsVisible && !_wasVisible) {
@@ -347,10 +354,15 @@
 
     private async Task DeleteAsync() {
         if (Event is null) return;
+        var body = new EventVersionRequest { RowVersion = Event.RowVersion };
 
-        var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
-            new EventVersionRequest { RowVersion = Event.RowVersion });
-        await ApiClient.EnsureSuccessAsync(res);
+        HttpResponseMessage res;
+        if (IsSeries)
+            res = await Api.PostAsync($"{EventUrl}/occurrences/{Event.OccurrenceDate:yyyy-MM-dd}/skip", body);
+        else
+            res = await Api.SendAsync(HttpMethod.Delete, EventUrl, body);
+
+        using (res) await ApiClient.EnsureSuccessAsync(res);
 
         await OnChanged.InvokeAsync();
         await OnClose.InvokeAsync();
@@ -359,7 +371,7 @@
     private async Task DeleteSeriesAsync() {
         if (Event is null) return;
 
-        var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
+        using var res = await Api.SendAsync(HttpMethod.Delete, EventUrl,
             new EventVersionRequest { RowVersion = Event.RowVersion });
         await ApiClient.EnsureSuccessAsync(res);
 

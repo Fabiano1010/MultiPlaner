@@ -158,6 +158,19 @@
     vertical-align: middle;
     margin-left: 0.25rem;
 }
+.btn-adv-search{
+    height: 45px;
+    width: 45px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+}
+.adv-search-img{
+    filter: var(--icon-filter, brightness(0));
+    height: 40px;
+    width: 40px;
+}
 
 .switch-row {
     display: flex;
@@ -203,6 +216,10 @@
     border-radius: 50%;
     background: var(--app-background);
     transition: transform 0.2s ease;
+}
+.toolbar-switch {
+    white-space: nowrap;
+    font-size: var(--font-size-small);
 }
 
 .switch input:checked + .switch-slider {

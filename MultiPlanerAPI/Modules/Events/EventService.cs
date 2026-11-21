@@ -245,13 +245,24 @@ public sealed class EventService(
                 ev.IsPinned = pinned;
             }
 
+            var oldStart = ev.StartsAtUtc;
+            var oldEnd = ev.EndsAtUtc;
+            var oldRec = (ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil);
+
             if (request.Time is not null)
             {
                 EventTime.Apply(ev, request.Time, room.TimeZoneId);
             }
+
             if (request.Recurrence is not null || request.Time is not null)
             {
                 await ApplyRecurrenceAsync(context, ev, request.Recurrence, room, ct);
+            }
+
+            var changed = ev.StartsAtUtc != oldStart || ev.EndsAtUtc != oldEnd || (ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil) != oldRec;
+
+            if (changed)
+            {
                 await context.EventOccurrenceExceptions.Where(x => x.EventId == eventId).ExecuteDeleteAsync(ct);
             }
 
