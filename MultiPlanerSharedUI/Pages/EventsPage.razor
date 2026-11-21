@@ -33,10 +33,10 @@
                 <span>Recurring once</span>
             </label>
 
-            <button type="button" class="btn-main @(_adv is null ? "btn-cancel" : "btn-save") btn-adv-search"
+            <button type="button" class="btn-main action-button @(_adv is null ? "btn-cancel" : "btn-save") btn-adv-search"
                     @onclick="() => _showAdvanced = true">
                 <img src="_content/MultiPlanerSharedUI/images/adjustments-horizontal.svg" alt="Advanced Search"
-                     class="adv-search-img"/>
+                     class="action-button-img adv-search-img"/>
             </button>
         </div>
         @if (!_loading) {
@@ -62,36 +62,36 @@
             </div>
         }
     </div>
-    
-
-</div>
-<div class="my-events-content">
-    @if (_loading) {
-        <LoadingSpinner/>
-    }
-    else if (_error is not null) {
-        <div class="error-message">@_error</div>
-        <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
-    }
-    else {
-        <EventsList Events="_pageItems"
-                    EmptyText="@(_all.Count == 0 ? (_adv is null ? "You have no events yet." : "No events in this range.") : "No events match your filters.")"
-                    OnOpen="OpenDetails"
-                    OnOpenCalendar="OpenCalendar"/>
-
-        @if (_totalPages > 1) {
-            <nav class="my-events-pager" aria-label="Pages">
-                <button type="button" class="btn-main btn-cancel" disabled="@(_page <= 1)"
-                        @onclick="() => GoTo(_page - 1)">‹ Previous
-                </button>
-                <span>Page @_page of @_totalPages</span>
-                <button type="button" class="btn-main btn-cancel" disabled="@(_page >= _totalPages)"
-                        @onclick="() => GoTo(_page + 1)">Next ›
-                </button>
-            </nav>
+    <div class="my-events-content">
+        @if (_loading) {
+            <LoadingSpinner/>
         }
-    }
+        else if (_error is not null) {
+            <div class="error-message">@_error</div>
+            <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
+        }
+        else {
+            <EventsList Events="_pageItems"
+                        EmptyText="@(_all.Count == 0 ? (_adv is null ? "You have no events yet." : "No events in this range.") : "No events match your filters.")"
+                        OnOpen="OpenDetails"
+                        OnOpenCalendar="OpenCalendar"/>
+
+            @if (_totalPages > 1) {
+                <nav class="my-events-pager" aria-label="Pages">
+                    <button type="button" class="btn-main btn-cancel" disabled="@(_page <= 1)"
+                            @onclick="() => GoTo(_page - 1)">‹ Previous
+                    </button>
+                    <span>Page @_page of @_totalPages</span>
+                    <button type="button" class="btn-main btn-cancel" disabled="@(_page >= _totalPages)"
+                            @onclick="() => GoTo(_page + 1)">Next ›
+                    </button>
+                </nav>
+            }
+        }
+    </div>
+
 </div>
+
 
 <EventDetails IsVisible="_showDetails"
               Event="_selected"
