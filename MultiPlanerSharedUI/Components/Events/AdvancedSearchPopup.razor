@@ -1,0 +1,76 @@
+﻿<Popup Title="Advanced search" IsVisible="IsVisible" OnClose="OnClose">
+    <form class="add-event-form" @onsubmit="Submit" @onsubmit:preventDefault>
+        <div class="form-row">
+            <div class="form-group">
+                <label>From</label>
+                <input type="date" class="input-main" @bind="_from"/>
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input type="date" class="input-main" @bind="_to"/>
+            </div>
+        </div>
+
+        <label class="switch-row">
+            <span class="switch">
+                <input type="checkbox" role="switch" @bind="_collapse"/>
+                <span class="switch-slider"></span>
+            </span>
+            <span>Show recurring events only once</span>
+        </label>
+
+        @if (!string.IsNullOrEmpty(_error)) {
+            <div class="form-error">@_error</div>
+        }
+
+        <div class="form-actions">
+            @if (Current is not null) {
+                <button type="button" class="btn-main btn-cancel" @onclick="OnClear">Clear search</button>
+            }
+            <button type="button" class="btn-main btn-cancel" @onclick="OnClose">Cancel</button>
+            <button type="submit" class="btn-main btn-save">Search</button>
+        </div>
+    </form>
+</Popup>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public AdvancedSearchFilter? Current { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<AdvancedSearchFilter> OnApply { get; set; }
+    [Parameter] public EventCallback OnClear { get; set; }
+
+    private const int MaxRangeDays = 400;
+
+    private DateOnly _from, _to;
+    private bool _collapse = true, _wasVisible;
+    private string? _error;
+
+    protected override void OnParametersSet() {
+        if (IsVisible && !_wasVisible) {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            _from = Current?.From ?? today;
+            _to = Current?.To ?? today.AddDays(30);
+            _collapse = Current?.CollapseRecurring ?? true;
+            _error = null;
+        }
+
+        _wasVisible = IsVisible;
+    }
+
+    private async Task Submit() {
+        if (_to < _from) {
+            _error = "End date must not be before start date.";
+            return;
+        }
+
+        if (_to.DayNumber - _from.DayNumber >= MaxRangeDays) {
+            _error = $"Range can be at most {MaxRangeDays} days.";
+            return;
+        }
+
+        _error = null;
+        await OnApply.InvokeAsync(new AdvancedSearchFilter(_from, _to, _collapse));
+    }
+
+}

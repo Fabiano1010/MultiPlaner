@@ -29,8 +29,9 @@
 .my-events-toolbar select {
     width: auto;
 }
+
 .my-events-toolbar-controlls {
-    display:flex;
+    display: flex;
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
@@ -143,12 +144,80 @@
     gap: 1rem;
     padding-bottom: 1rem;
 }
-.high-priority-img{
+
+.high-priority-img {
     width: 2rem;
     height: 2rem;
     margin-right: 0.3rem;
     filter: drop-shadow(0 0 3px red);
 }
+
+.adv-clear {
+    position: static;
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+}
+
+.switch-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.switch {
+    position: relative;
+    width: 2.6rem;
+    height: 1.4rem;
+    flex-shrink: 0;
+}
+
+.switch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.switch-slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: var(--border);
+    transition: background 0.2s ease;
+}
+
+.switch-slider::before {
+    content: "";
+    position: absolute;
+    top: 0.15rem;
+    left: 0.15rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: var(--app-background);
+    transition: transform 0.2s ease;
+}
+
+.switch input:checked + .switch-slider {
+    background: var(--accent);
+}
+
+.switch input:checked + .switch-slider::before {
+    transform: translateX(1.2rem);
+}
+
+.switch input:focus-visible + .switch-slider {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
 @media (max-width: 768px) {
     .my-events-page {
         grid-template-columns: 1fr;
@@ -161,27 +230,32 @@
         width: 100%;
         z-index: 1000;
     }
+
     .my-events-content {
         width: 100%;
         margin-top: 20px;
         padding-left: 1rem;
         padding-right: 1rem;
     }
-    
+
 }
+
 @media (max-width: 510px) {
     .my-events-toolbar {
         padding-left: 0.25rem;
         padding-right: 0.25rem;
     }
+
     .my-events-toolbar-controlls {
         gap: 0.25rem;
     }
-    .my-events-toolbar-controlls .search-wrapper{
+
+    .my-events-toolbar-controlls .search-wrapper {
         width: auto;
         padding-right: 0.25rem;
         max-width: 155px;
     }
+
     .my-events-toolbar-controlls input {
         max-width: 155px;
     }
