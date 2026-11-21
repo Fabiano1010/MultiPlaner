@@ -25,7 +25,9 @@
                 <h3>Your recent calendars</h3>
             </div>
             <div class="dashboard-left-content">
-                @if (_recent.Count == 0) {
+                @if (_recent.Count == 0 && _loadingLeft) {
+                    <LoadingSpinner />
+                }else if (_recent.Count == 0 && !_loadingLeft) {
                     <div class="dashboard-empty">Open a calendar and it will show up here.</div>
                 }
                 else {

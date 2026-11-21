@@ -23,6 +23,10 @@
     font-weight: bold;
     text-align: center;
 }
+.dashboard-empty{
+    width: 100%;
+    text-align: center;
+}
 
 .welcome-msg {
     font-size: var(--font-size-xl);
