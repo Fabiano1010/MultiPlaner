@@ -4,7 +4,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    padding: 1rem 2rem;
+    padding: 1rem 1.5rem;
     border-radius: var(--border-radius);
     background: var(--surface);
     color: var(--surface-text);
@@ -16,6 +16,8 @@
     font-weight: bold;
     letter-spacing: 3px;
     font-variant-numeric: tabular-nums;
+    padding: 0 0.5rem;
+    min-width: 240px;
 }
 
 .clock-date {
