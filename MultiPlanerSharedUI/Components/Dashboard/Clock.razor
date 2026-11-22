@@ -1,0 +1,39 @@
+﻿@implements IAsyncDisposable
+@using System.Globalization
+
+<div class="clock-container">
+    <div class="clock-time">@_now.ToString("HH:mm:ss", Culture)</div>
+    <div class="clock-date">@_now.ToString("dd MMMM yyyy", Culture)</div>
+</div>
+
+@code {
+    private static readonly CultureInfo Culture = CultureInfo.GetCultureInfo("pl-PL");
+
+    private DateTime _now = DateTime.Now;
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _cts;
+
+    protected override void OnInitialized() {
+        _cts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = TickAsync(_timer, _cts.Token);
+    }
+
+    private async Task TickAsync(PeriodicTimer timer, CancellationToken ct) {
+        try {
+            while (await timer.WaitForNextTickAsync(ct)) {
+                _now = DateTime.Now;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) {
+        }
+    }
+
+    public ValueTask DisposeAsync() {
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _timer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

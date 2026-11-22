@@ -4,6 +4,7 @@
 @using MultiPlanerSharedModels.Contracts.Common
 @using MultiPlanerSharedModels.Contracts.Events
 @using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Dashboard
 @using MultiPlanerSharedUI.Components.Events
 @using MultiPlanerSharedUI.Components.Rooms
 @attribute [Authorize]
@@ -68,6 +69,9 @@
                     @if (_upcomingTotal > Take) {
                         <a class="dashboard-more" href="/events">+@(_upcomingTotal - Take) more</a>
                     }
+                </section>
+                <section class="dashboard-clock">
+                    <Clock />
                 </section>
             }
         </div>
