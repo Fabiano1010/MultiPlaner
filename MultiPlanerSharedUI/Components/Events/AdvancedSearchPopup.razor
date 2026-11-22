@@ -1,0 +1,96 @@
+﻿<Popup Title="Advanced search" IsVisible="IsVisible" OnClose="OnClose">
+    <form class="add-event-form" @onsubmit="Submit" @onsubmit:preventDefault>
+        <div class="form-row">
+            <div class="form-group">
+                <label>From</label>
+                <input type="date" class="input-main" @bind="_from"/>
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input type="date" class="input-main" @bind="_to"/>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Priority</label>
+                <select class="input-main" @bind="_priority">
+                    <option value="all">All priorities</option>
+                    <option value="high">High priority</option>
+                    <option value="normal">Normal priority</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Time</label>
+                <select class="input-main" @bind="_time">
+                    <option value="all">All</option>
+                    <option value="incoming">Incoming</option>
+                    <option value="outdated">Outdated</option>
+                </select>
+            </div>
+        </div>
+
+        <p class="settings-note">Leave the dates empty to use the default range.</p>
+
+        @if (!string.IsNullOrEmpty(_error)) {
+            <div class="form-error">@_error</div>
+        }
+
+        <div class="form-actions">
+            @if (Current is not null) {
+                <button type="button" class="btn-main btn-cancel" @onclick="OnClear">Clear search</button>
+            }
+            <button type="button" class="btn-main btn-cancel" @onclick="OnClose">Cancel</button>
+            <button type="submit" class="btn-main btn-save">Search</button>
+        </div>
+    </form>
+</Popup>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public AdvancedSearchFilter? Current { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<AdvancedSearchFilter> OnApply { get; set; }
+    [Parameter] public EventCallback OnClear { get; set; }
+
+    private const int MaxRangeDays = 400;
+
+    private DateOnly? _from, _to;
+    private string _priority = "all", _time = "all";
+    private bool _wasVisible;
+    private string? _error;
+
+    protected override void OnParametersSet() {
+        if (IsVisible && !_wasVisible) {
+            _from = Current?.From;
+            _to = Current?.To;
+            _priority = Current?.Priority ?? "all";
+            _time = Current?.Time ?? "all";
+            _error = null;
+        }
+
+        _wasVisible = IsVisible;
+    }
+
+    private async Task Submit() {
+        if (_from is null != _to is null) {
+            _error = "Set both dates or leave both empty.";
+            return;
+        }
+
+        if (_from is { } f && _to is { } t) {
+            if (t < f) {
+                _error = "End date must not be before start date.";
+                return;
+            }
+
+            if (t.DayNumber - f.DayNumber >= MaxRangeDays) {
+                _error = $"Range can be at most {MaxRangeDays} days.";
+                return;
+            }
+        }
+
+        _error = null;
+        await OnApply.InvokeAsync(new AdvancedSearchFilter(_from, _to, _priority, _time));
+    }
+}

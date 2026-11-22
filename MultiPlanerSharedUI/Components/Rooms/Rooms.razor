@@ -58,7 +58,8 @@
             <Room @key="room.Id" RoomData="room"
                   OnConflict="() => LoadRoomsAsync()"
                   OnFavouriteChanged="() => LoadRoomsAsync(true)"
-                  OnChanged="() => LoadRoomsAsync(true)"/>
+                  OnChanged="() => LoadRoomsAsync(true)"
+                  IsDashboard="false"/>
         }
     }
     else {

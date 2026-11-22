@@ -19,4 +19,12 @@ public sealed class CalendarEvent : TrackedEntity
     public string? Color { get; set; }
     public bool IsPinned { get; set; }
     public bool IsHighPriority { get; set; }
+    public RecurrenceFrequency Recurrence { get; set; }
+    public int RecurrenceInterval { get; set; } = 1;
+    public DateOnly? RecurrenceUntil { get; set; }
+}
+public sealed class EventOccurrenceException
+{
+    public int EventId { get; set; }
+    public DateOnly OccurrenceDate { get; set; }
 }

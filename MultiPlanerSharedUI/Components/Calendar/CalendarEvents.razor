@@ -11,7 +11,7 @@
         </button>
         <div class="events-controls-div">
             <div class="events-control-date">
-                Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd/MM/yyyy") : DateTime.Today.ToString("dd/MM/yyyy"))
+                Events @(SelectedDate.HasValue ? SelectedDate.Value.ToString("dd.MM.yyyy") : DateTime.Today.ToString("dd.MM.yyyy"))
             </div>
             <div class="events-buttons-container">
                 <button class="events-button @(IsAddingEvent ? "active" : "")"
@@ -41,7 +41,7 @@
                 else {
                     <div class="events-list">
                         @foreach (var ev in _dayEvents) {
-                            <div class="events-item @(ev.IsHighPriority ? "high" : "")" @key="ev.Id"
+                            <div class="events-item @(ev.IsHighPriority ? "high" : "")" @key="@($"{ev.Id}:{ev.OccurrenceDate:yyyy-MM-dd}")"
                                  style="border-left: 5px solid #@ev.Color; border-right: 5px solid #@ev.Color"
                                  @onclick="() => OpenDetails(ev)">
                                 <div class="events-item-details">
@@ -56,7 +56,7 @@
 
                                 @{ var span = EventDays.Span(ev); }
                                 <div class="events-item-date">
-                                    @span.StartDate.ToString("dd/MM/yyyy") - @span.EndDate.ToString("dd/MM/yyyy")
+                                    @span.StartDate.ToString("dd.MM.yyyy") - @span.EndDate.ToString("dd.MM.yyyy")
                                 </div>
                             </div>
                         }

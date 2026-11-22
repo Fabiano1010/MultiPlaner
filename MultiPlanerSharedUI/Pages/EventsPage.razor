@@ -25,22 +25,42 @@
 
             </div>
 
-            <select class="input-main" value="@_priority" @onchange="OnPriority">
-                <option value="all">All priorities</option>
-                <option value="high">High priority</option>
-                <option value="normal">Normal priority</option>
-            </select>
+            <label class="switch-row toolbar-switch" title="Show each recurring event only once">
+                <span class="switch">
+                    <input type="checkbox" role="switch" @bind="_collapse" @bind:after="OnCollapseChanged"/>
+                    <span class="switch-slider"></span>
+                </span>
+                <span>Recurring once</span>
+            </label>
 
-            <select class="input-main" value="@_time" @onchange="OnTime">
-                <option value="all">All</option>
-                <option value="incoming">Incoming</option>
-                <option value="outdated">Outdated</option>
-            </select>
+            <button type="button" class="btn-main action-button @(_adv is null ? "btn-cancel" : "btn-save") btn-adv-search"
+                    @onclick="() => _showAdvanced = true">
+                <img src="_content/MultiPlanerSharedUI/images/adjustments-horizontal.svg" alt="Advanced Search"
+                     class="action-button-img adv-search-img"/>
+            </button>
         </div>
         @if (!_loading) {
-            <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div>
-        }
+            <div class="my-events-count">
+                @_filtered.Count @(_filtered.Count == 1 ? "event" : "events")
+                @if (_adv is { } a) {
+                    @if (a.From is { } f && a.To is { } t) {
+                        <text> · @f.ToString("dd.MM.yyyy") – @t.ToString("dd.MM.yyyy")</text>
+                    }
 
+                    @if (a.Priority != "all") {
+                        <text> · @a.Priority priority</text>
+                    }
+
+                    @if (a.Time != "all") {
+                        <text> · @a.Time</text>
+                    }
+
+                    <button type="button" class="toggle-password adv-clear" title="Clear search"
+                            @onclick="ClearAdvancedAsync">✕
+                    </button>
+                }
+            </div>
+        }
     </div>
     <div class="my-events-content">
         @if (_loading) {
@@ -51,10 +71,8 @@
             <button type="button" class="btn-main btn-cancel" @onclick="() => LoadAsync()">Retry</button>
         }
         else {
-            @* <div class="my-events-count">@_filtered.Count @(_filtered.Count == 1 ? "event" : "events")</div> *@
-
             <EventsList Events="_pageItems"
-                        EmptyText="@(_all.Count == 0 ? "You have no events yet." : "No events match your filters.")"
+                        EmptyText="@(_all.Count == 0 ? (_adv is null ? "You have no events yet." : "No events in this range.") : "No events match your filters.")"
                         OnOpen="OpenDetails"
                         OnOpenCalendar="OpenCalendar"/>
 
@@ -71,30 +89,41 @@
             }
         }
     </div>
+
 </div>
+
+
 <EventDetails IsVisible="_showDetails"
               Event="_selected"
               RoomId="_roomId"
               OnClose="CloseDetails"
               OnChanged="() => LoadAsync(silent: true)"
 />
+<AdvancedSearchPopup IsVisible="_showAdvanced"
+                     Current="_adv"
+                     OnClose="() => _showAdvanced = false"
+                     OnApply="ApplyAdvancedAsync"
+                     OnClear="ClearAdvancedAsync"/>
 
 @code {
     private const int PageSize = 15;
-    private const int PastDays = 730, FutureDays = 730;
+    private const int PastDays = 90, FutureDays = 270;
     private const int FetchPageSize = 100;
 
     private List<EventResponse> _all = new();
     private List<EventResponse> _filtered = new();
     private List<EventResponse> _pageItems = new();
 
-    private string _search = "", _priority = "all", _time = "all";
+    private string _search = "";
+    private bool _collapse = true;
     private int _page = 1, _totalPages = 1;
     private bool _loading = true, _showDetails;
+    private bool _showAdvanced;
     private string? _error;
     private EventResponse? _selected;
     private CancellationTokenSource? _cts;
     private int _roomId;
+    private AdvancedSearchFilter? _adv;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -108,8 +137,10 @@
         _error = null;
 
         var now = DateTimeOffset.UtcNow;
-        var from = Uri.EscapeDataString(now.AddDays(-PastDays).ToString("O"));
-        var to = Uri.EscapeDataString(now.AddDays(FutureDays).ToString("O"));
+        var fromDt = _adv?.From is { } fd ? LocalMidnight(fd) : now.AddDays(-PastDays);
+        var toDt = _adv?.To is { } td ? LocalMidnight(td.AddDays(1)) : now.AddDays(FutureDays);
+        var from = Uri.EscapeDataString(fromDt.ToString("O"));
+        var to = Uri.EscapeDataString(toDt.ToString("O"));
 
         try {
             var all = new List<EventResponse>();
@@ -146,23 +177,28 @@
     private void Apply(bool resetPage = false) {
         var now = DateTimeOffset.UtcNow;
         var term = _search.Trim();
+        var priority = _adv?.Priority ?? "all";
+        var time = _adv?.Time ?? "all";
 
         IEnumerable<EventResponse> query = _all;
 
         if (term.Length > 0)
             query = query.Where(e => Contains(e.Title, term) || Contains(e.RoomName, term));
 
-        query = _priority switch {
+        query = priority switch {
             "high" => query.Where(e => e.IsHighPriority),
             "normal" => query.Where(e => !e.IsHighPriority),
             _ => query
         };
 
-        query = _time switch {
+        query = time switch {
             "incoming" => query.Where(e => e.EndsAtUtc > now),
             "outdated" => query.Where(e => e.EndsAtUtc <= now),
             _ => query
         };
+
+        if (_collapse)
+            query = query.OrderBy(e => e.StartsAtUtc).GroupBy(e => e.Id).Select(g => g.First());
 
         _filtered = query
             .OrderBy(e => e.EndsAtUtc <= now)
@@ -185,22 +221,14 @@
         Apply(resetPage: true);
     }
 
+    private void OnCollapseChanged() => Apply(resetPage: true);
+
     private void ApplySearchNow() {
         Apply(resetPage: true);
     }
 
     private void ClearSearch() {
         _search = "";
-        Apply(resetPage: true);
-    }
-
-    private void OnPriority(ChangeEventArgs e) {
-        _priority = e.Value?.ToString() ?? "all";
-        Apply(resetPage: true);
-    }
-
-    private void OnTime(ChangeEventArgs e) {
-        _time = e.Value?.ToString() ?? "all";
         Apply(resetPage: true);
     }
 
@@ -226,5 +254,22 @@
         _cts?.Cancel();
         _cts?.Dispose();
     }
+
+    private async Task ApplyAdvancedAsync(AdvancedSearchFilter filter) {
+        _showAdvanced = false;
+        _adv = filter;
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task ClearAdvancedAsync() {
+        _showAdvanced = false;
+        _adv = null;
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private static DateTimeOffset LocalMidnight(DateOnly d) =>
+        new(DateTime.SpecifyKind(d.ToDateTime(TimeOnly.MinValue), DateTimeKind.Local));
 
 }

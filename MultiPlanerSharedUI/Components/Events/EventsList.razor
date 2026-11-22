@@ -5,7 +5,7 @@
         <div class="my-events-empty">@EmptyText</div>
     }
     @foreach (var ev in Events) {
-        <Event @key="ev.Id" Data="ev" OnOpen="OnOpen" OnOpenCalendar="OnOpenCalendar" DashboarEvents="DashboarEvents"/>
+        <Event @key="@($"{ev.Id}:{ev.OccurrenceDate:yyyy-MM-dd}")" Data="ev" OnOpen="OnOpen" OnOpenCalendar="OnOpenCalendar" DashboarEvents="DashboarEvents"/>
     }
 </div>
 
