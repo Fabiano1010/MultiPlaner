@@ -6,7 +6,7 @@
 *.db
 *.db-shm
 *.db-wal
-
+**/MultiPlanerAPI/Migrations
 # User settings
 *.user
 .vs/
