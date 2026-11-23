@@ -83,6 +83,12 @@
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
 }
+.dashboard-clock {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+}
 
 .rooms-container-dashboard {
     display: flex;

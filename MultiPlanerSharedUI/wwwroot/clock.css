@@ -1,0 +1,26 @@
+.clock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 1rem 1.5rem;
+    border-radius: var(--border-radius);
+    background: var(--surface);
+    color: var(--surface-text);
+    border: 1px solid var(--accent);
+}
+
+.clock-time {
+    font-size: 3rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    font-variant-numeric: tabular-nums;
+    padding: 0 0.5rem;
+    min-width: 240px;
+}
+
+.clock-date {
+    font-size: var(--font-size-medium);
+    opacity: 0.8;
+}
