@@ -16,7 +16,7 @@
         @foreach (var o in Data.Options) {
             var pct = Percent(o);
             <label class="poll-option @(_selected.Contains(o.Id) ? "selected" : "")"
-                   style="--poll-color:#@o.Color">
+                   style="@(Data.IsClosed ? $"--poll-color:#{o.Color}" : "")">
                 <span class="poll-option-bar" style="width:@(pct)%"></span>
                 @if (Data.Permissions.CanVote) {
                     @if (Data.AllowMultiple) {
@@ -29,7 +29,9 @@
                     }
                 }
                 <span class="poll-option-text">@o.Text</span>
-                <span class="poll-option-count">@o.VoteCount · @pct%</span>
+                <span class="poll-option-count">
+                    @(Data.IsClosed ? $"{o.VoteCount} · {pct}%" : "")
+                </span>
             </label>
         }
     </div>
