@@ -6,10 +6,21 @@
      @onclick="() => OnOpen.InvokeAsync(Data)" @onkeydown="HandleKey">
     <div class="my-event-top">
         <h4 class="my-event-title">
-            @if (Data.IsHighPriority) {
-                <img src="_content/MultiPlanerSharedUI/images/alert-triangle.svg" alt="High Priority" class="high-priority-img"/>
+            @if (Data.IsHighPriority)
+            {
+                <img src="_content/MultiPlanerSharedUI/images/alert-triangle.svg"
+                     alt="High Priority"
+                     class="high-priority-img"/>
             }
-            @Data.Title
+            else {
+                <img src="_content/MultiPlanerSharedUI/images/info-circle.svg"
+                     alt="Normal Priority"
+                     class="normal-priority-img"/>
+            }
+
+            <span class="my-event-title-text">
+                @Data.Title
+            </span>
         </h4>
         <span class="my-event-status @(_past ? "ended" : "")">@_status</span>
     </div>
@@ -21,11 +32,13 @@
         <span>· @Data.EventTypeName</span>
         <span>· @Data.Author.DisplayName</span>
     </div>
+    @if (!CalendarEvents) {
+        <button type="button" class="my-event-open" @onclick="() => OnOpenCalendar.InvokeAsync(Data.RoomId)"
+         @onclick:stopPropagation>
+            Open calendar
+        </button>
+    }
 
-    <button type="button" class="my-event-open" @onclick="() => OnOpenCalendar.InvokeAsync(Data.RoomId)"
-            @onclick:stopPropagation>
-        Open calendar
-    </button>
 </div>
 
 @code {
@@ -33,6 +46,7 @@
     [Parameter] public EventCallback<EventResponse> OnOpen { get; set; }
     [Parameter] public EventCallback<int> OnOpenCalendar { get; set; }
     [Parameter] public bool DashboarEvents { get; set; } = false;
+    [Parameter] public bool CalendarEvents { get; set; } = false;
     
     private string _when = "", _status = "";
     private bool _past;

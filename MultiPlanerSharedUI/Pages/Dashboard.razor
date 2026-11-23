@@ -56,7 +56,7 @@
                 <section class="dashboard-ongoing-events">
                     <h3>Ongoing events</h3>
                     <EventsList Events="_ongoing" EmptyText="Nothing is happening right now."
-                                OnOpen="OpenDetails" OnOpenCalendar="OpenCalendar" DashboarEvents="true"/>
+                                OnOpen="OpenDetails" OnOpenCalendar="OpenCalendar" DashboarEvents=true/>
                     @if (_ongoingTotal > Take) {
                         <a class="dashboard-more" href="/events">+@(_ongoingTotal - Take) more</a>
                     }

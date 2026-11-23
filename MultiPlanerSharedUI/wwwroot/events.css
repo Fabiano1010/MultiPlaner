@@ -79,6 +79,10 @@
     opacity: 0.9;
     cursor: pointer;
     transition: 0.2s ease-in-out;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 105px;
 }
 
 .my-event:hover {
@@ -93,22 +97,27 @@
 
 .my-event-top {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
     gap: 0.5rem;
-    align-items: baseline;
+    width: 100%;
+    min-width: 0;
 }
 
 .my-event-title {
-    margin: 0;
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
 }
 
 .my-event-status {
+    flex-shrink: 0;
+    white-space: nowrap;
     font-size: var(--font-size-small);
     font-weight: 600;
-    white-space: nowrap;
 }
 
 .my-event-status.ended {
@@ -150,6 +159,12 @@
     height: 2rem;
     margin-right: 0.3rem;
     filter: drop-shadow(0 0 3px red);
+}
+.normal-priority-img {
+    width: 2rem;
+    height: 2rem;
+    margin-right: 0.3rem;
+    opacity: 0.9;
 }
 
 .adv-clear {
@@ -233,6 +248,18 @@
 .switch input:focus-visible + .switch-slider {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+}
+
+.calendar-events{
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: start;
+    gap: 0.25rem;
+    width: 100%;
+    height: auto;
+    overflow-y: auto;
+    padding: 10px 5px 5px;
+    box-sizing: border-box;
 }
 
 @media (max-width: 768px) {

@@ -345,6 +345,9 @@
 .sidebar .nav-item:hover .nav-item-img {
     filter: var(--icon-filter, brightness(0));
 }
+.normal-priority-img{
+    filter: var(--icon-filter, brightness(0));  
+}
 
 .mobile-nav-banner {
     display: block;
