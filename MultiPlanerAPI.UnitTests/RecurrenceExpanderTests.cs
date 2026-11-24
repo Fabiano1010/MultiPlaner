@@ -57,7 +57,8 @@ public sealed class RecurrenceExpanderTests
         Assert.Equal(3, occurrences.Count);
         var dstDay = occurrences[1];
         Assert.Equal(new DateOnly(2026, 3, 29), dstDay.Date);
-        Assert.Equal(new DateTimeOffset(2026, 3, 29, 3, 45, 0, TimeSpan.FromHours(2)).ToUniversalTime(), dstDay.StartsAtUtc);
+        Assert.Equal(new DateTimeOffset(2026, 3, 29, 3, 45, 0, TimeSpan.FromHours(2)).ToUniversalTime(),
+            dstDay.StartsAtUtc);
         Assert.Equal(TimeSpan.FromMinutes(30), dstDay.EndsAtUtc - dstDay.StartsAtUtc);
         Assert.True(dstDay.EndsAtUtc > dstDay.StartsAtUtc);
     }
@@ -83,7 +84,8 @@ public sealed class RecurrenceExpanderTests
         Assert.Equal(2, occurrences.Count);
         var dstDay = occurrences[1];
         // 02:15 shifted by +30 min = 02:45 UTC+11:00.
-        Assert.Equal(new DateTimeOffset(2026, 10, 4, 2, 45, 0, TimeSpan.FromHours(11)).ToUniversalTime(), dstDay.StartsAtUtc);
+        Assert.Equal(new DateTimeOffset(2026, 10, 4, 2, 45, 0, TimeSpan.FromHours(11)).ToUniversalTime(),
+            dstDay.StartsAtUtc);
         Assert.Equal(TimeSpan.FromMinutes(30), dstDay.EndsAtUtc - dstDay.StartsAtUtc);
     }
 
