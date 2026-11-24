@@ -48,45 +48,16 @@ var certPath = builder.Configuration["DataProtection:CertificatePath"];
 if (!string.IsNullOrWhiteSpace(certPath))
 {
     var certPassword = builder.Configuration["DataProtection:CertificatePassword"];
-    var primaryCert = X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword);
-    if (!primaryCert.HasPrivateKey)
+    dataProtection.ProtectKeysWithCertificate(LoadPrivateKeyCert(certPath, certPassword, dpCertificates));
+
+    var extraPaths = builder.Configuration.GetSection("DataProtection:DecryptionCertificatePaths").Get<string[]>() ?? [];
+    var decryptionCerts = extraPaths
+        .Where(p => !string.IsNullOrWhiteSpace(p))
+        .Select(p => LoadPrivateKeyCert(p, certPassword, dpCertificates))
+        .ToArray();
+    if (decryptionCerts.Length > 0)
     {
-        primaryCert.Dispose();
-        throw new InvalidOperationException("DataProtection certificate must contain a private key.");
-    }
-
-    dpCertificates.Add(primaryCert);
-    dataProtection.ProtectKeysWithCertificate(primaryCert);
-
-    var decryptionCerts = new List<X509Certificate2>();
-    foreach (var extraPath in builder.Configuration.GetSection("DataProtection:DecryptionCertificatePaths")
-                 .Get<string[]>() ?? [])
-    {
-        if (string.IsNullOrWhiteSpace(extraPath))
-        {
-            continue;
-        }
-
-        var extraCert = X509CertificateLoader.LoadPkcs12FromFile(extraPath, certPassword);
-        if (!extraCert.HasPrivateKey)
-        {
-            extraCert.Dispose();
-            foreach (var loaded in dpCertificates)
-            {
-                loaded.Dispose();
-            }
-
-            throw new InvalidOperationException(
-                $"DataProtection decryption certificate '{extraPath}' must contain a private key.");
-        }
-
-        dpCertificates.Add(extraCert);
-        decryptionCerts.Add(extraCert);
-    }
-
-    if (decryptionCerts.Count > 0)
-    {
-        dataProtection.UnprotectKeysWithAnyCertificate([..decryptionCerts]);
+        dataProtection.UnprotectKeysWithAnyCertificate(decryptionCerts);
     }
 }
 else if (!builder.Environment.IsDevelopment())
@@ -244,5 +215,22 @@ app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+
+static X509Certificate2 LoadPrivateKeyCert(string path, string? password, List<X509Certificate2> tracked)
+{
+    var cert = X509CertificateLoader.LoadPkcs12FromFile(path, password);
+    if (!cert.HasPrivateKey)
+    {
+        cert.Dispose();
+        foreach (var loaded in tracked)
+        {
+            loaded.Dispose();
+        }
+        throw new InvalidOperationException($"DataProtection certificate '{path}' must contain a private key.");
+    }
+
+    tracked.Add(cert);
+    return cert;
+}
 
 public partial class Program;

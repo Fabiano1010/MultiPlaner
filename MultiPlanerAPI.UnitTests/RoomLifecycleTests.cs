@@ -41,12 +41,4 @@ public sealed class RoomLifecycleTests
         var room = new Room { ArchiveOnExpiry = true, ExpiresAtUtc = Expiry, ArchivedAtUtc = archived };
         Assert.Equal(archived, room.GetArchivedAtUtc(Expiry.AddDays(10)));
     }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow()
-        {
-            return now;
-        }
-    }
 }

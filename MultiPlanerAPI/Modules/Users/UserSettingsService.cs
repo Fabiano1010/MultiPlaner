@@ -12,25 +12,20 @@ public sealed class UserSettingsService(
     CurrentActor actor,
     TimeProvider clock)
 {
-    private static SavedThemeResponse BuiltIn(int id)
+    private static SavedThemeResponse BuiltIn(int id) => id switch
     {
-        return id switch
-        {
-            -1 => new SavedThemeResponse(-1, "Default", new ThemePalette(), [], true),
-            -2 => new SavedThemeResponse(-2, "Dark",
-                new ThemePalette
-                    { Background = "#161616", Surface = "#303030", Accent = "#A78BFA", Border = "#666666" }, [],
-                true),
-            _ => throw new ApiException(404, "theme_not_found", "Theme not found.")
-        };
-    }
+        -1 => new SavedThemeResponse(-1, "Default", new ThemePalette(), [], true),
+        -2 => new SavedThemeResponse(-2, "Dark",
+            new ThemePalette { Background = "#161616", Surface = "#303030", Accent = "#A78BFA", Border = "#666666" },
+            [], true),
+        _ => throw new ApiException(404, "theme_not_found", "Theme not found.")
+    };
 
     public async Task<ThemeResponse> GetAsync(CancellationToken ct)
     {
         var id = actor.RequireUserId();
         var value = await db.UserThemes.AsNoTracking().SingleOrDefaultAsync(t => t.UserId == id, ct);
-        return new ThemeResponse(value?.Palette ?? new ThemePalette(), value?.RowVersion ?? [],
-            value?.ActiveThemeId ?? -1);
+        return new ThemeResponse(value?.Palette ?? new ThemePalette(), value?.RowVersion ?? [], value?.ActiveThemeId ?? -1);
     }
 
     public async Task<IReadOnlyList<SavedThemeResponse>> ListAsync(CancellationToken ct)
@@ -63,29 +58,24 @@ public sealed class UserSettingsService(
             var name = request.Name.Trim();
             if (name.Length == 0)
             {
-                throw ApiException.Validation(new Dictionary<string, string[]>
-                    { ["name"] = ["Name cannot be blank."] });
+                throw ApiException.Validation(new Dictionary<string, string[]> { ["name"] = ["Name cannot be blank."] });
             }
 
             SavedTheme theme;
-            if (themeId == null)
+            if (themeId is { } id)
+            {
+                theme = await Find(context, userId, id, ct);
+                Check(theme.RowVersion, request.RowVersion);
+                context.Entry(theme).Property(t => t.UpdatedAtUtc).IsModified = true;
+            }
+            else
             {
                 theme = new SavedTheme { UserId = userId };
                 context.SavedThemes.Add(theme);
             }
-            else
-            {
-                theme = await Find(context, userId, themeId.Value, ct);
-                Check(theme.RowVersion, request.RowVersion);
-            }
 
             theme.Name = name;
             theme.Palette = request.Palette with { };
-            if (themeId != null)
-            {
-                context.Entry(theme).Property(t => t.UpdatedAtUtc).IsModified = true;
-            }
-
             await context.SaveChangesAsync(ct);
             return Map(theme);
         }, ct);
@@ -109,19 +99,18 @@ public sealed class UserSettingsService(
 
             var active = await context.UserThemes.SingleOrDefaultAsync(t => t.UserId == userId, ct);
             Check(active?.RowVersion ?? [], request.ActiveRowVersion);
-            if (active == null)
+            if (active is null)
             {
                 active = new UserTheme { UserId = userId };
                 context.UserThemes.Add(active);
             }
-
-            active.ActiveThemeId = chosen.Id;
-            active.Palette = chosen.Palette with { };
-            if (active.RowVersion.Length > 0)
+            else
             {
                 context.Entry(active).Property(t => t.UpdatedAtUtc).IsModified = true;
             }
 
+            active.ActiveThemeId = chosen.Id;
+            active.Palette = chosen.Palette with { };
             await context.SaveChangesAsync(ct);
             return new ThemeResponse(active.Palette, active.RowVersion, active.ActiveThemeId);
         }, ct);
@@ -146,11 +135,9 @@ public sealed class UserSettingsService(
         }, ct);
     }
 
-    private static async Task<SavedTheme> Find(AppDbContext context, int userId, int id, CancellationToken ct)
-    {
-        return await context.SavedThemes.SingleOrDefaultAsync(t => t.Id == id && t.UserId == userId, ct)
-               ?? throw new ApiException(404, "theme_not_found", "Theme not found or is protected.");
-    }
+    private static async Task<SavedTheme> Find(AppDbContext context, int userId, int id, CancellationToken ct) =>
+        await context.SavedThemes.SingleOrDefaultAsync(t => t.Id == id && t.UserId == userId, ct)
+        ?? throw new ApiException(404, "theme_not_found", "Theme not found or is protected.");
 
     private static void Check(byte[] actual, byte[] expected)
     {
@@ -160,8 +147,5 @@ public sealed class UserSettingsService(
         }
     }
 
-    private static SavedThemeResponse Map(SavedTheme t)
-    {
-        return new SavedThemeResponse(t.Id, t.Name, t.Palette, t.RowVersion);
-    }
+    private static SavedThemeResponse Map(SavedTheme t) => new(t.Id, t.Name, t.Palette, t.RowVersion);
 }

@@ -62,36 +62,4 @@ public sealed class ApiExceptionHandlerTests
         Assert.Equal("internal_error", problems.Last?.ProblemDetails.Extensions["code"]);
         Assert.Single(logger.Errors);
     }
-
-    private sealed class CapturingProblemDetailsService : IProblemDetailsService
-    {
-        public ProblemDetailsContext? Last { get; private set; }
-
-        public ValueTask WriteAsync(ProblemDetailsContext context)
-        {
-            Last = context;
-            return ValueTask.CompletedTask;
-        }
-    }
-
-    private sealed class CapturingLogger<T> : ILogger<T>
-    {
-        public List<string> Errors { get; } = [];
-
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-        {
-            return null;
-        }
-
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            if (logLevel >= LogLevel.Error) Errors.Add(formatter(state, exception));
-        }
-    }
 }

@@ -62,14 +62,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
         var now = timeProvider.GetUtcNow();
         foreach (var entry in ChangeTracker.Entries<ITimestamped>())
         {
-            if (entry.State == EntityState.Added)
+            switch (entry.State)
             {
-                entry.Entity.CreatedAtUtc = entry.Entity.UpdatedAtUtc = now;
-            }
-            else if (entry.State == EntityState.Modified)
-            {
-                entry.Property(nameof(ITimestamped.CreatedAtUtc)).IsModified = false;
-                entry.Entity.UpdatedAtUtc = now;
+                case EntityState.Added:
+                    entry.Entity.CreatedAtUtc = entry.Entity.UpdatedAtUtc = now;
+                    break;
+                case EntityState.Modified:
+                    entry.Property(nameof(ITimestamped.CreatedAtUtc)).IsModified = false;
+                    entry.Entity.UpdatedAtUtc = now;
+                    break;
             }
         }
     }

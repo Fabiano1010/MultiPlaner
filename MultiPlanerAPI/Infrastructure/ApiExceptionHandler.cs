@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MultiPlanerAPI.Infrastructure;
@@ -7,51 +8,43 @@ namespace MultiPlanerAPI.Infrastructure;
 public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger<ApiExceptionHandler> logger)
     : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception,
-        CancellationToken cancellationToken)
+    public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken ct)
     {
-        if (exception is OperationCanceledException && cancellationToken.IsCancellationRequested)
+        if (exception is OperationCanceledException && ct.IsCancellationRequested)
         {
             return false;
         }
 
-        var apiError = exception as ApiException;
-        var badRequest = exception as BadHttpRequestException;
-        var status = apiError?.StatusCode
-                     ?? (badRequest is not null
-                         ? badRequest.StatusCode is >= 400 and < 500
-                             ? badRequest.StatusCode
-                             : StatusCodes.Status400BadRequest
-                         : exception is DbUpdateConcurrencyException
-                             ? StatusCodes.Status409Conflict
-                             : StatusCodes.Status500InternalServerError);
+        var (status, code, message, errors) = MapException(exception);
         if (status == StatusCodes.Status500InternalServerError)
         {
             logger.LogError(exception, "Unhandled API error. TraceId: {TraceId}", context.TraceIdentifier);
         }
 
-        var detail = apiError?.Errors is { } errors
-            ? new ValidationProblemDetails(errors)
-            : new ProblemDetails();
+        var detail = errors is not null ? new ValidationProblemDetails(errors) : new ProblemDetails();
         detail.Status = status;
-        detail.Title = Microsoft.AspNetCore.WebUtilities.ReasonPhrases.GetReasonPhrase(status);
-        detail.Detail = apiError?.Message ?? status switch
-        {
-            StatusCodes.Status409Conflict => "The resource changed. Reload it and retry.",
-            StatusCodes.Status413PayloadTooLarge =>
-                "The uploaded file or request body exceeds the maximum allowed size.",
-            >= 400 and < 500 when badRequest is not null => "The HTTP request is invalid.",
-            _ => "An unexpected server error occurred."
-        };
-        detail.Extensions["code"] = apiError?.Code ?? status switch
-        {
-            StatusCodes.Status409Conflict => "concurrency_conflict",
-            StatusCodes.Status413PayloadTooLarge => "payload_too_large",
-            >= 400 and < 500 when badRequest is not null => "bad_request",
-            _ => "internal_error"
-        };
+        detail.Title = ReasonPhrases.GetReasonPhrase(status);
+        detail.Detail = message;
+        detail.Extensions["code"] = code;
+
         context.Response.StatusCode = status;
         await problems.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = detail });
         return true;
     }
+
+    private static (int Status, string Code, string Message, IDictionary<string, string[]>? Errors) MapException(
+        Exception ex) => ex switch
+    {
+        ApiException api => (api.StatusCode, api.Code, api.Message, api.Errors),
+        BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } =>
+            (StatusCodes.Status413PayloadTooLarge, "payload_too_large",
+                "The uploaded file or request body exceeds the maximum allowed size.", null),
+        BadHttpRequestException { StatusCode: >= 400 and < 500 } bad =>
+            (bad.StatusCode, "bad_request", "The HTTP request is invalid.", null),
+        BadHttpRequestException =>
+            (StatusCodes.Status400BadRequest, "bad_request", "The HTTP request is invalid.", null),
+        DbUpdateConcurrencyException =>
+            (StatusCodes.Status409Conflict, "concurrency_conflict", "The resource changed. Reload it and retry.", null),
+        _ => (StatusCodes.Status500InternalServerError, "internal_error", "An unexpected server error occurred.", null)
+    };
 }

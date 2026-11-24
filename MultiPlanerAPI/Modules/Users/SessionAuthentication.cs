@@ -103,16 +103,6 @@ public static class SessionAuthentication
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.Path = "/";
         options.SlidingExpiration = false;
-        options.Events.OnRedirectToLogin = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        };
-        options.Events.OnRedirectToAccessDenied = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        };
     }
 }
 
