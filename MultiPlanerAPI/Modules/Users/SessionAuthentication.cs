@@ -131,24 +131,28 @@ public sealed class UserCookieEvents(
         var userIdValue = context.Principal?.FindFirst(claimsIdentity.UserIdClaimType)?.Value;
         var cookieStamp = context.Principal?.FindFirst(claimsIdentity.SecurityStampClaimType)?.Value;
 
-        if (int.TryParse(userIdValue, out var userId) && !string.IsNullOrEmpty(cookieStamp))
+        if (!int.TryParse(userIdValue, out var userId) || string.IsNullOrEmpty(cookieStamp))
         {
-            if (!cache.TryGetSecurityStamp(userId, out var currentStamp))
-            {
-                currentStamp = await db.Users.AsNoTracking()
-                    .Where(u => u.Id == userId)
-                    .Select(u => u.SecurityStamp)
-                    .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
-                cache.SetSecurityStamp(userId, currentStamp);
-            }
-
-            if (!string.IsNullOrEmpty(currentStamp) &&
-                string.Equals(currentStamp, cookieStamp, StringComparison.Ordinal))
-            {
-                return;
-            }
+            await RejectAsync(context);
+            return;
         }
 
+        var currentStamp = await cache.GetOrLoadSecurityStampAsync(
+            userId,
+            async ct => await db.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => u.SecurityStamp)
+                .SingleOrDefaultAsync(ct),
+            context.HttpContext.RequestAborted);
+
+        if (string.IsNullOrEmpty(currentStamp) || !string.Equals(currentStamp, cookieStamp, StringComparison.Ordinal))
+        {
+            await RejectAsync(context);
+        }
+    }
+
+    private static async Task RejectAsync(CookieValidatePrincipalContext context)
+    {
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
     }
@@ -174,23 +178,28 @@ public sealed class GuestCookieEvents(
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
         var claim = context.Principal?.FindFirst(SessionAuthentication.GuestIdClaim)?.Value;
-        if (Guid.TryParse(claim, out var id))
+        if (!Guid.TryParse(claim, out var id))
         {
-            if (!cache.TryGetGuestExpiry(id, out var expiresAtUtc))
-            {
-                expiresAtUtc = await db.GuestSessions.AsNoTracking()
-                    .Where(s => s.Id == id && s.RevokedAtUtc == null)
-                    .Select(s => (DateTimeOffset?)s.ExpiresAtUtc)
-                    .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
-                cache.SetGuestExpiry(id, expiresAtUtc);
-            }
-
-            if (expiresAtUtc is { } expiry && expiry > clock.GetUtcNow())
-            {
-                return;
-            }
+            await RejectAsync(context);
+            return;
         }
 
+        var expiresAtUtc = await cache.GetOrLoadGuestExpiryAsync(
+            id,
+            async ct => await db.GuestSessions.AsNoTracking()
+                .Where(s => s.Id == id && s.RevokedAtUtc == null)
+                .Select(s => (DateTimeOffset?)s.ExpiresAtUtc)
+                .SingleOrDefaultAsync(ct),
+            context.HttpContext.RequestAborted);
+
+        if (expiresAtUtc is not { } expiry || expiry <= clock.GetUtcNow())
+        {
+            await RejectAsync(context);
+        }
+    }
+
+    private static async Task RejectAsync(CookieValidatePrincipalContext context)
+    {
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(SessionAuthentication.GuestScheme);
     }

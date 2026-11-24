@@ -64,6 +64,6 @@ public sealed class GuestSessionService(
             .ExecuteUpdateAsync(update => update
                 .SetProperty(s => s.RevokedAtUtc, now)
                 .SetProperty(s => s.UpdatedAtUtc, now), cancellationToken);
-        sessionCache.InvalidateGuest(sessionId);
+        await sessionCache.InvalidateGuestAsync(sessionId, cancellationToken);
     }
 }

@@ -131,7 +131,7 @@ public sealed class UserService(
         var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
         if (result.Succeeded)
         {
-            sessionCache.InvalidateUser(user.Id);
+            await sessionCache.InvalidateUserAsync(user.Id, user.SecurityStamp, cancellationToken);
             return;
         }
 
@@ -160,7 +160,7 @@ public sealed class UserService(
         {
             var user = await db.Users.SingleAsync(u => u.Id == userId, cancellationToken);
             EnsureSuccess(await users.UpdateSecurityStampAsync(user));
-            sessionCache.InvalidateUser(userId);
+            await sessionCache.InvalidateUserAsync(userId, user.SecurityStamp, cancellationToken);
         }
 
         if (actor.GuestSessionId is { } guestId)
@@ -237,7 +237,7 @@ public sealed class UserService(
         var id = actor.RequireUserId();
         var user = await db.Users.SingleAsync(u => u.Id == id, ct);
         EnsureSuccess(await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword));
-        sessionCache.InvalidateUser(id);
+        await sessionCache.InvalidateUserAsync(id, user.SecurityStamp, ct);
         await signIn.RefreshSignInAsync(user);
     }
 
