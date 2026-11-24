@@ -470,4 +470,69 @@ public sealed class StageFourTests(ApiFixture fixture)
             $"{Events(room.Id)}?from=2026-01-01T00:00:00Z&to=2028-01-01T00:00:00Z"));
         Assert.NotEmpty(wideList.Items);
     }
+
+    [Fact]
+    public async Task MergeSortAndPaginationInterleaveSingleAndRecurringEventsChronologically()
+    {
+        var (owner, _, _) = await fixture.RegisterAndLoginAsync();
+        using var client = owner;
+        var room = await Room(owner);
+        var types = (await owner.GetFromJsonAsync<List<EventTypeResponse>>($"/api/rooms/{room.Id}/event-types"))!;
+        var typeId = types[0].Id;
+
+        // Create in reverse time-of-day order so Id order opposes StartsAtUtc order
+        await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
+        {
+            Title = "Series Late",
+            EventTypeId = typeId,
+            Time = new EventTimeRequest { StartsAtUtc = Start.AddHours(4), EndsAtUtc = Start.AddHours(5) },
+            Recurrence = new RecurrenceRequest { Frequency = RecurrenceFrequency.Daily, Interval = 1 }
+        }), HttpStatusCode.Created);
+
+        await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
+        {
+            Title = "Single Middle",
+            EventTypeId = typeId,
+            Time = new EventTimeRequest { StartsAtUtc = Start.AddHours(3), EndsAtUtc = Start.AddHours(3.5) }
+        }), HttpStatusCode.Created);
+
+        await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
+        {
+            Title = "Single Early",
+            EventTypeId = typeId,
+            Time = new EventTimeRequest { StartsAtUtc = Start.AddHours(2), EndsAtUtc = Start.AddHours(2.5) }
+        }), HttpStatusCode.Created);
+
+        await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
+        {
+            Title = "Series Earliest",
+            EventTypeId = typeId,
+            Time = new EventTimeRequest { StartsAtUtc = Start.AddHours(1), EndsAtUtc = Start.AddHours(1.5) },
+            Recurrence = new RecurrenceRequest { Frequency = RecurrenceFrequency.Daily, Interval = 1 }
+        }), HttpStatusCode.Created);
+
+        var from = Start.AddHours(-1).ToString("O");
+        var to = Start.AddDays(2).ToString("O");
+        var full = await Read<PagedResponse<EventResponse>>(
+            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=1&pageSize=100"));
+
+        Assert.Equal(6, full.Items.Count);
+        for (var i = 1; i < full.Items.Count; i++)
+        {
+            var prev = full.Items[i - 1];
+            var curr = full.Items[i];
+            Assert.True(prev.StartsAtUtc < curr.StartsAtUtc ||
+                        (prev.StartsAtUtc == curr.StartsAtUtc && prev.Id <= curr.Id));
+        }
+
+        var page1 = await Read<PagedResponse<EventResponse>>(
+            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=1&pageSize=2"));
+        var page2 = await Read<PagedResponse<EventResponse>>(
+            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=2&pageSize=2"));
+        var page3 = await Read<PagedResponse<EventResponse>>(
+            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=3&pageSize=2"));
+
+        var paged = page1.Items.Concat(page2.Items).Concat(page3.Items).ToList();
+        Assert.Equal(full.Items.Select(x => (x.Id, x.StartsAtUtc)), paged.Select(x => (x.Id, x.StartsAtUtc)));
+    }
 }

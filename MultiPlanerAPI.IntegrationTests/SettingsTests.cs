@@ -395,6 +395,8 @@ public sealed class SettingsTests(ApiFixture fixture)
         var tempDir = Path.Combine(Path.GetTempPath(), $"mp-dp-{Guid.NewGuid():N}");
         var keysDir = Path.Combine(tempDir, "keys");
         var pfxPath = Path.Combine(tempDir, "dp.pfx");
+        var noKeyPfxPath = Path.Combine(tempDir, "dp-nokey.pfx");
+        var pfx2Path = Path.Combine(tempDir, "dp2.pfx");
         const string pfxPassword = "TestCertPassword!1";
         Directory.CreateDirectory(tempDir);
 
@@ -407,6 +409,17 @@ public sealed class SettingsTests(ApiFixture fixture)
                 using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1),
                     DateTimeOffset.UtcNow.AddDays(30));
                 File.WriteAllBytes(pfxPath, cert.Export(X509ContentType.Pfx, pfxPassword));
+                using var publicOnlyCert = X509CertificateLoader.LoadCertificate(cert.Export(X509ContentType.Cert));
+                File.WriteAllBytes(noKeyPfxPath, publicOnlyCert.Export(X509ContentType.Pfx, pfxPassword));
+            }
+
+            using (var rsa2 = RSA.Create(2048))
+            {
+                var req2 = new CertificateRequest("CN=MultiPlanerTest2", rsa2, HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1);
+                using var cert2 = req2.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1),
+                    DateTimeOffset.UtcNow.AddDays(30));
+                File.WriteAllBytes(pfx2Path, cert2.Export(X509ContentType.Pfx, pfxPassword));
             }
 
             // 1. Fail-fast in Production without CertificatePath
@@ -422,8 +435,24 @@ public sealed class SettingsTests(ApiFixture fixture)
                 _ = unconfigured.Services;
             });
 
-            // 2. With CertificatePath in Production, generated key XML is encrypted at rest
-            using var configured = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+            // 2. Fail-fast when certificate does not include a private key
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                using var publicOnly = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+                {
+                    b.UseEnvironment("Production");
+                    b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                    b.UseSetting("DataProtection:KeysPath", keysDir);
+                    b.UseSetting("DataProtection:CertificatePath", noKeyPfxPath);
+                    b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                    b.UseSetting("RoomArchival:Enabled", "false");
+                });
+                _ = publicOnly.Services;
+            });
+
+            // 3. With CertificatePath in Production, generated key XML is encrypted at rest
+            string payload;
+            using (var configured = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
             {
                 b.UseEnvironment("Production");
                 b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
@@ -431,16 +460,49 @@ public sealed class SettingsTests(ApiFixture fixture)
                 b.UseSetting("DataProtection:CertificatePath", pfxPath);
                 b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
                 b.UseSetting("RoomArchival:Enabled", "false");
-            });
-            var protector = configured.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
-            var payload = protector.Protect("secret");
-            Assert.Equal("secret", protector.Unprotect(payload));
+            }))
+            {
+                var protector = configured.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
+                payload = protector.Protect("secret");
+                Assert.Equal("secret", protector.Unprotect(payload));
+            }
 
             var keyFiles = Directory.GetFiles(keysDir, "key-*.xml");
             Assert.NotEmpty(keyFiles);
             var xml = File.ReadAllText(keyFiles[0]);
             Assert.Contains("encryptedKey", xml, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("in an unencrypted form", xml, StringComparison.OrdinalIgnoreCase);
+
+            // 4. Restart with same cert unprotects previously protected payload
+            using (var restarted = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+            {
+                b.UseEnvironment("Production");
+                b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                b.UseSetting("DataProtection:KeysPath", keysDir);
+                b.UseSetting("DataProtection:CertificatePath", pfxPath);
+                b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                b.UseSetting("RoomArchival:Enabled", "false");
+            }))
+            {
+                var protector = restarted.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
+                Assert.Equal("secret", protector.Unprotect(payload));
+            }
+
+            // 5. Rotating to a new cert keeps old keys readable via DecryptionCertificatePaths
+            using (var rotated = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+            {
+                b.UseEnvironment("Production");
+                b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                b.UseSetting("DataProtection:KeysPath", keysDir);
+                b.UseSetting("DataProtection:CertificatePath", pfx2Path);
+                b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                b.UseSetting("DataProtection:DecryptionCertificatePaths:0", pfxPath);
+                b.UseSetting("RoomArchival:Enabled", "false");
+            }))
+            {
+                var protector = rotated.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
+                Assert.Equal("secret", protector.Unprotect(payload));
+            }
         }
         finally
         {
