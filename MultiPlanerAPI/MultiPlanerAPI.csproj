@@ -28,6 +28,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="MultiPlanerAPI.UnitTests"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\MultiPlanerSharedModels\MultiPlanerSharedModels.csproj"/>
     </ItemGroup>
 

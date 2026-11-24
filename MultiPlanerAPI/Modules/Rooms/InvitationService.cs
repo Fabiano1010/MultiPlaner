@@ -10,6 +10,7 @@ namespace MultiPlanerAPI.Modules.Rooms;
 public sealed class InvitationService(
     AppDbContext db,
     DbContextOptions<AppDbContext> dbOptions,
+    RoomMutationService mutations,
     CurrentActor actor,
     GuestSessionService guests,
     TimeProvider clock,
@@ -58,8 +59,7 @@ public sealed class InvitationService(
         await using var operationDb = new AppDbContext(dbOptions, clock);
         await using var transaction = await operationDb.Database.BeginTransactionAsync(cancellationToken);
         var issuedAt = clock.GetUtcNow();
-        await LockRoomAsync(operationDb, roomId, userId, issuedAt, cancellationToken);
-        var lockedRoom = await operationDb.Rooms.SingleAsync(r => r.Id == roomId, cancellationToken);
+        var lockedRoom = await LockRoomAsync(operationDb, roomId, cancellationToken);
         if (expiry > lockedRoom.ExpiresAtUtc)
         {
             throw new ApiException(409, "room_changed", "Room expiry changed. Reload and retry.");
@@ -97,14 +97,14 @@ public sealed class InvitationService(
                 .SetProperty(i => i.UpdatedAtUtc, issuedAt), cancellationToken);
     }
 
-    /// <summary>Serializes concurrent invitation rotations by updating the owning room.</summary>
-    private async Task LockRoomAsync(AppDbContext operationDb, int roomId, int userId,
-        DateTimeOffset issuedAt, CancellationToken cancellationToken)
+    /// <summary>Serializes concurrent invitation rotations by locking the owning room.</summary>
+    private async Task<Room> LockRoomAsync(AppDbContext operationDb, int roomId, CancellationToken cancellationToken)
     {
         var room = await RoomMutationService.LockAsync(operationDb, roomId, cancellationToken);
         var roomAccess = new RoomAccessService(operationDb, actor, clock);
-        await roomAccess.RequireManagerAsync(roomId, cancellationToken);
+        await roomAccess.RequireManagerAsync(room, cancellationToken);
         roomAccess.RequireActive(room);
+        return room;
     }
 
     public async Task<InvitationPreviewResponse> PreviewAsync(string token, CancellationToken cancellationToken)
@@ -240,10 +240,10 @@ public sealed class InvitationService(
 
     public Task RevokeAsync(int roomId, Guid invitationId, CancellationToken ct)
     {
-        return new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var roomAccess = new RoomAccessService(context, actor, clock);
-            await roomAccess.RequireManagerAsync(roomId, ct);
+            await roomAccess.RequireManagerAsync(room, ct);
             roomAccess.RequireActive(room);
             var invitation =
                 await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)

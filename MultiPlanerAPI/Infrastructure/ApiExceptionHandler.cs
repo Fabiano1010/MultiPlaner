@@ -16,10 +16,15 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger
         }
 
         var apiError = exception as ApiException;
-        var status = apiError?.StatusCode ??
-                     (exception is DbUpdateConcurrencyException
-                         ? StatusCodes.Status409Conflict
-                         : StatusCodes.Status500InternalServerError);
+        var badRequest = exception as BadHttpRequestException;
+        var status = apiError?.StatusCode
+                     ?? (badRequest is not null
+                         ? (badRequest.StatusCode is >= 400 and < 500
+                             ? badRequest.StatusCode
+                             : StatusCodes.Status400BadRequest)
+                         : exception is DbUpdateConcurrencyException
+                             ? StatusCodes.Status409Conflict
+                             : StatusCodes.Status500InternalServerError);
         if (status == StatusCodes.Status500InternalServerError)
         {
             logger.LogError(exception, "Unhandled API error. TraceId: {TraceId}", context.TraceIdentifier);
@@ -30,10 +35,20 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger
             : new ProblemDetails();
         detail.Status = status;
         detail.Title = Microsoft.AspNetCore.WebUtilities.ReasonPhrases.GetReasonPhrase(status);
-        detail.Detail = apiError?.Message ?? (status == 409
-            ? "The resource changed. Reload it and retry."
-            : "An unexpected server error occurred.");
-        detail.Extensions["code"] = apiError?.Code ?? (status == 409 ? "concurrency_conflict" : "internal_error");
+        detail.Detail = apiError?.Message ?? status switch
+        {
+            StatusCodes.Status409Conflict => "The resource changed. Reload it and retry.",
+            StatusCodes.Status413PayloadTooLarge => "The uploaded file or request body exceeds the maximum allowed size.",
+            >= 400 and < 500 when badRequest is not null => "The HTTP request is invalid.",
+            _ => "An unexpected server error occurred."
+        };
+        detail.Extensions["code"] = apiError?.Code ?? status switch
+        {
+            StatusCodes.Status409Conflict => "concurrency_conflict",
+            StatusCodes.Status413PayloadTooLarge => "payload_too_large",
+            >= 400 and < 500 when badRequest is not null => "bad_request",
+            _ => "internal_error"
+        };
         context.Response.StatusCode = status;
         await problems.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = detail });
         return true;

@@ -10,7 +10,7 @@ public sealed class RegisterRequest
     public string Email { get; init; } = string.Empty;
 
     [Required]
-    [StringLength(128, MinimumLength = 8)]
+    [StringLength(PasswordLimits.MaxLength, MinimumLength = PasswordLimits.MinLength)]
     public string Password { get; init; } = string.Empty;
 
     [Required]

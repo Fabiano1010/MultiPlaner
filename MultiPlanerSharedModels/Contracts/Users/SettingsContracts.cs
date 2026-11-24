@@ -1,13 +1,16 @@
 using System.ComponentModel.DataAnnotations;
+using MultiPlanerSharedModels.Contracts.Auth;
 
 namespace MultiPlanerSharedModels.Contracts.Users;
 
 public sealed class ChangePasswordRequest
 {
-    [Required] public string CurrentPassword { get; init; } = "";
+    [Required]
+    [StringLength(PasswordLimits.MaxLength)]
+    public string CurrentPassword { get; init; } = "";
 
     [Required]
-    [StringLength(256, MinimumLength = 8)]
+    [StringLength(PasswordLimits.MaxLength, MinimumLength = PasswordLimits.MinLength)]
     public string NewPassword { get; init; } = "";
 }
 

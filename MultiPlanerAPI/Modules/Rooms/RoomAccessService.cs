@@ -28,6 +28,18 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         return (result.Room, result.Member);
     }
 
+    public async Task<RoomMember> RequireMemberAsync(Room room, CancellationToken cancellationToken)
+    {
+        var userId = actor.UserId;
+        var guestId = actor.GuestSessionId;
+        var member = await db.RoomMembers.AsNoTracking()
+            .SingleOrDefaultAsync(m => m.RoomId == room.Id && m.LeftAtUtc == null &&
+                                       ((userId != null && m.UserId == userId) ||
+                                        (guestId != null && m.GuestSessionId == guestId)),
+                cancellationToken);
+        return member ?? throw new ApiException(404, "room_not_found", "Room not found.");
+    }
+
     public async Task<Room> RequireOwnerAsync(int roomId, CancellationToken cancellationToken)
     {
         var userId = actor.RequireUserId();
@@ -51,7 +63,20 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
                 "Only the owner or an administrator may manage this room.");
         }
 
-        return await db.Rooms.SingleAsync(r => r.Id == roomId, ct);
+        return room;
+    }
+
+    public async Task<RoomMember> RequireManagerAsync(Room room, CancellationToken ct)
+    {
+        actor.RequireUserId();
+        var member = await RequireMemberAsync(room, ct);
+        if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
+        {
+            throw new ApiException(403, "room_manager_required",
+                "Only the owner or an administrator may manage this room.");
+        }
+
+        return member;
     }
 
     public void RequireActive(Room room)

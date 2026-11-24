@@ -88,7 +88,7 @@ public sealed class RoomCoverService(
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var roomAccess = new RoomAccessService(context, actor, clock);
-            await roomAccess.RequireManagerAsync(roomId, ct);
+            await roomAccess.RequireManagerAsync(room, ct);
             roomAccess.RequireActive(room);
             var old = room.CoverStorageKey;
             room.CoverStorageKey = key;

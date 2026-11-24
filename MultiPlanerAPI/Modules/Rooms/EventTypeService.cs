@@ -84,7 +84,7 @@ public sealed class EventTypeService(
     private async Task RequireManager(AppDbContext context, Room room, CancellationToken ct)
     {
         var roomAccess = new RoomAccessService(context, actor, clock);
-        await roomAccess.RequireManagerAsync(room.Id, ct);
+        await roomAccess.RequireManagerAsync(room, ct);
         roomAccess.RequireActive(room);
     }
 

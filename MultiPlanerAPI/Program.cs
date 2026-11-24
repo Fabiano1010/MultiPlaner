@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,13 +13,35 @@ using MultiPlanerAPI.Modules.Rooms;
 using MultiPlanerAPI.Modules.Users;
 using MultiPlanerAPI.Modules.Events;
 using MultiPlanerAPI.Modules.Polls;
+using MultiPlanerSharedModels.Contracts.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddMemoryCache();
 var keyPath = builder.Configuration["DataProtection:KeysPath"] ??
               Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys");
-builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+Directory.CreateDirectory(keyPath);
+if (!OperatingSystem.IsWindows())
+{
+    File.SetUnixFileMode(keyPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+}
+
+var dataProtection = builder.Services.AddDataProtection()
+    .SetApplicationName("MultiPlanerAPI")
+    .PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+var certPath = builder.Configuration["DataProtection:CertificatePath"];
+if (!string.IsNullOrWhiteSpace(certPath))
+{
+    var certPassword = builder.Configuration["DataProtection:CertificatePassword"];
+    var certificate = X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword);
+    dataProtection.ProtectKeysWithCertificate(certificate);
+}
+else if (!builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "Configure DataProtection:CertificatePath to encrypt Data Protection keys outside Development.");
+}
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("PasswordReset", context => RateLimitPartition.GetFixedWindowLimiter(
@@ -82,7 +105,7 @@ builder.Services.AddAntiforgery(options =>
 builder.Services.Configure<IdentityOptions>(options =>
 {
     options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8;
+    options.Password.RequiredLength = PasswordLimits.MinLength;
     options.Password.RequireLowercase = true;
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequireUppercase = true;

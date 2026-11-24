@@ -22,7 +22,7 @@ public sealed class MemberManagementService(RoomMutationService mutations, Curre
         return mutations.ExecuteAsync(roomId, async (db, room) =>
         {
             var access = new RoomAccessService(db, actor, clock);
-            await access.RequireManagerAsync(roomId, ct);
+            await access.RequireManagerAsync(room, ct);
             access.RequireActive(room);
             var member =
                 await db.RoomMembers.SingleOrDefaultAsync(
