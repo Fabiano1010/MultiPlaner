@@ -1,6 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.DataProtection;
 using MultiPlanerSharedModels.Contracts.Auth;
+using MultiPlanerSharedModels.Contracts.Polls;
 using MultiPlanerSharedModels.Contracts.Users;
 using MultiPlanerSharedModels.Contracts.Rooms;
 using MultiPlanerSharedModels.Contracts.Events;
@@ -312,5 +319,134 @@ public sealed class SettingsTests(ApiFixture fixture)
         Assert.Equal(HttpStatusCode.NoContent, (await owner.DeleteAsync("/api/me/avatar")).StatusCode);
         Assert.Null((await owner.GetFromJsonAsync<SessionResponse>("/api/me"))!.AvatarUrl);
         Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync(url)).StatusCode);
+    }
+
+    [Fact]
+    public async Task OversizedAvatarUploadIsRejectedWithoutServerError()
+    {
+        var (owner, _, _) = await fixture.RegisterAndLoginAsync();
+        using var o = owner;
+        using var oversized = new MultipartFormDataContent();
+        oversized.Add(new ByteArrayContent(new byte[7 * 1024 * 1024]), "file", "huge.png");
+        var response = await owner.PutAsync("/api/me/avatar", oversized);
+        // Kestrel enforces [RequestSizeLimit] -> 413 payload_too_large; TestServer falls through to AvatarService -> 400 validation_failed.
+        Assert.Contains(response.StatusCode, new[] { HttpStatusCode.RequestEntityTooLarge, HttpStatusCode.BadRequest });
+    }
+
+    [Fact]
+    public async Task PollsSupportConcurrentSafeVotingAndRejectCreationInArchivedRoom()
+    {
+        var (owner, _, _) = await fixture.RegisterAndLoginAsync();
+        using var o = owner;
+        var (member, _, _) = await fixture.RegisterAndLoginAsync();
+        using var m = member;
+        var room = await Room(owner);
+        await Join(member, room);
+
+        var created = await Read<PollResponse>(
+            await owner.PostAsJsonAsync($"/api/rooms/{room.Id}/polls", new CreatePollRequest
+            {
+                Question = "Lunch spot?",
+                AllowMultiple = false,
+                ClosesAtUtc = DateTimeOffset.UtcNow.AddDays(2),
+                Options = [new PollOptionRequest { Text = "Pizza" }, new PollOptionRequest { Text = "Sushi" }]
+            }),
+            HttpStatusCode.Created);
+
+        var voted = await Read<PollResponse>(
+            await member.PutAsJsonAsync($"/api/rooms/{room.Id}/polls/{created.Id}/vote",
+                new VotePollRequest { OptionIds = [created.Options[1].Id] }));
+        Assert.Equal(1, voted.TotalVoters);
+        Assert.Equal([created.Options[1].Id], voted.MyOptionIds);
+
+        var concurrentVotes = await Task.WhenAll(
+            owner.PutAsJsonAsync($"/api/rooms/{room.Id}/polls/{created.Id}/vote",
+                new VotePollRequest { OptionIds = [created.Options[0].Id] }),
+            member.PutAsJsonAsync($"/api/rooms/{room.Id}/polls/{created.Id}/vote",
+                new VotePollRequest { OptionIds = [created.Options[0].Id] }));
+        Assert.All(concurrentVotes, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
+
+        var edited = await Read<PollResponse>(await owner.PatchAsJsonAsync(
+            $"/api/rooms/{room.Id}/polls/{created.Id}",
+            new UpdatePollRequest { Question = "Dinner spot?", RowVersion = created.RowVersion }));
+        Assert.Equal("Dinner spot?", edited.Question);
+
+        var deleted = await owner.DeleteAsync($"/api/rooms/{room.Id}/polls/{created.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await owner.GetAsync($"/api/rooms/{room.Id}/polls/{created.Id}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsync($"/api/rooms/{room.Id}/archive", null)).StatusCode);
+        await AccountTests.AssertProblem(
+            await owner.PostAsJsonAsync($"/api/rooms/{room.Id}/polls", new CreatePollRequest
+            {
+                Question = "After archive?",
+                AllowMultiple = false,
+                ClosesAtUtc = DateTimeOffset.UtcNow.AddDays(2),
+                Options = [new PollOptionRequest { Text = "Yes" }, new PollOptionRequest { Text = "No" }]
+            }),
+            HttpStatusCode.Conflict, "room_inactive");
+    }
+
+    [Fact]
+    public void ProductionDataProtectionRequiresCertificateAndEncryptsPersistedKeys()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"mp-dp-{Guid.NewGuid():N}");
+        var keysDir = Path.Combine(tempDir, "keys");
+        var pfxPath = Path.Combine(tempDir, "dp.pfx");
+        const string pfxPassword = "TestCertPassword!1";
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            using (var rsa = RSA.Create(2048))
+            {
+                var req = new CertificateRequest("CN=MultiPlanerTest", rsa, HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1);
+                using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1),
+                    DateTimeOffset.UtcNow.AddDays(30));
+                File.WriteAllBytes(pfxPath, cert.Export(X509ContentType.Pfx, pfxPassword));
+            }
+
+            // 1. Fail-fast in Production without CertificatePath
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                using var unconfigured = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+                {
+                    b.UseEnvironment("Production");
+                    b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                    b.UseSetting("DataProtection:KeysPath", keysDir);
+                    b.UseSetting("RoomArchival:Enabled", "false");
+                });
+                _ = unconfigured.Services;
+            });
+
+            // 2. With CertificatePath in Production, generated key XML is encrypted at rest
+            using var configured = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+            {
+                b.UseEnvironment("Production");
+                b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                b.UseSetting("DataProtection:KeysPath", keysDir);
+                b.UseSetting("DataProtection:CertificatePath", pfxPath);
+                b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                b.UseSetting("RoomArchival:Enabled", "false");
+            });
+            var protector = configured.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
+            var payload = protector.Protect("secret");
+            Assert.Equal("secret", protector.Unprotect(payload));
+
+            var keyFiles = Directory.GetFiles(keysDir, "key-*.xml");
+            Assert.NotEmpty(keyFiles);
+            var xml = File.ReadAllText(keyFiles[0]);
+            Assert.Contains("encryptedKey", xml, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("in an unencrypted form", xml, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
     }
 }

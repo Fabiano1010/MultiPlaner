@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
@@ -11,7 +12,7 @@ namespace MultiPlanerAPI.Modules.Polls;
 
 public sealed class PollService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> dbOptions,
+    RoomMutationService mutations,
     CurrentActor actor,
     TimeProvider clock,
     RoomAccessService access)
@@ -23,30 +24,43 @@ public sealed class PollService(
 
     public async Task<PollResponse> CreateAsync(int roomId, CreatePollRequest request, CancellationToken ct)
     {
-        var (room, member) = await access.RequireMemberAsync(roomId, ct);
-        access.RequireActive(room);
-        var now = clock.GetUtcNow();
-
         var errors = new Dictionary<string, string[]>();
         var question = NormalizeQuestion(request.Question, errors);
-        var options = NormalizeOptions(request.Options, errors);
-        ValidateClose(request.ClosesAtUtc, now, errors);
+        var optionInputs = NormalizeOptions(request.Options, errors);
+        ValidateClose(request.ClosesAtUtc, clock.GetUtcNow(), errors);
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
         }
 
-        var poll = new Poll
+        var (poll, room, member) = await mutations.ExecuteAsync(roomId, async (context, lockedRoom) =>
         {
-            RoomId = roomId,
-            AuthorMemberId = member.Id,
-            Question = question,
-            AllowMultiple = request.AllowMultiple,
-            ClosesAtUtc = request.ClosesAtUtc!.Value,
-            Options = options
-        };
-        db.Polls.Add(poll);
-        await db.SaveChangesAsync(ct);   // Poll and options in one transaction
+            var roomAccess = new RoomAccessService(context, actor, clock);
+            var currentMember = await roomAccess.RequireMemberAsync(lockedRoom, ct);
+            roomAccess.RequireActive(lockedRoom);
+
+            var retryErrors = new Dictionary<string, string[]>();
+            ValidateClose(request.ClosesAtUtc, clock.GetUtcNow(), retryErrors);
+            if (retryErrors.Count != 0)
+            {
+                throw ApiException.Validation(retryErrors);
+            }
+
+            var created = new Poll
+            {
+                RoomId = roomId,
+                AuthorMemberId = currentMember.Id,
+                Question = question,
+                AllowMultiple = request.AllowMultiple,
+                ClosesAtUtc = request.ClosesAtUtc!.Value,
+                Options = optionInputs.Select(o => new PollOption
+                    { Position = o.Position, Text = o.Text, Color = o.Color }).ToList()
+            };
+            context.Polls.Add(created);
+            await context.SaveChangesAsync(ct);
+            return (created, lockedRoom, currentMember);
+        }, ct);
+
         return (await BuildAsync(db, [poll], room, member, ct))[0];
     }
 
@@ -93,18 +107,18 @@ public sealed class PollService(
         return (await BuildAsync(db, [poll], room, viewer, ct))[0];
     }
 
-    public Task<PollResponse> UpdateAsync(int roomId, int pollId, UpdatePollRequest request, CancellationToken ct)
+    public async Task<PollResponse> UpdateAsync(int roomId, int pollId, UpdatePollRequest request, CancellationToken ct)
     {
-        return new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
+        var (poll, room, member) = await mutations.ExecuteAsync(roomId, async (context, lockedRoom) =>
         {
-            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, ct);
+            var (currentMember, currentPoll) = await LoadForManageAsync(context, lockedRoom, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
-            if (poll.GetClosedAtUtc(now) is not null)
+            if (currentPoll.GetClosedAtUtc(now) is not null)
             {
                 throw new ApiException(409, "poll_closed", "A closed poll cannot be edited.");
             }
 
-            if (!poll.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
+            if (!currentPoll.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
             {
                 throw new ApiException(409, "concurrency_conflict", "Poll changed. Reload and retry.");
             }
@@ -112,13 +126,13 @@ public sealed class PollService(
             var errors = new Dictionary<string, string[]>();
             if (request.Question is not null)
             {
-                poll.Question = NormalizeQuestion(request.Question, errors);
+                currentPoll.Question = NormalizeQuestion(request.Question, errors);
             }
 
             if (request.ClosesAtUtc is { } closes)
             {
                 ValidateClose(closes, now, errors);
-                poll.ClosesAtUtc = closes;
+                currentPoll.ClosesAtUtc = closes;
             }
 
             var replacement = request.Options is null ? null : NormalizeOptions(request.Options, errors);
@@ -137,91 +151,94 @@ public sealed class PollService(
 
                 if (request.AllowMultiple is { } multiple)
                 {
-                    poll.AllowMultiple = multiple;
+                    currentPoll.AllowMultiple = multiple;
                 }
 
                 if (replacement is not null)
                 {
-                    context.PollOptions.RemoveRange(poll.Options);
-                    poll.Options = replacement;
+                    context.PollOptions.RemoveRange(currentPoll.Options);
+                    currentPoll.Options = replacement;
                 }
             }
 
-            poll.UpdatedAtUtc = now;   // option change, changes RowVersion
+            currentPoll.UpdatedAtUtc = now;
+            context.Entry(currentPoll).Property(p => p.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
-            return (await BuildAsync(context, [poll], room, member, ct))[0];
+            return (currentPoll, lockedRoom, currentMember);
         }, ct);
+
+        return (await BuildAsync(db, [poll], room, member, ct))[0];
     }
 
-    public Task<PollResponse> CloseAsync(int roomId, int pollId, CancellationToken ct)
+    public async Task<PollResponse> CloseAsync(int roomId, int pollId, CancellationToken ct)
     {
-        return new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
+        var (poll, room, member) = await mutations.ExecuteAsync(roomId, async (context, lockedRoom) =>
         {
-            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, ct);
+            var (currentMember, currentPoll) = await LoadForManageAsync(context, lockedRoom, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
-            if (poll.GetClosedAtUtc(now) is null)
+            if (currentPoll.GetClosedAtUtc(now) is null)
             {
-                poll.ClosedAtUtc = now;
+                currentPoll.ClosedAtUtc = now;
                 await context.SaveChangesAsync(ct);
             }
 
-            return (await BuildAsync(context, [poll], room, member, ct))[0];
+            return (currentPoll, lockedRoom, currentMember);
         }, ct);
+
+        return (await BuildAsync(db, [poll], room, member, ct))[0];
     }
 
     public Task DeleteAsync(int roomId, int pollId, CancellationToken ct)
     {
-        return new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var (_, poll) = await LoadForManageAsync(context, room, roomId, pollId, ct);
-            var votes = await context.PollVotes.Where(v => v.PollId == pollId).ToListAsync(ct);
-            context.PollVotes.RemoveRange(votes);
-            context.PollOptions.RemoveRange(poll.Options);
-            context.Polls.Remove(poll);
-            await context.SaveChangesAsync(ct);
+            await LoadForManageAsync(context, room, roomId, pollId, includeOptions: false, ct);
+            await context.PollVotes.Where(v => v.PollId == pollId).ExecuteDeleteAsync(ct);
+            await context.PollOptions.Where(o => o.PollId == pollId).ExecuteDeleteAsync(ct);
+            await context.Polls.Where(p => p.Id == pollId && p.RoomId == roomId).ExecuteDeleteAsync(ct);
             return true;
         }, ct);
     }
 
-    public Task<PollResponse> VoteAsync(int roomId, int pollId, VotePollRequest request, CancellationToken ct)
+    public async Task<PollResponse> VoteAsync(int roomId, int pollId, VotePollRequest request, CancellationToken ct)
     {
-        return new RoomMutationService(dbOptions, clock).ExecuteAsync(roomId, async (context, room) =>
+        var (poll, room, member) = await mutations.ExecuteInTransactionAsync(async context =>
         {
             var roomAccess = new RoomAccessService(context, actor, clock);
-            var (_, member) = await roomAccess.RequireMemberAsync(roomId, ct);
-            roomAccess.RequireActive(room);
+            var (currentRoom, currentMember) = await roomAccess.RequireMemberAsync(roomId, ct);
+            roomAccess.RequireActive(currentRoom);
 
-            var poll = await FindTrackedAsync(context, roomId, pollId, ct);
+            var currentPoll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions: true, ct);
             var now = clock.GetUtcNow();
-            if (poll.GetClosedAtUtc(now) is not null)
+            if (currentPoll.GetClosedAtUtc(now) is not null)
             {
                 throw new ApiException(409, "poll_closed", "Voting has ended.");
             }
 
             var optionIds = request.OptionIds.Distinct().ToArray();
-            var valid = poll.Options.Select(o => o.Id).ToHashSet();
+            var valid = currentPoll.Options.Select(o => o.Id).ToHashSet();
             if (optionIds.Any(id => !valid.Contains(id)))
             {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["optionIds"] = ["Choose options that belong to this poll."] });
             }
 
-            if (!poll.AllowMultiple && optionIds.Length > 1)
+            if (!currentPoll.AllowMultiple && optionIds.Length > 1)
             {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["optionIds"] = ["This poll allows a single choice."] });
             }
 
             var existing = await context.PollVotes
-                .Where(v => v.PollId == pollId && v.MemberId == member.Id).ToListAsync(ct);
+                .Where(v => v.PollId == pollId && v.MemberId == currentMember.Id).ToListAsync(ct);
 
-            if (poll.AllowMultiple)
+            if (currentPoll.AllowMultiple)
             {
                 context.PollVotes.RemoveRange(existing.Where(v => !optionIds.Contains(v.OptionId)));
                 foreach (var id in optionIds.Except(existing.Select(v => v.OptionId)))
                 {
                     context.PollVotes.Add(new PollVote
-                        { PollId = pollId, MemberId = member.Id, OptionId = id, Slot = id, CastAtUtc = now });
+                        { PollId = pollId, MemberId = currentMember.Id, OptionId = id, Slot = id, CastAtUtc = now });
                 }
             }
             else if (optionIds.Length == 0)
@@ -231,7 +248,7 @@ public sealed class PollService(
             else if (existing.Count == 0)
             {
                 context.PollVotes.Add(new PollVote
-                    { PollId = pollId, MemberId = member.Id, OptionId = optionIds[0], Slot = 0, CastAtUtc = now });
+                    { PollId = pollId, MemberId = currentMember.Id, OptionId = optionIds[0], Slot = 0, CastAtUtc = now });
             }
             else
             {
@@ -239,9 +256,19 @@ public sealed class PollService(
                 existing[0].CastAtUtc = now;
             }
 
-            await context.SaveChangesAsync(ct);
-            return (await BuildAsync(context, [poll], room, member, ct))[0];
+            try
+            {
+                await context.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
+            {
+                throw NotFound();
+            }
+
+            return (currentPoll, currentRoom, currentMember);
         }, ct);
+
+        return (await BuildAsync(db, [poll], room, member, ct))[0];
     }
 
     
@@ -253,25 +280,18 @@ public sealed class PollService(
         return query.Include(p => p.Options.OrderBy(o => o.Position));
     }
 
-    private static async Task<Poll> FindTrackedAsync(AppDbContext context, int roomId, int pollId,
-        CancellationToken ct)
-    {
-        return await WithOptions(context.Polls)
-            .SingleOrDefaultAsync(p => p.Id == pollId && p.RoomId == roomId, ct) ?? throw NotFound();
-    }
-
     private static bool CanManage(Room room, RoomMember viewer, Poll poll)
     {
         return poll.AuthorMemberId == viewer.Id || room.OwnerUserId == viewer.UserId || viewer.IsAdmin;
     }
 
     private async Task<(RoomMember Member, Poll Poll)> LoadForManageAsync(
-        AppDbContext context, Room room, int roomId, int pollId, CancellationToken ct)
+        AppDbContext context, Room room, int roomId, int pollId, bool includeOptions, CancellationToken ct)
     {
         var roomAccess = new RoomAccessService(context, actor, clock);
-        var (_, member) = await roomAccess.RequireMemberAsync(roomId, ct);
+        var member = await roomAccess.RequireMemberAsync(room, ct);
         roomAccess.RequireActive(room);
-        var poll = await FindTrackedAsync(context, roomId, pollId, ct);
+        var poll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions, ct);
         if (!CanManage(room, member, poll))
         {
             throw new ApiException(403, "poll_manage_required",

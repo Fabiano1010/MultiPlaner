@@ -84,10 +84,10 @@ public sealed class UserFolderService(
         {
             var userId = actor.RequireUserId();
             var roomAccess = new RoomAccessService(operationDb, actor, clock);
-            await roomAccess.RequireMemberAsync(roomId, cancellationToken);
+            await roomAccess.RequireMemberAsync(room, cancellationToken);
             roomAccess.RequireReadable(room);
-            if (!await operationDb.UserFolders.AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId,
-                    cancellationToken))
+            if (!await operationDb.UserFolders.AsNoTracking()
+                    .AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId, cancellationToken))
             {
                 throw new ApiException(404, "folder_not_found", "Folder not found.");
             }
@@ -104,7 +104,15 @@ public sealed class UserFolderService(
                 assignment.FolderId = folderId;
             }
 
-            await operationDb.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await operationDb.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
+            {
+                throw new ApiException(404, "folder_not_found", "Folder not found.");
+            }
+
             return true;
         }, cancellationToken);
     }
