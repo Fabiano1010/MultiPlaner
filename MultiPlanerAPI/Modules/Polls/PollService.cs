@@ -26,51 +26,45 @@ public sealed class PollService(
     {
         var errors = new Dictionary<string, string[]>();
         var question = NormalizeQuestion(request.Question, errors);
-        var optionInputs = NormalizeOptions(request.Options, errors);
+        var options = NormalizeOptions(request.Options, errors);
         ValidateClose(request.ClosesAtUtc, clock.GetUtcNow(), errors);
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
         }
 
-        var (poll, room, member) = await mutations.ExecuteAsync(roomId, async (context, lockedRoom) =>
+        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
             var roomAccess = new RoomAccessService(context, actor, clock);
-            var currentMember = await roomAccess.RequireMemberAsync(lockedRoom, ct);
-            roomAccess.RequireActive(lockedRoom);
+            var member = await roomAccess.RequireMemberAsync(room, ct);
+            roomAccess.RequireActive(room);
 
-            var retryErrors = new Dictionary<string, string[]>();
-            ValidateClose(request.ClosesAtUtc, clock.GetUtcNow(), retryErrors);
-            if (retryErrors.Count != 0)
+            var closeErrors = new Dictionary<string, string[]>();
+            ValidateClose(request.ClosesAtUtc, clock.GetUtcNow(), closeErrors);
+            if (closeErrors.Count != 0)
             {
-                throw ApiException.Validation(retryErrors);
+                throw ApiException.Validation(closeErrors);
             }
 
-            var created = new Poll
+            var poll = new Poll
             {
-                RoomId = roomId,
-                AuthorMemberId = currentMember.Id,
-                Question = question,
-                AllowMultiple = request.AllowMultiple,
-                ClosesAtUtc = request.ClosesAtUtc!.Value,
-                Options = optionInputs.Select(o => new PollOption
-                    { Position = o.Position, Text = o.Text, Color = o.Color }).ToList()
+                RoomId = roomId, AuthorMemberId = member.Id, Question = question,
+                AllowMultiple = request.AllowMultiple, ClosesAtUtc = request.ClosesAtUtc!.Value,
+                Options = options.Select(o => new PollOption { Position = o.Position, Text = o.Text, Color = o.Color }).ToList()
             };
-            context.Polls.Add(created);
+            context.Polls.Add(poll);
             await context.SaveChangesAsync(ct);
-            return (created, lockedRoom, currentMember);
+            return (Poll: poll, Room: room, Member: member);
         }, ct);
 
-        return (await BuildAsync(db, [poll], room, member, ct))[0];
+        return (await BuildAsync(db, [result.Poll], result.Room, result.Member, ct))[0];
     }
 
-    public async Task<PagedResponse<PollResponse>> ListAsync(
-        int roomId, PageRequest page, string status, CancellationToken ct)
+    public async Task<PagedResponse<PollResponse>> ListAsync(int roomId, PageRequest page, string status, CancellationToken ct)
     {
         if (status is not ("open" or "closed" or "all"))
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["status"] = ["Use open, closed or all."] });
+            throw ApiException.Validation(new Dictionary<string, string[]> { ["status"] = ["Use open, closed or all."] });
         }
 
         var (room, viewer) = await access.RequireMemberAsync(roomId, ct);
@@ -92,10 +86,8 @@ public sealed class PollService(
             return new PagedResponse<PollResponse>([], count, page.Page, page.PageSize);
         }
 
-        var polls = await WithOptions(query.OrderByDescending(p => p.Id))
-            .Skip((int)offset).Take(page.PageSize).ToListAsync(ct);
-        return new PagedResponse<PollResponse>(
-            await BuildAsync(db, polls, room, viewer, ct), count, page.Page, page.PageSize);
+        var polls = await WithOptions(query.OrderByDescending(p => p.Id)).Skip((int)offset).Take(page.PageSize).ToListAsync(ct);
+        return new PagedResponse<PollResponse>(await BuildAsync(db, polls, room, viewer, ct), count, page.Page, page.PageSize);
     }
 
     public async Task<PollResponse> GetAsync(int roomId, int pollId, CancellationToken ct)
@@ -109,32 +101,26 @@ public sealed class PollService(
 
     public async Task<PollResponse> UpdateAsync(int roomId, int pollId, UpdatePollRequest request, CancellationToken ct)
     {
-        var (poll, room, member) = await mutations.ExecuteAsync(roomId, async (context, lockedRoom) =>
+        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var (currentMember, currentPoll) = await LoadForManageAsync(context, lockedRoom, roomId, pollId, true, ct);
+            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, includeOptions: true, ct);
             var now = clock.GetUtcNow();
-            if (currentPoll.GetClosedAtUtc(now) is not null)
+            if (poll.GetClosedAtUtc(now) is not null)
             {
                 throw new ApiException(409, "poll_closed", "A closed poll cannot be edited.");
             }
-
-            if (!currentPoll.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
+            if (!poll.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
             {
                 throw new ApiException(409, "concurrency_conflict", "Poll changed. Reload and retry.");
             }
 
             var errors = new Dictionary<string, string[]>();
-            if (request.Question is not null)
-            {
-                currentPoll.Question = NormalizeQuestion(request.Question, errors);
-            }
-
+            if (request.Question is not null) { poll.Question = NormalizeQuestion(request.Question, errors); }
             if (request.ClosesAtUtc is { } closes)
             {
                 ValidateClose(closes, now, errors);
-                currentPoll.ClosesAtUtc = closes;
+                poll.ClosesAtUtc = closes;
             }
-
             var replacement = request.Options is null ? null : NormalizeOptions(request.Options, errors);
             if (errors.Count != 0)
             {
@@ -148,51 +134,45 @@ public sealed class PollService(
                     throw new ApiException(409, "poll_has_votes",
                         "Options and selection mode cannot change after the first vote.");
                 }
-
-                if (request.AllowMultiple is { } multiple)
-                {
-                    currentPoll.AllowMultiple = multiple;
-                }
-
+                if (request.AllowMultiple is { } multiple) { poll.AllowMultiple = multiple; }
                 if (replacement is not null)
                 {
-                    context.PollOptions.RemoveRange(currentPoll.Options);
-                    currentPoll.Options = replacement;
+                    context.PollOptions.RemoveRange(poll.Options);
+                    poll.Options = replacement;
                 }
             }
 
-            currentPoll.UpdatedAtUtc = now;
-            context.Entry(currentPoll).Property(p => p.UpdatedAtUtc).IsModified = true;
+            poll.UpdatedAtUtc = now;
+            context.Entry(poll).Property(p => p.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
-            return (currentPoll, lockedRoom, currentMember);
+            return (Poll: poll, Room: room, Member: member);
         }, ct);
 
-        return (await BuildAsync(db, [poll], room, member, ct))[0];
+        return (await BuildAsync(db, [result.Poll], result.Room, result.Member, ct))[0];
     }
 
     public async Task<PollResponse> CloseAsync(int roomId, int pollId, CancellationToken ct)
     {
-        var (poll, room, member) = await mutations.ExecuteAsync(roomId, async (context, lockedRoom) =>
+        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var (currentMember, currentPoll) = await LoadForManageAsync(context, lockedRoom, roomId, pollId, true, ct);
+            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, includeOptions: true, ct);
             var now = clock.GetUtcNow();
-            if (currentPoll.GetClosedAtUtc(now) is null)
+            if (poll.GetClosedAtUtc(now) is null)
             {
-                currentPoll.ClosedAtUtc = now;
+                poll.ClosedAtUtc = now;
                 await context.SaveChangesAsync(ct);
             }
-
-            return (currentPoll, lockedRoom, currentMember);
+            return (Poll: poll, Room: room, Member: member);
         }, ct);
 
-        return (await BuildAsync(db, [poll], room, member, ct))[0];
+        return (await BuildAsync(db, [result.Poll], result.Room, result.Member, ct))[0];
     }
 
     public Task DeleteAsync(int roomId, int pollId, CancellationToken ct)
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            await LoadForManageAsync(context, room, roomId, pollId, false, ct);
+            await LoadForManageAsync(context, room, roomId, pollId, includeOptions: false, ct);
             await context.PollVotes.Where(v => v.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.PollOptions.Where(o => o.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.Polls.Where(p => p.Id == pollId && p.RoomId == roomId).ExecuteDeleteAsync(ct);
@@ -202,60 +182,44 @@ public sealed class PollService(
 
     public async Task<PollResponse> VoteAsync(int roomId, int pollId, VotePollRequest request, CancellationToken ct)
     {
-        var (poll, room, member) = await mutations.ExecuteInTransactionAsync(async context =>
+        var result = await mutations.ExecuteInTransactionAsync(async context =>
         {
             var roomAccess = new RoomAccessService(context, actor, clock);
-            var (currentRoom, currentMember) = await roomAccess.RequireMemberAsync(roomId, ct);
-            roomAccess.RequireActive(currentRoom);
+            var (room, member) = await roomAccess.RequireMemberAsync(roomId, ct);
+            roomAccess.RequireActive(room);
 
-            var currentPoll = await RoomMutationService.LockPollAsync(context, roomId, pollId, true, ct);
+            var poll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions: true, ct);
             var now = clock.GetUtcNow();
-            if (currentPoll.GetClosedAtUtc(now) is not null)
+            if (poll.GetClosedAtUtc(now) is not null)
             {
                 throw new ApiException(409, "poll_closed", "Voting has ended.");
             }
 
             var optionIds = request.OptionIds.Distinct().ToArray();
-            var valid = currentPoll.Options.Select(o => o.Id).ToHashSet();
+            var valid = poll.Options.Select(o => o.Id).ToHashSet();
             if (optionIds.Any(id => !valid.Contains(id)))
             {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["optionIds"] = ["Choose options that belong to this poll."] });
             }
-
-            if (!currentPoll.AllowMultiple && optionIds.Length > 1)
+            if (!poll.AllowMultiple && optionIds.Length > 1)
             {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["optionIds"] = ["This poll allows a single choice."] });
             }
 
-            var existing = await context.PollVotes
-                .Where(v => v.PollId == pollId && v.MemberId == currentMember.Id).ToListAsync(ct);
-
-            if (currentPoll.AllowMultiple)
+            var existing = await context.PollVotes.Where(v => v.PollId == pollId && v.MemberId == member.Id).ToListAsync(ct);
+            if (poll.AllowMultiple)
             {
                 context.PollVotes.RemoveRange(existing.Where(v => !optionIds.Contains(v.OptionId)));
                 foreach (var id in optionIds.Except(existing.Select(v => v.OptionId)))
                 {
-                    context.PollVotes.Add(new PollVote
-                        { PollId = pollId, MemberId = currentMember.Id, OptionId = id, Slot = id, CastAtUtc = now });
+                    context.PollVotes.Add(new PollVote { PollId = pollId, MemberId = member.Id, OptionId = id, Slot = id, CastAtUtc = now });
                 }
-            }
-            else if (optionIds.Length == 0)
-            {
-                context.PollVotes.RemoveRange(existing);
-            }
-            else if (existing.Count == 0)
-            {
-                context.PollVotes.Add(new PollVote
-                {
-                    PollId = pollId, MemberId = currentMember.Id, OptionId = optionIds[0], Slot = 0, CastAtUtc = now
-                });
             }
             else
             {
-                existing[0].OptionId = optionIds[0];
-                existing[0].CastAtUtc = now;
+                ApplySingleVote(context, pollId, member.Id, optionIds, existing, now);
             }
 
             try
@@ -267,27 +231,36 @@ public sealed class PollService(
                 throw NotFound();
             }
 
-            return (currentPoll, currentRoom, currentMember);
+            return (Poll: poll, Room: room, Member: member);
         }, ct);
 
-        return (await BuildAsync(db, [poll], room, member, ct))[0];
+        return (await BuildAsync(db, [result.Poll], result.Room, result.Member, ct))[0];
     }
 
-
-    private static ApiException NotFound()
+    private static void ApplySingleVote(
+        AppDbContext context, int pollId, int memberId, int[] optionIds, List<PollVote> existing, DateTimeOffset now)
     {
-        return new ApiException(404, "poll_not_found", "Poll not found.");
+        if (optionIds.Length == 0)
+        {
+            context.PollVotes.RemoveRange(existing);
+            return;
+        }
+        if (existing.Count == 0)
+        {
+            context.PollVotes.Add(new PollVote { PollId = pollId, MemberId = memberId, OptionId = optionIds[0], Slot = 0, CastAtUtc = now });
+            return;
+        }
+        existing[0].OptionId = optionIds[0];
+        existing[0].CastAtUtc = now;
     }
 
-    private static IQueryable<Poll> WithOptions(IQueryable<Poll> query)
-    {
-        return query.Include(p => p.Options.OrderBy(o => o.Position));
-    }
+    private static ApiException NotFound() => new(404, "poll_not_found", "Poll not found.");
 
-    private static bool CanManage(Room room, RoomMember viewer, Poll poll)
-    {
-        return poll.AuthorMemberId == viewer.Id || room.OwnerUserId == viewer.UserId || viewer.IsAdmin;
-    }
+    private static IQueryable<Poll> WithOptions(IQueryable<Poll> query) =>
+        query.Include(p => p.Options.OrderBy(o => o.Position));
+
+    private static bool CanManage(Room room, RoomMember viewer, Poll poll) =>
+        poll.AuthorMemberId == viewer.Id || room.OwnerUserId == viewer.UserId || viewer.IsAdmin;
 
     private async Task<(RoomMember Member, Poll Poll)> LoadForManageAsync(
         AppDbContext context, Room room, int roomId, int pollId, bool includeOptions, CancellationToken ct)
@@ -301,7 +274,6 @@ public sealed class PollService(
             throw new ApiException(403, "poll_manage_required",
                 "Only the author, the owner or an administrator may change this poll.");
         }
-
         return (member, poll);
     }
 
@@ -312,12 +284,10 @@ public sealed class PollService(
         {
             errors["question"] = ["The question must contain 2-256 characters."];
         }
-
         return text;
     }
 
-    private static void ValidateClose(DateTimeOffset? closes, DateTimeOffset now,
-        Dictionary<string, string[]> errors)
+    private static void ValidateClose(DateTimeOffset? closes, DateTimeOffset now, Dictionary<string, string[]> errors)
     {
         if (closes is not { } value || value.Offset != TimeSpan.Zero || value <= now || value > now.AddDays(365))
         {
@@ -325,8 +295,7 @@ public sealed class PollService(
         }
     }
 
-    private static List<PollOption> NormalizeOptions(IReadOnlyList<PollOptionRequest>? input,
-        Dictionary<string, string[]> errors)
+    private static List<PollOption> NormalizeOptions(IReadOnlyList<PollOptionRequest>? input, Dictionary<string, string[]> errors)
     {
         var result = new List<PollOption>();
         if (input is null || input.Count is < 2 or > MaxOptions)
@@ -344,13 +313,11 @@ public sealed class PollService(
                 errors["options"] = ["Each option must contain 1-128 characters."];
                 return result;
             }
-
             if (!seen.Add(text))
             {
                 errors["options"] = ["Options must be unique."];
                 return result;
             }
-
             var color = string.IsNullOrWhiteSpace(input[i].Color)
                 ? DefaultColors[i % DefaultColors.Length]
                 : input[i].Color!.Trim().ToUpperInvariant();
@@ -359,15 +326,13 @@ public sealed class PollService(
                 errors["options"] = ["Option colour must be a 6-digit hex value."];
                 return result;
             }
-
             result.Add(new PollOption { Position = i, Text = text, Color = color });
         }
-
         return result;
     }
 
-    private async Task<List<PollResponse>> BuildAsync(AppDbContext context, IReadOnlyList<Poll> polls,
-        Room room, RoomMember viewer, CancellationToken ct)
+    private async Task<List<PollResponse>> BuildAsync(
+        AppDbContext context, IReadOnlyList<Poll> polls, Room room, RoomMember viewer, CancellationToken ct)
     {
         if (polls.Count == 0)
         {
@@ -378,22 +343,17 @@ public sealed class PollService(
         var pollIds = polls.Select(p => p.Id).ToArray();
         var authorIds = polls.Select(p => p.AuthorMemberId).Distinct().ToArray();
 
-        var optionCounts = await context.PollVotes.AsNoTracking()
-            .Where(v => pollIds.Contains(v.PollId))
-            .GroupBy(v => v.OptionId)
-            .Select(g => new { OptionId = g.Key, Count = g.Count() })
+        var optionCounts = await context.PollVotes.AsNoTracking().Where(v => pollIds.Contains(v.PollId))
+            .GroupBy(v => v.OptionId).Select(g => new { OptionId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.OptionId, x => x.Count, ct);
-        var voters = await context.PollVotes.AsNoTracking()
-            .Where(v => pollIds.Contains(v.PollId))
-            .GroupBy(v => v.PollId)
-            .Select(g => new { PollId = g.Key, Count = g.Select(v => v.MemberId).Distinct().Count() })
+        var voters = await context.PollVotes.AsNoTracking().Where(v => pollIds.Contains(v.PollId))
+            .GroupBy(v => v.PollId).Select(g => new { PollId = g.Key, Count = g.Select(v => v.MemberId).Distinct().Count() })
             .ToDictionaryAsync(x => x.PollId, x => x.Count, ct);
         var mine = (await context.PollVotes.AsNoTracking()
                 .Where(v => pollIds.Contains(v.PollId) && v.MemberId == viewer.Id)
                 .Select(v => new { v.PollId, v.OptionId }).ToListAsync(ct))
             .ToLookup(v => v.PollId, v => v.OptionId);
-        var authors = await context.RoomMembers.AsNoTracking()
-            .Where(m => authorIds.Contains(m.Id))
+        var authors = await context.RoomMembers.AsNoTracking().Where(m => authorIds.Contains(m.Id))
             .Select(m => new { m.Id, m.DisplayName, HasLeft = m.LeftAtUtc != null })
             .ToDictionaryAsync(m => m.Id, ct);
 
@@ -403,22 +363,17 @@ public sealed class PollService(
             var closedAt = poll.GetClosedAtUtc(now);
             var closed = closedAt is not null;
             var manage = CanManage(room, viewer, poll);
-            var author = authors.TryGetValue(poll.AuthorMemberId, out var a) ? a : null;
+            var author = authors.GetValueOrDefault(poll.AuthorMemberId);
             return new PollResponse(
                 poll.Id, poll.RoomId, poll.Question, poll.AllowMultiple, poll.ClosesAtUtc, closedAt, closed,
                 new PollAuthorResponse(poll.AuthorMemberId, author?.DisplayName ?? "", author?.HasLeft ?? true),
                 poll.Options.OrderBy(o => o.Position)
-                    .Select(o => new PollOptionResponse(o.Id, o.Text, o.Color,
-                        optionCounts.GetValueOrDefault(o.Id)))
-                    .ToList(),
+                    .Select(o => new PollOptionResponse(o.Id, o.Text, o.Color, optionCounts.GetValueOrDefault(o.Id))).ToList(),
                 voters.GetValueOrDefault(poll.Id),
                 mine[poll.Id].ToList(),
                 poll.RowVersion,
-                new PollPermissions(
-                    roomActive && !closed,
-                    roomActive && !closed && manage,
-                    roomActive && !closed && manage,
-                    roomActive && manage));
+                new PollPermissions(roomActive && !closed, roomActive && !closed && manage,
+                    roomActive && !closed && manage, roomActive && manage));
         }).ToList();
     }
 }
