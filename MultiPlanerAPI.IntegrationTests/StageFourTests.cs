@@ -452,17 +452,18 @@ public sealed class StageFourTests(ApiFixture fixture)
             new EventVersionRequest { RowVersion = longSeries.RowVersion });
         Assert.Equal(HttpStatusCode.NoContent, skipResponse.StatusCode);
 
-        var extremeSeries = await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
-        {
-            Title = "Extreme multi-year span",
-            EventTypeId = types[0].Id,
-            Time = new EventTimeRequest
+        var extremeSeries = await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id),
+            new CreateEventRequest
             {
-                StartsAtUtc = Start,
-                EndsAtUtc = new DateTimeOffset(9999, 12, 30, 0, 0, 0, TimeSpan.Zero)
-            },
-            Recurrence = new RecurrenceRequest { Frequency = RecurrenceFrequency.Daily, Interval = 1 }
-        }), HttpStatusCode.Created);
+                Title = "Extreme multi-year span",
+                EventTypeId = types[0].Id,
+                Time = new EventTimeRequest
+                {
+                    StartsAtUtc = Start,
+                    EndsAtUtc = new DateTimeOffset(9999, 12, 30, 0, 0, 0, TimeSpan.Zero)
+                },
+                Recurrence = new RecurrenceRequest { Frequency = RecurrenceFrequency.Daily, Interval = 1 }
+            }), HttpStatusCode.Created);
         Assert.True(extremeSeries.Id > 0);
 
         var wideList = await Read<PagedResponse<EventResponse>>(await owner.GetAsync(

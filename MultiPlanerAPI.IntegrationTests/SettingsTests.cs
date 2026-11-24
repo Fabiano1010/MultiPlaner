@@ -376,7 +376,8 @@ public sealed class SettingsTests(ApiFixture fixture)
         Assert.Equal(HttpStatusCode.NotFound,
             (await owner.GetAsync($"/api/rooms/{room.Id}/polls/{created.Id}")).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await owner.PostAsync($"/api/rooms/{room.Id}/archive", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.PostAsync($"/api/rooms/{room.Id}/archive", null)).StatusCode);
         await AccountTests.AssertProblem(
             await owner.PostAsJsonAsync($"/api/rooms/{room.Id}/polls", new CreatePollRequest
             {
@@ -443,10 +444,7 @@ public sealed class SettingsTests(ApiFixture fixture)
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, recursive: true);
-            }
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
         }
     }
 }
