@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+
 namespace MultiPlanerSharedModels.Contracts.Rooms;
 
 public sealed record RoomResponse(
