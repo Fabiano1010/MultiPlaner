@@ -1,0 +1,217 @@
+﻿.app-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 100dvh;
+    height: 100dvh;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.app-layout > .main-content {
+    padding-left: var(--sidebar-width);
+}
+
+.mobile-nav-bar,
+.mobile-nav-close,
+.nav-backdrop {
+    display: none;
+}
+
+.mobile-nav-bar {
+    background: var(--sidebar-background);
+    color: var(--sidebar-text);
+}
+
+.mobile-nav-toggle,
+.mobile-nav-close {
+    color: var(--sidebar-text);
+}
+
+
+.mobile-nav-banner {
+    display: block;
+    width: auto;
+    height: 32px;
+    min-width: 0;
+    max-width: 180px;
+    max-height: 1.75rem;
+    object-fit: contain;
+    flex: none;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100000;
+    width: var(--sidebar-width);
+    height: 100dvh;
+    background: var(--sidebar-background);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    padding: 9px;
+    overflow: hidden;
+    transition: width 0.35s ease-in-out;
+    box-sizing: border-box;
+}
+
+.sidebar:hover {
+    width: var(--sidebar-width-open);
+}
+
+.nav-text {
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+}
+
+.sidebar:hover .nav-text {
+    opacity: 1;
+    transition-delay: 0.15s;
+}
+
+
+.nav-user {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    height: 15%;
+    min-height: 100px;
+    flex-shrink: 0;
+    padding-bottom: 0.5rem;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    color: var(--sidebar-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.user-img-div {
+    width: 60%;
+    aspect-ratio: 1;
+    flex: none;
+    overflow: hidden;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--surface);
+    color: var(--surface-text);
+    transition: width .35s ease-in-out;
+}
+
+.user-img-div .sidebar-avatar {
+    display: block;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1;
+    flex: none;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-img-div .sidebar-avatar.is-placeholder {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    filter: var(--surface-icon-filter, brightness(0));
+}
+
+.nav-user-name {
+    text-align: center;
+    font-weight: bold;
+    font-size: var(--font-size-medium);
+    letter-spacing: 2px;
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 90%;
+    width: 100%;
+}
+
+.nav-items {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding-top: 2vh;
+}
+
+.nav-item {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 10px;
+    color: var(--sidebar-text);
+    border-radius: var(--border-radius);
+    transition: 0.25s ease-in-out;
+    text-align: center;
+    text-decoration: none;
+    font-size: var(--font-size-medium);
+    letter-spacing: 2px;
+    user-select: none;
+    cursor: pointer;
+}
+
+.nav-item-current {
+    background: var(--accent);
+    color: var(--accent-text);
+}
+
+.nav-item-img {
+    height: 20px;
+    transition: 0.2s ease-in;
+}
+
+.sidebar .nav-item-img,
+.mobile-nav-toggle img {
+    filter: brightness(0) invert(1);
+}
+
+.sidebar .nav-item-current .nav-item-img {
+    filter: var(--accent-icon-filter, brightness(0) invert(1));
+}
+
+.sidebar .nav-item:hover {
+    background: var(--app-background);
+    color: var(--app-text);
+}
+
+.sidebar .nav-item:hover .nav-item-img {
+    filter: var(--icon-filter, brightness(0));
+}
+
+.logout-btn {
+    margin-bottom: 0.5rem;
+    border: none;
+    outline: none;
+    background: transparent;
+}
+
+.sidebar .logout-btn:hover {
+    background: var(--danger-strong);
+}
