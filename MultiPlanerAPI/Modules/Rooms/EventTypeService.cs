@@ -14,11 +14,13 @@ public sealed class EventTypeService(
     CurrentActor actor,
     TimeProvider clock)
 {
+    private static readonly string[] DefaultTypeNames =
+        ["Meeting", "Training", "Social", "Business trip", "Leave", "Shift"];
+
     public static void AddDefaults(AppDbContext db, int roomId)
     {
-        db.RoomEventTypes.AddRange(
-            new[] { "Meeting", "Training", "Social", "Business trip", "Leave", "Shift" }.Select(name =>
-                new RoomEventType { RoomId = roomId, Name = name, NormalizedName = name.ToUpperInvariant() }));
+        db.RoomEventTypes.AddRange(DefaultTypeNames.Select(name =>
+            new RoomEventType { RoomId = roomId, Name = name, NormalizedName = name.ToUpperInvariant() }));
     }
 
     public async Task<IReadOnlyList<EventTypeResponse>> ListAsync(int roomId, CancellationToken ct)
@@ -34,8 +36,8 @@ public sealed class EventTypeService(
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            await RequireManager(context, room, ct);
-            var name = await ValidateName(context, roomId, null, request.Name, ct);
+            await RequireManagerAsync(context, room, ct);
+            var name = await ValidateNameAsync(context, roomId, null, request.Name, ct);
             var type = new RoomEventType
             {
                 RoomId = roomId, Name = name, NormalizedName = name.ToUpperInvariant(),
@@ -51,29 +53,20 @@ public sealed class EventTypeService(
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            await RequireManager(context, room, ct);
+            await RequireManagerAsync(context, room, ct);
             var type = await context.RoomEventTypes.SingleOrDefaultAsync(t => t.RoomId == roomId && t.Id == id, ct)
                        ?? throw new ApiException(404, "event_type_not_found", "Event type not found.");
             if (!type.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
             {
                 throw new ApiException(409, "concurrency_conflict", "Event type changed. Reload and retry.");
             }
-
-            if (request.Name != null)
+            if (request.Name is not null)
             {
-                type.Name = await ValidateName(context, roomId, id, request.Name, ct);
+                type.Name = await ValidateNameAsync(context, roomId, id, request.Name, ct);
                 type.NormalizedName = type.Name.ToUpperInvariant();
             }
-
-            if (request.Color != null)
-            {
-                type.Color = request.Color.ToUpperInvariant();
-            }
-
-            if (request.IsArchived is { } archived)
-            {
-                type.IsArchived = archived;
-            }
+            if (request.Color is not null) { type.Color = request.Color.ToUpperInvariant(); }
+            if (request.IsArchived is { } archived) { type.IsArchived = archived; }
 
             context.Entry(type).Property(t => t.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
@@ -81,34 +74,28 @@ public sealed class EventTypeService(
         }, ct);
     }
 
-    private async Task RequireManager(AppDbContext context, Room room, CancellationToken ct)
+    private async Task RequireManagerAsync(AppDbContext context, Room room, CancellationToken ct)
     {
         var roomAccess = new RoomAccessService(context, actor, clock);
         await roomAccess.RequireManagerAsync(room, ct);
         roomAccess.RequireActive(room);
     }
 
-    private static async Task<string> ValidateName(AppDbContext context, int roomId, int? id, string value,
-        CancellationToken ct)
+    private static async Task<string> ValidateNameAsync(AppDbContext context, int roomId, int? id, string value, CancellationToken ct)
     {
         var name = value.Trim();
         if (name.Length == 0)
         {
             throw ApiException.Validation(new Dictionary<string, string[]> { ["name"] = ["Name cannot be blank."] });
         }
-
         var normalized = name.ToUpperInvariant();
-        if (await context.RoomEventTypes.AnyAsync(
-                t => t.RoomId == roomId && t.Id != id && t.NormalizedName == normalized, ct))
+        if (await context.RoomEventTypes.AnyAsync(t => t.RoomId == roomId && t.Id != id && t.NormalizedName == normalized, ct))
         {
             throw new ApiException(409, "event_type_name_taken", "This room already has an event type with this name.");
         }
-
         return name;
     }
 
-    private static EventTypeResponse Map(RoomEventType t)
-    {
-        return new EventTypeResponse(t.Id, t.RoomId, t.Name, t.Color, t.IsArchived, t.RowVersion);
-    }
+    private static EventTypeResponse Map(RoomEventType t) =>
+        new(t.Id, t.RoomId, t.Name, t.Color, t.IsArchived, t.RowVersion);
 }
