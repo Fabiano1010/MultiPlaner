@@ -62,12 +62,20 @@ if (!string.IsNullOrWhiteSpace(certPath))
     foreach (var extraPath in builder.Configuration.GetSection("DataProtection:DecryptionCertificatePaths")
                  .Get<string[]>() ?? [])
     {
-        if (string.IsNullOrWhiteSpace(extraPath)) continue;
+        if (string.IsNullOrWhiteSpace(extraPath))
+        {
+            continue;
+        }
+
         var extraCert = X509CertificateLoader.LoadPkcs12FromFile(extraPath, certPassword);
         if (!extraCert.HasPrivateKey)
         {
             extraCert.Dispose();
-            foreach (var loaded in dpCertificates) loaded.Dispose();
+            foreach (var loaded in dpCertificates)
+            {
+                loaded.Dispose();
+            }
+
             throw new InvalidOperationException(
                 $"DataProtection decryption certificate '{extraPath}' must contain a private key.");
         }
@@ -194,13 +202,20 @@ try
 }
 catch
 {
-    foreach (var cert in dpCertificates) cert.Dispose();
+    foreach (var cert in dpCertificates)
+    {
+        cert.Dispose();
+    }
+
     throw;
 }
 
 app.Lifetime.ApplicationStopped.Register(() =>
 {
-    foreach (var cert in dpCertificates) cert.Dispose();
+    foreach (var cert in dpCertificates)
+    {
+        cert.Dispose();
+    }
 });
 
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))

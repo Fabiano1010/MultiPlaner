@@ -165,7 +165,8 @@ public sealed class EventService(
             .ToHashSet();
 
         var skip = (int)offset;
-        var (pageItems, totalCount) = MergeEvents(singles, series, skipped, Zone, from, expandTo, skip, filter.PageSize, ct);
+        var (pageItems, totalCount) =
+            MergeEvents(singles, series, skipped, Zone, from, expandTo, skip, filter.PageSize, ct);
 
         var pageIds = pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray();
         var pageParticipants = await LoadParticipantsMapAsync(db, pageIds, ct);
@@ -187,7 +188,9 @@ public sealed class EventService(
         int pageSize,
         CancellationToken ct)
     {
-        var queue = new PriorityQueue<(int Source, EventRow Row, RecurrenceExpander.Occurrence? Occ), (DateTimeOffset Start, int EventId)>();
+        var queue =
+            new PriorityQueue<(int Source, EventRow Row, RecurrenceExpander.Occurrence? Occ), (DateTimeOffset Start, int
+                EventId)>();
         var enumerators = new IEnumerator<RecurrenceExpander.Occurrence>[series.Count];
         var singleIndex = 0;
 

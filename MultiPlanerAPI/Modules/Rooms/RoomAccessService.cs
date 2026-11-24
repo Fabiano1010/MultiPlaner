@@ -42,7 +42,8 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         {
             member = await db.RoomMembers.AsNoTracking()
                 .SingleOrDefaultAsync(
-                    m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId && m.LeftAtUtc == null,
+                    m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId &&
+                         m.LeftAtUtc == null,
                     cancellationToken);
         }
         else

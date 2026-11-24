@@ -43,8 +43,8 @@ public sealed class SessionValidationCache(HybridCache cache)
                 return new CachedUserStamp(stamp);
             },
             CacheOptions,
-            tags: [UserTag(userId)],
-            cancellationToken: cancellationToken);
+            [UserTag(userId)],
+            cancellationToken);
 
         if (startVersion == userVersions.GetOrAdd(userId, 0))
         {
@@ -91,8 +91,8 @@ public sealed class SessionValidationCache(HybridCache cache)
                 return new CachedGuestExpiry(expiry);
             },
             CacheOptions,
-            tags: [GuestTag(guestId)],
-            cancellationToken: cancellationToken);
+            [GuestTag(guestId)],
+            cancellationToken);
 
         if (startVersion == guestVersions.GetOrAdd(guestId, 0))
         {
@@ -115,8 +115,23 @@ public sealed class SessionValidationCache(HybridCache cache)
             cancellationToken);
     }
 
-    private static string UserKey(int userId) => $"session:user-stamp:{userId}";
-    private static string UserTag(int userId) => $"user:{userId}";
-    private static string GuestKey(Guid guestId) => $"session:guest-expiry:{guestId:N}";
-    private static string GuestTag(Guid guestId) => $"guest:{guestId:N}";
+    private static string UserKey(int userId)
+    {
+        return $"session:user-stamp:{userId}";
+    }
+
+    private static string UserTag(int userId)
+    {
+        return $"user:{userId}";
+    }
+
+    private static string GuestKey(Guid guestId)
+    {
+        return $"session:guest-expiry:{guestId:N}";
+    }
+
+    private static string GuestTag(Guid guestId)
+    {
+        return $"guest:{guestId:N}";
+    }
 }
