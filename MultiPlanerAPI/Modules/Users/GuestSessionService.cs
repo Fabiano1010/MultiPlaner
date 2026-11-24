@@ -12,7 +12,11 @@ namespace MultiPlanerAPI.Modules.Users;
 /// Signs in guest identities created together with room membership by
 /// <see cref="MultiPlanerAPI.Modules.Rooms.InvitationService"/>.
 /// </summary>
-public sealed class GuestSessionService(AppDbContext db, TimeProvider clock, IHttpContextAccessor accessor)
+public sealed class GuestSessionService(
+    AppDbContext db,
+    TimeProvider clock,
+    IHttpContextAccessor accessor,
+    SessionValidationCache sessionCache)
 {
     public async Task<GuestSession> CreateAsync(string displayName, CancellationToken cancellationToken = default)
     {
@@ -60,5 +64,6 @@ public sealed class GuestSessionService(AppDbContext db, TimeProvider clock, IHt
             .ExecuteUpdateAsync(update => update
                 .SetProperty(s => s.RevokedAtUtc, now)
                 .SetProperty(s => s.UpdatedAtUtc, now), cancellationToken);
+        await sessionCache.InvalidateGuestAsync(sessionId, cancellationToken);
     }
 }

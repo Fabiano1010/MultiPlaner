@@ -22,12 +22,12 @@ public sealed class MemberManagementService(RoomMutationService mutations, Curre
         return mutations.ExecuteAsync(roomId, async (db, room) =>
         {
             var access = new RoomAccessService(db, actor, clock);
-            await access.RequireManagerAsync(roomId, ct);
+            await access.RequireManagerAsync(room, ct);
             access.RequireActive(room);
-            var member =
-                await db.RoomMembers.SingleOrDefaultAsync(
-                    m => m.RoomId == roomId && m.Id == memberId && m.LeftAtUtc == null, ct)
-                ?? throw new ApiException(404, "member_not_found", "Active member not found.");
+
+            var member = await db.RoomMembers.SingleOrDefaultAsync(
+                             m => m.RoomId == roomId && m.Id == memberId && m.LeftAtUtc == null, ct)
+                         ?? throw new ApiException(404, "member_not_found", "Active member not found.");
             if (member.UserId == room.OwnerUserId)
             {
                 throw new ApiException(403, "owner_protected", "The owner cannot be removed or demoted.");
@@ -43,7 +43,7 @@ public sealed class MemberManagementService(RoomMutationService mutations, Curre
                 throw new ApiException(409, "concurrency_conflict", "Member changed. Reload and retry.");
             }
 
-            if (!remove && admin && member.UserId == null)
+            if (!remove && admin && member.UserId is null)
             {
                 throw new ApiException(400, "guest_cannot_be_admin", "Guests cannot become administrators.");
             }

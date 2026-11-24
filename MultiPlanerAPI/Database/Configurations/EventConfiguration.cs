@@ -70,6 +70,7 @@ public sealed class AvailabilityConfiguration : IEntityTypeConfiguration<Availab
         b.HasIndex(x => new { x.RoomId, x.MemberId, x.StartsAtUtc, x.EndsAtUtc });
     }
 }
+
 public sealed class EventOccurrenceExceptionConfiguration : IEntityTypeConfiguration<EventOccurrenceException>
 {
     public void Configure(EntityTypeBuilder<EventOccurrenceException> b)

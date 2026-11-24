@@ -78,6 +78,7 @@ public sealed class RoomsController(RoomService rooms, RoomMembershipService mem
         await rooms.ArchiveAsync(roomId, cancellationToken);
         return NoContent();
     }
+
     [HttpPost("{roomId:int}/visit")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Visit(int roomId, CancellationToken cancellationToken)

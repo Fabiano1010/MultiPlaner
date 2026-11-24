@@ -19,8 +19,8 @@ public sealed class UserSettingsService(
             -1 => new SavedThemeResponse(-1, "Default", new ThemePalette(), [], true),
             -2 => new SavedThemeResponse(-2, "Dark",
                 new ThemePalette
-                    { Background = "#161616", Surface = "#303030", Accent = "#A78BFA", Border = "#666666" }, [],
-                true),
+                    { Background = "#161616", Surface = "#303030", Accent = "#A78BFA", Border = "#666666" },
+                [], true),
             _ => throw new ApiException(404, "theme_not_found", "Theme not found.")
         };
     }
@@ -68,24 +68,20 @@ public sealed class UserSettingsService(
             }
 
             SavedTheme theme;
-            if (themeId == null)
+            if (themeId is { } id)
+            {
+                theme = await Find(context, userId, id, ct);
+                Check(theme.RowVersion, request.RowVersion);
+                context.Entry(theme).Property(t => t.UpdatedAtUtc).IsModified = true;
+            }
+            else
             {
                 theme = new SavedTheme { UserId = userId };
                 context.SavedThemes.Add(theme);
             }
-            else
-            {
-                theme = await Find(context, userId, themeId.Value, ct);
-                Check(theme.RowVersion, request.RowVersion);
-            }
 
             theme.Name = name;
             theme.Palette = request.Palette with { };
-            if (themeId != null)
-            {
-                context.Entry(theme).Property(t => t.UpdatedAtUtc).IsModified = true;
-            }
-
             await context.SaveChangesAsync(ct);
             return Map(theme);
         }, ct);
@@ -109,19 +105,18 @@ public sealed class UserSettingsService(
 
             var active = await context.UserThemes.SingleOrDefaultAsync(t => t.UserId == userId, ct);
             Check(active?.RowVersion ?? [], request.ActiveRowVersion);
-            if (active == null)
+            if (active is null)
             {
                 active = new UserTheme { UserId = userId };
                 context.UserThemes.Add(active);
             }
-
-            active.ActiveThemeId = chosen.Id;
-            active.Palette = chosen.Palette with { };
-            if (active.RowVersion.Length > 0)
+            else
             {
                 context.Entry(active).Property(t => t.UpdatedAtUtc).IsModified = true;
             }
 
+            active.ActiveThemeId = chosen.Id;
+            active.Palette = chosen.Palette with { };
             await context.SaveChangesAsync(ct);
             return new ThemeResponse(active.Palette, active.RowVersion, active.ActiveThemeId);
         }, ct);

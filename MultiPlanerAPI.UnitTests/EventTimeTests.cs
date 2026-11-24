@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
 using MultiPlanerAPI.Modules.Events;
@@ -60,5 +61,49 @@ public sealed class EventTimeTests
             new EventTimeRequest
                 { IsAllDay = true, StartDate = new DateOnly(2026, 1, 1), EndDateExclusive = new DateOnly(2026, 1, 1) },
             "UTC"));
+    }
+
+    [Fact]
+    public void AllowsArbitraryLongDurationsAndWideQueryWindows()
+    {
+        var ev = new CalendarEvent();
+        EventTime.Apply(ev,
+            new EventTimeRequest
+            {
+                StartsAtUtc = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                EndsAtUtc = new DateTimeOffset(2028, 6, 15, 0, 0, 0, TimeSpan.Zero)
+            }, "UTC");
+        Assert.Equal(new DateTimeOffset(2028, 6, 15, 0, 0, 0, TimeSpan.Zero), ev.EndsAtUtc);
+
+        var allDay = new CalendarEvent();
+        EventTime.Apply(allDay,
+            new EventTimeRequest
+            {
+                IsAllDay = true,
+                StartDate = new DateOnly(1890, 1, 1),
+                EndDateExclusive = new DateOnly(2150, 1, 1)
+            }, "UTC");
+        Assert.Equal(new DateOnly(2150, 1, 1), allDay.EndDateExclusive);
+
+        var wideQuery = new EventListRequest
+        {
+            From = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero)
+        };
+        Assert.Empty(Validate(wideQuery));
+
+        var invalidRange = new EventListRequest
+        {
+            From = new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+            To = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
+        };
+        Assert.NotEmpty(Validate(invalidRange));
+    }
+
+    private static List<ValidationResult> Validate(object value)
+    {
+        var results = new List<ValidationResult>();
+        Validator.TryValidateObject(value, new ValidationContext(value), results, true);
+        return results;
     }
 }

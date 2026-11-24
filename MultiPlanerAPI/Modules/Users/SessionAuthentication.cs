@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Models;
+using MultiPlanerSharedModels.Contracts.Auth;
 
 namespace MultiPlanerAPI.Modules.Users;
 
@@ -22,6 +24,8 @@ public static class SessionAuthentication
         ConfigureAuthentication(services);
         ConfigureAuthorization(services);
 
+        services.AddSingleton<SessionValidationCache>();
+        services.AddScoped<UserCookieEvents>();
         services.AddScoped<GuestCookieEvents>();
         services.AddScoped<GuestSessionService>();
         services.AddScoped<CurrentActor>();
@@ -36,7 +40,7 @@ public static class SessionAuthentication
             {
                 options.User.RequireUniqueEmail = true;
                 options.User.AllowedUserNameCharacters = null!;
-                options.Password.RequiredLength = 8;
+                options.Password.RequiredLength = PasswordLimits.MinLength;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.AllowedForNewUsers = true;
@@ -51,8 +55,8 @@ public static class SessionAuthentication
         {
             ConfigureCookie(options, UserCookie);
             options.ExpireTimeSpan = TimeSpan.FromDays(14);
+            options.EventsType = typeof(UserCookieEvents);
         });
-        ConfigureSecurityStampValidation(services);
     }
 
     private static void ConfigureAuthentication(IServiceCollection services)
@@ -99,38 +103,93 @@ public static class SessionAuthentication
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.Path = "/";
         options.SlidingExpiration = false;
-        options.Events.OnRedirectToLogin = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        };
-        options.Events.OnRedirectToAccessDenied = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        };
-    }
-
-    /// <summary>Checks the security stamp on every request so logout invalidates copied cookies.</summary>
-    private static void ConfigureSecurityStampValidation(IServiceCollection services)
-    {
-        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
     }
 }
 
-public sealed class GuestCookieEvents(AppDbContext db, TimeProvider clock) : CookieAuthenticationEvents
+/// <summary>
+/// Validates user cookies against a cached SecurityStamp without regenerating ClaimsPrincipal
+/// or renewing/re-encrypting the cookie on every request.
+/// </summary>
+public sealed class UserCookieEvents(
+    AppDbContext db,
+    SessionValidationCache cache,
+    IOptions<IdentityOptions> identityOptions) : CookieAuthenticationEvents
+{
+    public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
+    {
+        var claimsIdentity = identityOptions.Value.ClaimsIdentity;
+        var userIdValue = context.Principal?.FindFirst(claimsIdentity.UserIdClaimType)?.Value;
+        var cookieStamp = context.Principal?.FindFirst(claimsIdentity.SecurityStampClaimType)?.Value;
+
+        if (!int.TryParse(userIdValue, out var userId) || string.IsNullOrEmpty(cookieStamp))
+        {
+            await RejectAsync(context);
+            return;
+        }
+
+        var currentStamp = await cache.GetOrLoadSecurityStampAsync(
+            userId,
+            async ct => await db.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => u.SecurityStamp)
+                .SingleOrDefaultAsync(ct),
+            context.HttpContext.RequestAborted);
+
+        if (string.IsNullOrEmpty(currentStamp) || !string.Equals(currentStamp, cookieStamp, StringComparison.Ordinal))
+        {
+            await RejectAsync(context);
+        }
+    }
+
+    private static async Task RejectAsync(CookieValidatePrincipalContext context)
+    {
+        context.RejectPrincipal();
+        await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+    }
+
+    public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    }
+
+    public override Task RedirectToAccessDenied(RedirectContext<CookieAuthenticationOptions> context)
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class GuestCookieEvents(
+    AppDbContext db,
+    TimeProvider clock,
+    SessionValidationCache cache) : CookieAuthenticationEvents
 {
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
         var claim = context.Principal?.FindFirst(SessionAuthentication.GuestIdClaim)?.Value;
-        if (Guid.TryParse(claim, out var id) &&
-            await db.GuestSessions.AsNoTracking().AnyAsync(
-                s => s.Id == id && s.RevokedAtUtc == null && s.ExpiresAtUtc > clock.GetUtcNow(),
-                context.HttpContext.RequestAborted))
+        if (!Guid.TryParse(claim, out var id))
         {
+            await RejectAsync(context);
             return;
         }
 
+        var expiresAtUtc = await cache.GetOrLoadGuestExpiryAsync(
+            id,
+            async ct => await db.GuestSessions.AsNoTracking()
+                .Where(s => s.Id == id && s.RevokedAtUtc == null)
+                .Select(s => (DateTimeOffset?)s.ExpiresAtUtc)
+                .SingleOrDefaultAsync(ct),
+            context.HttpContext.RequestAborted);
+
+        if (expiresAtUtc is not { } expiry || expiry <= clock.GetUtcNow())
+        {
+            await RejectAsync(context);
+        }
+    }
+
+    private static async Task RejectAsync(CookieValidatePrincipalContext context)
+    {
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(SessionAuthentication.GuestScheme);
     }

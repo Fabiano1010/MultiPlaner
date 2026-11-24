@@ -9,6 +9,9 @@ public sealed class LoginRequest
     [StringLength(254)]
     public string Email { get; init; } = string.Empty;
 
-    [Required] [StringLength(128)] public string Password { get; init; } = string.Empty;
+    [Required]
+    [StringLength(PasswordLimits.MaxLength)]
+    public string Password { get; init; } = string.Empty;
+
     public bool RememberMe { get; init; }
 }

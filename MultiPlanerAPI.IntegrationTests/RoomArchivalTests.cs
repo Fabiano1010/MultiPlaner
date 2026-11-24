@@ -117,12 +117,4 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             .SetProperty(r => r.CreatedAtUtc, expiry.AddMonths(-3))
             .SetProperty(r => r.ExpiresAtUtc, expiry));
     }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow()
-        {
-            return now;
-        }
-    }
 }

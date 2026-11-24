@@ -89,6 +89,47 @@ public sealed class UserValidationTests
         Assert.Null(new CurrentActor(new HttpContextAccessor { HttpContext = context }).UserId);
     }
 
+    [Fact]
+    public void PasswordLengthLimitsAreConsistentAcrossAllAuthAndSettingsContracts()
+    {
+        var minPassword = new string('A', PasswordLimits.MinLength);
+        var maxPassword = new string('A', PasswordLimits.MaxLength);
+        var tooShort = new string('A', PasswordLimits.MinLength - 1);
+        var tooLong = new string('A', PasswordLimits.MaxLength + 1);
+
+        Assert.Empty(Validate(new RegisterRequest
+            { Email = "a@b.com", DisplayName = "Anna", Password = minPassword }));
+        Assert.Empty(Validate(new RegisterRequest
+            { Email = "a@b.com", DisplayName = "Anna", Password = maxPassword }));
+        Assert.NotEmpty(Validate(new RegisterRequest
+            { Email = "a@b.com", DisplayName = "Anna", Password = tooShort }));
+        Assert.NotEmpty(Validate(new RegisterRequest
+            { Email = "a@b.com", DisplayName = "Anna", Password = tooLong }));
+
+        Assert.Empty(Validate(new LoginRequest { Email = "a@b.com", Password = maxPassword }));
+        Assert.NotEmpty(Validate(new LoginRequest { Email = "a@b.com", Password = tooLong }));
+
+        Assert.Empty(Validate(new ChangePasswordRequest
+            { CurrentPassword = maxPassword, NewPassword = minPassword }));
+        Assert.Empty(Validate(new ChangePasswordRequest
+            { CurrentPassword = maxPassword, NewPassword = maxPassword }));
+        Assert.NotEmpty(Validate(new ChangePasswordRequest
+            { CurrentPassword = maxPassword, NewPassword = tooShort }));
+        Assert.NotEmpty(Validate(new ChangePasswordRequest
+            { CurrentPassword = maxPassword, NewPassword = tooLong }));
+        Assert.NotEmpty(Validate(new ChangePasswordRequest
+            { CurrentPassword = tooLong, NewPassword = minPassword }));
+
+        Assert.Empty(Validate(new ResetPasswordRequest
+            { Email = "a@b.com", Token = "tok", NewPassword = minPassword }));
+        Assert.Empty(Validate(new ResetPasswordRequest
+            { Email = "a@b.com", Token = "tok", NewPassword = maxPassword }));
+        Assert.NotEmpty(Validate(new ResetPasswordRequest
+            { Email = "a@b.com", Token = "tok", NewPassword = tooShort }));
+        Assert.NotEmpty(Validate(new ResetPasswordRequest
+            { Email = "a@b.com", Token = "tok", NewPassword = tooLong }));
+    }
+
     private static List<ValidationResult> Validate(object value)
     {
         var errors = new List<ValidationResult>();

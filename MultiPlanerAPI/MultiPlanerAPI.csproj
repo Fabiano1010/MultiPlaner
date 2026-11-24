@@ -17,14 +17,19 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="11.0.1"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7"/>
         <PackageReference Include="Microsoft.OpenApi" Version="2.7.5"/>
         <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="data\avatars\" />
+        <Folder Include="data\avatars\"/>
         <Folder Include="Migrations\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="MultiPlanerAPI.UnitTests"/>
     </ItemGroup>
 
     <ItemGroup>

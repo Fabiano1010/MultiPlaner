@@ -18,6 +18,7 @@ public sealed class UserService(
     SignInManager<ApplicationUser> signIn,
     CurrentActor actor,
     GuestSessionService guests,
+    SessionValidationCache sessionCache,
     IHttpContextAccessor accessor,
     IPasswordResetEmailSender emailSender,
     IConfiguration configuration,
@@ -130,6 +131,7 @@ public sealed class UserService(
         var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
         if (result.Succeeded)
         {
+            await sessionCache.InvalidateUserAsync(user.Id, user.SecurityStamp, cancellationToken);
             return;
         }
 
@@ -158,6 +160,7 @@ public sealed class UserService(
         {
             var user = await db.Users.SingleAsync(u => u.Id == userId, cancellationToken);
             EnsureSuccess(await users.UpdateSecurityStampAsync(user));
+            await sessionCache.InvalidateUserAsync(userId, user.SecurityStamp, cancellationToken);
         }
 
         if (actor.GuestSessionId is { } guestId)
@@ -234,6 +237,7 @@ public sealed class UserService(
         var id = actor.RequireUserId();
         var user = await db.Users.SingleAsync(u => u.Id == id, ct);
         EnsureSuccess(await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword));
+        await sessionCache.InvalidateUserAsync(id, user.SecurityStamp, ct);
         await signIn.RefreshSignInAsync(user);
     }
 

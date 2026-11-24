@@ -12,6 +12,7 @@ public sealed class AvatarService(
     AvatarStorage storage)
 {
     public const long MaxBytes = 5 * 1024 * 1024;
+    private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
     public async Task SaveAsync(IFormFile file, CancellationToken ct)
     {
@@ -50,6 +51,44 @@ public sealed class AvatarService(
         storage.Delete(await ReplaceAsync(null, null, ct));
     }
 
+    public async Task<(Stream Stream, string Type)> OpenAsync(int userId, CancellationToken ct)
+    {
+        if (actor.UserId != userId && !await SharesReadableRoomAsync(userId, ct))
+        {
+            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
+        }
+
+        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == userId, ct);
+        if (user?.AvatarStorageKey is null)
+        {
+            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
+        }
+
+        try
+        {
+            return (storage.Open(user.AvatarStorageKey), user.AvatarContentType!);
+        }
+        catch (FileNotFoundException)
+        {
+            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
+        }
+    }
+
+    private Task<bool> SharesReadableRoomAsync(int targetUserId, CancellationToken ct)
+    {
+        var viewerRooms = db.RoomMembers
+            .Where(m => m.LeftAtUtc == null &&
+                        ((actor.UserId != null && m.UserId == actor.UserId) ||
+                         (actor.GuestSessionId != null && m.GuestSessionId == actor.GuestSessionId)))
+            .Select(m => m.RoomId);
+        var now = clock.GetUtcNow();
+        return (from m in db.RoomMembers
+            join r in db.Rooms on m.RoomId equals r.Id
+            where m.UserId == targetUserId && m.LeftAtUtc == null && viewerRooms.Contains(m.RoomId) &&
+                  (r.ExpiresAtUtc > now || r.ArchivedAtUtc != null || r.ArchiveOnExpiry)
+            select m.Id).AnyAsync(ct);
+    }
+
     private Task<string?> ReplaceAsync(string? key, string? type, CancellationToken ct)
     {
         return db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
@@ -71,42 +110,6 @@ public sealed class AvatarService(
         });
     }
 
-    public async Task<(Stream Stream, string Type)> OpenAsync(int userId, CancellationToken ct)
-    {
-        if (actor.UserId != userId)
-        {
-            var viewerRooms = db.RoomMembers.Where(m => m.LeftAtUtc == null &&
-                                                        ((actor.UserId != null && m.UserId == actor.UserId) ||
-                                                         (actor.GuestSessionId != null &&
-                                                          m.GuestSessionId == actor.GuestSessionId)))
-                .Select(m => m.RoomId);
-            var now = clock.GetUtcNow();
-            if (!await (from m in db.RoomMembers
-                    join r in db.Rooms on m.RoomId equals r.Id
-                    where m.UserId == userId && m.LeftAtUtc == null && viewerRooms.Contains(m.RoomId) &&
-                          (r.ExpiresAtUtc > now || r.ArchivedAtUtc != null || r.ArchiveOnExpiry)
-                    select m.Id).AnyAsync(ct))
-            {
-                throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-            }
-        }
-
-        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == userId, ct);
-        if (user?.AvatarStorageKey == null)
-        {
-            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-        }
-
-        try
-        {
-            return (storage.Open(user.AvatarStorageKey), user.AvatarContentType!);
-        }
-        catch (FileNotFoundException)
-        {
-            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-        }
-    }
-
     private static ApiException Invalid(string message)
     {
         return ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
@@ -124,7 +127,7 @@ public sealed class AvatarService(
             return "image/jpeg";
         }
 
-        if (h[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
+        if (h[..8].SequenceEqual(PngSignature))
         {
             return "image/png";
         }

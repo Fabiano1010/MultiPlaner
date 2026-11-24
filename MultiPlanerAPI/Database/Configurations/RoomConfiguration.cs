@@ -55,6 +55,7 @@ public sealed class RoomInvitationConfiguration : IEntityTypeConfiguration<RoomI
         b.HasOne<Room>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.NoAction);
     }
 }
+
 public sealed class UserFolderConfiguration : IEntityTypeConfiguration<UserFolder>
 {
     public void Configure(EntityTypeBuilder<UserFolder> b)
@@ -80,7 +81,7 @@ public sealed class UserFolderRoomConfiguration : IEntityTypeConfiguration<UserF
 
 public sealed class RoomVisitConfiguration : IEntityTypeConfiguration<RoomVisit>
 {
-    public void Configure(EntityTypeBuilder<RoomVisit> b) 
+    public void Configure(EntityTypeBuilder<RoomVisit> b)
     {
         b.ToTable("RoomVisits");
         b.HasKey(x => x.MemberId);
