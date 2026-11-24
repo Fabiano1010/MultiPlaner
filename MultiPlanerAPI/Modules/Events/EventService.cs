@@ -16,7 +16,12 @@ public sealed class EventService(
     RoomAccessService access,
     RoomMutationService mutations)
 {
-    private const int MaxSeriesPerRoom = 50, MaxOccurrencesPerSeries = 400, MaxWindowDays = 400, MaxSeriesPerQuery = 500, MaxMergedRows = 5000;
+    private const int MaxSeriesPerRoom = 50,
+        MaxOccurrencesPerSeries = 400,
+        MaxWindowDays = 400,
+        MaxSeriesPerQuery = 500,
+        MaxMergedRows = 5000;
+
     private sealed class EventRow
     {
         public CalendarEvent Event { get; init; } = null!;
@@ -43,7 +48,8 @@ public sealed class EventService(
             select new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = viewer.Id };
     }
 
-    public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter, CancellationToken ct)
+    public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter,
+        CancellationToken ct)
     {
         if (roomId is { } id)
         {
@@ -115,8 +121,11 @@ public sealed class EventService(
             .ToListAsync(ct);
 
         var zones = new Dictionary<string, TimeZoneInfo>(StringComparer.Ordinal);
-        TimeZoneInfo Zone(string id) =>
-            zones.TryGetValue(id, out var z) ? z : zones[id] = TimeZoneInfo.FindSystemTimeZoneById(id);
+
+        TimeZoneInfo Zone(string id)
+        {
+            return zones.TryGetValue(id, out var z) ? z : zones[id] = TimeZoneInfo.FindSystemTimeZoneById(id);
+        }
 
         var offset = (long)(filter.Page - 1) * filter.PageSize;
 
@@ -169,7 +178,11 @@ public sealed class EventService(
             var tz = Zone(s.Event.TimeZoneId ?? s.Room.TimeZoneId);
             foreach (var o in RecurrenceExpander.Expand(s.Event, tz, from, expandTo, MaxOccurrencesPerSeries))
             {
-                if (skipped.Contains((s.Event.Id, o.Date))) continue;
+                if (skipped.Contains((s.Event.Id, o.Date)))
+                {
+                    continue;
+                }
+
                 expandedCount++;
                 if (items.Count < MaxMergedRows)
                 {
@@ -247,7 +260,8 @@ public sealed class EventService(
         return await ResponseAsync(db, roomId, eventId, ct);
     }
 
-    public async Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request, CancellationToken ct)
+    public async Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request,
+        CancellationToken ct)
     {
         await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
@@ -301,7 +315,8 @@ public sealed class EventService(
                 await ApplyRecurrenceAsync(context, ev, request.Recurrence, room, ct);
             }
 
-            var changed = ev.StartsAtUtc != oldStart || ev.EndsAtUtc != oldEnd || (ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil) != oldRec;
+            var changed = ev.StartsAtUtc != oldStart || ev.EndsAtUtc != oldEnd ||
+                          (ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil) != oldRec;
 
             if (changed)
             {
@@ -335,6 +350,7 @@ public sealed class EventService(
             {
                 throw new ApiException(403, "event_pin_forbidden", "Only the author or room owner may pin this event.");
             }
+
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
             ev.IsPinned = request.IsPinned;
@@ -376,7 +392,10 @@ public sealed class EventService(
     {
         if (request is null)
         {
-            if (ev.Recurrence == RecurrenceFrequency.None) return;
+            if (ev.Recurrence == RecurrenceFrequency.None)
+            {
+                return;
+            }
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? room.TimeZoneId);
             var first = RecurrenceExpander.FirstDate(ev, tz);
@@ -403,17 +422,28 @@ public sealed class EventService(
         var untilLimit = ClampAddYears(startDay, 10);
         var errors = new Dictionary<string, string[]>();
         if (request.Interval is < 1 or > 12)
+        {
             errors["recurrence"] = ["Repeat interval must be between 1 and 12."];
+        }
+
         if (request.Until is { } until && (until < startDay || until > untilLimit))
+        {
             errors["recurrence"] = ["Repeat end must be between the first date and ten years later."];
-        if (errors.Count != 0) throw ApiException.Validation(errors);
+        }
+
+        if (errors.Count != 0)
+        {
+            throw ApiException.Validation(errors);
+        }
 
         var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
         var others = await context.CalendarEvents.CountAsync(e => e.RoomId == room.Id && e.Id != ev.Id
             && e.Recurrence != RecurrenceFrequency.None
             && (e.RecurrenceUntil == null || e.RecurrenceUntil >= today), ct);
         if (others >= MaxSeriesPerRoom)
+        {
             throw new ApiException(409, "too_many_series", "This calendar has too many recurring events.");
+        }
 
         ev.Recurrence = request.Frequency;
         ev.RecurrenceInterval = request.Interval;
@@ -431,17 +461,23 @@ public sealed class EventService(
             RequireVersion(ev, request.RowVersion);
 
             if (ev.Recurrence == RecurrenceFrequency.None)
+            {
                 throw new ApiException(409, "event_not_recurring", "This event does not repeat.");
+            }
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? room.TimeZoneId);
             if (!RecurrenceExpander.OccursOn(ev, tz, date))
+            {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["date"] = ["This date is not an occurrence of the event."] });
+            }
 
             if (!await context.EventOccurrenceExceptions.AnyAsync(
                     x => x.EventId == eventId && x.OccurrenceDate == date, ct))
+            {
                 context.EventOccurrenceExceptions.Add(new EventOccurrenceException
                     { EventId = eventId, OccurrenceDate = date });
+            }
 
             context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
@@ -485,7 +521,7 @@ public sealed class EventService(
             ? value.AddYears(years)
             : DateOnly.MaxValue;
     }
-    
+
     private static async Task<CalendarEvent> FindEventAsync(
         AppDbContext context, int roomId, int eventId, CancellationToken ct)
     {
@@ -496,11 +532,17 @@ public sealed class EventService(
     private static void RequireVersion(CalendarEvent ev, byte[] version)
     {
         if (!ev.RowVersion.AsSpan().SequenceEqual(version))
+        {
             throw new ApiException(409, "concurrency_conflict", "Event changed. Reload and retry.");
+        }
     }
+
     private static void RequireCanModify(RoomMember viewer, Room room, int authorMemberId)
     {
-        if (viewer.Id == authorMemberId || viewer.UserId == room.OwnerUserId) return;
+        if (viewer.Id == authorMemberId || viewer.UserId == room.OwnerUserId)
+        {
+            return;
+        }
 
         throw new ApiException(403, "event_forbidden",
             "Only the author or the room owner may change this event.");
@@ -554,12 +596,15 @@ public sealed class EventService(
                 row.Author.UserId == row.Room.OwnerUserId, row.Author.LeftAtUtc != null), participants, ev.RowVersion,
             new EventPermissions(active && own, active && own,
                 active && (own || row.Room.OwnerUserId == actor.UserId)),
-            Recurrence: ev.Recurrence,
-            RecurrenceInterval: ev.RecurrenceInterval,
-            RecurrenceUntil: ev.RecurrenceUntil,
-            OccurrenceDate: occurrenceDate);
+            ev.Recurrence,
+            ev.RecurrenceInterval,
+            ev.RecurrenceUntil,
+            occurrenceDate);
 
-        if (occurrence is not { } o) return response;
+        if (occurrence is not { } o)
+        {
+            return response;
+        }
 
         return response with
         {

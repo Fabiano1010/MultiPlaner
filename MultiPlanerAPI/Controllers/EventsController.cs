@@ -64,7 +64,7 @@ public sealed class EventsController(EventService events) : ControllerBase
         await events.DeleteAsync(roomId, eventId, request, ct);
         return NoContent();
     }
-    
+
     [HttpPost("{eventId:int}/occurrences/{date}/skip")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SkipOccurrence(

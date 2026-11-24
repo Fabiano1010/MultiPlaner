@@ -114,7 +114,6 @@ public static class SessionAuthentication
             return Task.CompletedTask;
         };
     }
-
 }
 
 /// <summary>

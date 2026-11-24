@@ -129,7 +129,8 @@ public sealed class RoomService(
                     LastOpened = visit == null ? (DateTimeOffset?)null : visit.LastOpenedAtUtc
                 })
             .ToListAsync(cancellationToken);
-        return rooms.Select(item => ToResponse(item.Room, item.Member, now, item.OwnerName, item.FolderId, item.LastOpened)).ToList();
+        return rooms.Select(item =>
+            ToResponse(item.Room, item.Member, now, item.OwnerName, item.FolderId, item.LastOpened)).ToList();
     }
 
     public async Task<RoomResponse> GetAsync(int roomId, CancellationToken cancellationToken)
@@ -386,6 +387,7 @@ public sealed class RoomService(
             .ExecuteDeleteAsync(cancellationToken);
         return coverKey;
     }
+
     private Task<int?> FolderIdOfAsync(AppDbContext context, int roomId, CancellationToken ct)
     {
         var userId = actor.UserId;
@@ -395,31 +397,38 @@ public sealed class RoomService(
             .SingleOrDefaultAsync(ct);
     }
 
-    public async Task RecordVisitAsync(int roomId, CancellationToken ct) {
+    public async Task RecordVisitAsync(int roomId, CancellationToken ct)
+    {
         var (room, member) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
-        
+
         var now = clock.GetUtcNow();
         var threshold = now.AddMinutes(-1);
-        
+
         var updated = await db.RoomVisits
-            .Where(v => v.MemberId == member.Id && v.LastOpenedAtUtc<threshold)
+            .Where(v => v.MemberId == member.Id && v.LastOpenedAtUtc < threshold)
             .ExecuteUpdateAsync(s => s.SetProperty(v => v.LastOpenedAtUtc, now), ct);
-        if(updated > 0) {
+        if (updated > 0)
+        {
             return;
         }
-        if(await db.RoomVisits.AnyAsync(v => v.MemberId == member.Id, ct)) {
+
+        if (await db.RoomVisits.AnyAsync(v => v.MemberId == member.Id, ct))
+        {
             return;
         }
+
         db.RoomVisits.Add(new RoomVisit { MemberId = member.Id, LastOpenedAtUtc = now });
-        try {
+        try
+        {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException) {
+        catch (DbUpdateException)
+        {
             // already exists
         }
     }
-    
+
     private static async Task DeleteRoomContentsAsync(AppDbContext operationDb, int roomId,
         CancellationToken cancellationToken)
     {
@@ -450,13 +459,15 @@ public sealed class RoomService(
             await operationDb.PollOptions.Where(o => pollIds.Contains(o.PollId)).ExecuteDeleteAsync(cancellationToken);
             await operationDb.Polls.Where(p => p.RoomId == roomId).ExecuteDeleteAsync(cancellationToken);
         }
+
         var memberIds = operationDb.RoomMembers.Where(m => m.RoomId == roomId).Select(m => m.Id);
         await operationDb.RoomVisits.Where(v => memberIds.Contains(v.MemberId)).ExecuteDeleteAsync(cancellationToken);
         await operationDb.RoomMembers.Where(m => m.RoomId == roomId)
             .ExecuteDeleteAsync(cancellationToken);
     }
 
-    internal static RoomResponse ToResponse(Room room, RoomMember member, DateTimeOffset now, string? ownerDisplayName = null, int? folderId = null, DateTimeOffset? lastOpenedAtUtc = null)
+    internal static RoomResponse ToResponse(Room room, RoomMember member, DateTimeOffset now,
+        string? ownerDisplayName = null, int? folderId = null, DateTimeOffset? lastOpenedAtUtc = null)
     {
         return new RoomResponse(room.Id, room.Name, room.TimeZoneId, room.OwnerUserId, member.Id,
             room.OwnerUserId == member.UserId, room.ExpiresAtUtc, room.GetArchivedAtUtc(now),

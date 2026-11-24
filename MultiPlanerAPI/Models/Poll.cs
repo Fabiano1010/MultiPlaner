@@ -16,4 +16,3 @@ public sealed class Poll : TrackedEntity
         return ClosedAtUtc ?? (ClosesAtUtc <= now ? ClosesAtUtc : null);
     }
 }
-

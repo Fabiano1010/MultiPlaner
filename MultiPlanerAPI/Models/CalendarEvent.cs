@@ -23,6 +23,7 @@ public sealed class CalendarEvent : TrackedEntity
     public int RecurrenceInterval { get; set; } = 1;
     public DateOnly? RecurrenceUntil { get; set; }
 }
+
 public sealed class EventOccurrenceException
 {
     public int EventId { get; set; }

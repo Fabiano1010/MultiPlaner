@@ -4,8 +4,10 @@ using MultiPlanerAPI.Models;
 
 namespace MultiPlanerAPI.Data.Configurations;
 
-public sealed class PollConfiguration : IEntityTypeConfiguration<Poll> {
-    public void Configure(EntityTypeBuilder<Poll> builder) {
+public sealed class PollConfiguration : IEntityTypeConfiguration<Poll>
+{
+    public void Configure(EntityTypeBuilder<Poll> builder)
+    {
         builder.ToTable("Polls", t => t.HasCheckConstraint("CK_Poll_Closes", "[ClosesAtUtc] > [CreatedAtUtc]"));
         builder.Property(x => x.Question).HasMaxLength(256).IsRequired();
         builder.HasOne<Room>().WithMany().HasForeignKey(x => x.RoomId).OnDelete(DeleteBehavior.NoAction);
@@ -25,9 +27,11 @@ public sealed class PollOptionConfiguration : IEntityTypeConfiguration<PollOptio
         builder.HasAlternateKey(x => new { x.Id, x.PollId });
         builder.Property(x => x.Text).HasMaxLength(128).IsRequired();
         builder.Property(x => x.Color).HasMaxLength(6).IsUnicode(false).IsRequired();
-        builder.HasIndex(x => new { x.PollId, x.Position });   // not unique on purpose: swapping options in one SaveChanges
+        builder.HasIndex(x => new
+            { x.PollId, x.Position }); // not unique on purpose: swapping options in one SaveChanges
     }
 }
+
 public sealed class PollVoteConfiguration : IEntityTypeConfiguration<PollVote>
 {
     public void Configure(EntityTypeBuilder<PollVote> builder)

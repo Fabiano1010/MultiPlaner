@@ -29,7 +29,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<PollOption> PollOptions => Set<PollOption>();
     public DbSet<PollVote> PollVotes => Set<PollVote>();
     public DbSet<RoomVisit> RoomVisits => Set<RoomVisit>();
-    public DbSet<EventOccurrenceException> EventOccurrenceExceptions =>Set<EventOccurrenceException>();
+    public DbSet<EventOccurrenceException> EventOccurrenceExceptions => Set<EventOccurrenceException>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

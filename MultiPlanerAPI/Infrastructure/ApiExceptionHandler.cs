@@ -19,9 +19,9 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger
         var badRequest = exception as BadHttpRequestException;
         var status = apiError?.StatusCode
                      ?? (badRequest is not null
-                         ? (badRequest.StatusCode is >= 400 and < 500
+                         ? badRequest.StatusCode is >= 400 and < 500
                              ? badRequest.StatusCode
-                             : StatusCodes.Status400BadRequest)
+                             : StatusCodes.Status400BadRequest
                          : exception is DbUpdateConcurrencyException
                              ? StatusCodes.Status409Conflict
                              : StatusCodes.Status500InternalServerError);
@@ -38,7 +38,8 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogger
         detail.Detail = apiError?.Message ?? status switch
         {
             StatusCodes.Status409Conflict => "The resource changed. Reload it and retry.",
-            StatusCodes.Status413PayloadTooLarge => "The uploaded file or request body exceeds the maximum allowed size.",
+            StatusCodes.Status413PayloadTooLarge =>
+                "The uploaded file or request body exceeds the maximum allowed size.",
             >= 400 and < 500 when badRequest is not null => "The HTTP request is invalid.",
             _ => "An unexpected server error occurred."
         };

@@ -42,6 +42,7 @@ else if (!builder.Environment.IsDevelopment())
     throw new InvalidOperationException(
         "Configure DataProtection:CertificatePath to encrypt Data Protection keys outside Development.");
 }
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("PasswordReset", context => RateLimitPartition.GetFixedWindowLimiter(

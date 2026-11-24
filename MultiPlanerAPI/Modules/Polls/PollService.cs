@@ -192,7 +192,7 @@ public sealed class PollService(
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            await LoadForManageAsync(context, room, roomId, pollId, includeOptions: false, ct);
+            await LoadForManageAsync(context, room, roomId, pollId, false, ct);
             await context.PollVotes.Where(v => v.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.PollOptions.Where(o => o.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.Polls.Where(p => p.Id == pollId && p.RoomId == roomId).ExecuteDeleteAsync(ct);
@@ -208,7 +208,7 @@ public sealed class PollService(
             var (currentRoom, currentMember) = await roomAccess.RequireMemberAsync(roomId, ct);
             roomAccess.RequireActive(currentRoom);
 
-            var currentPoll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions: true, ct);
+            var currentPoll = await RoomMutationService.LockPollAsync(context, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
             if (currentPoll.GetClosedAtUtc(now) is not null)
             {
@@ -248,7 +248,9 @@ public sealed class PollService(
             else if (existing.Count == 0)
             {
                 context.PollVotes.Add(new PollVote
-                    { PollId = pollId, MemberId = currentMember.Id, OptionId = optionIds[0], Slot = 0, CastAtUtc = now });
+                {
+                    PollId = pollId, MemberId = currentMember.Id, OptionId = optionIds[0], Slot = 0, CastAtUtc = now
+                });
             }
             else
             {
@@ -271,9 +273,11 @@ public sealed class PollService(
         return (await BuildAsync(db, [poll], room, member, ct))[0];
     }
 
-    
 
-    private static ApiException NotFound() => new(404, "poll_not_found", "Poll not found.");
+    private static ApiException NotFound()
+    {
+        return new ApiException(404, "poll_not_found", "Poll not found.");
+    }
 
     private static IQueryable<Poll> WithOptions(IQueryable<Poll> query)
     {

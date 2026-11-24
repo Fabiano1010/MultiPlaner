@@ -11,6 +11,7 @@ public sealed class SessionValidationCache(IMemoryCache cache)
     private static readonly TimeSpan EntryTtl = TimeSpan.FromMinutes(5);
 
     private sealed record StampEntry(string? Stamp);
+
     private sealed record GuestEntry(DateTimeOffset? ExpiresAtUtc);
 
     public bool TryGetSecurityStamp(int userId, out string? stamp)
@@ -63,6 +64,13 @@ public sealed class SessionValidationCache(IMemoryCache cache)
         cache.Remove(GuestKey(guestId));
     }
 
-    private static string UserKey(int userId) => $"session:user-stamp:{userId}";
-    private static string GuestKey(Guid guestId) => $"session:guest-expiry:{guestId:N}";
+    private static string UserKey(int userId)
+    {
+        return $"session:user-stamp:{userId}";
+    }
+
+    private static string GuestKey(Guid guestId)
+    {
+        return $"session:guest-expiry:{guestId:N}";
+    }
 }

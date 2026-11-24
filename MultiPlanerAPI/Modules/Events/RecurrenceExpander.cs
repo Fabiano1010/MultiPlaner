@@ -6,13 +6,18 @@ namespace MultiPlanerAPI.Modules.Events;
 internal static class RecurrenceExpander
 {
     internal readonly record struct Occurrence(
-        DateTimeOffset StartsAtUtc, DateTimeOffset EndsAtUtc, DateOnly Date,
-        DateOnly? StartDate, DateOnly? EndDateExclusive);
+        DateTimeOffset StartsAtUtc,
+        DateTimeOffset EndsAtUtc,
+        DateOnly Date,
+        DateOnly? StartDate,
+        DateOnly? EndDateExclusive);
 
-    internal static DateOnly FirstDate(CalendarEvent ev, TimeZoneInfo tz) =>
-        ev.IsAllDay && ev.StartDate is { } d
+    internal static DateOnly FirstDate(CalendarEvent ev, TimeZoneInfo tz)
+    {
+        return ev.IsAllDay && ev.StartDate is { } d
             ? d
             : DateOnly.FromDateTime(SafeConvertToLocal(ev.StartsAtUtc, tz));
+    }
 
     internal static bool OccursOn(CalendarEvent ev, TimeZoneInfo tz, DateOnly date)
     {
@@ -45,7 +50,7 @@ internal static class RecurrenceExpander
             _ => 366.0
         };
         var k = (long)Math.Floor((date.DayNumber - firstDate.DayNumber) / (period * ev.RecurrenceInterval));
-        for (; ; k++)
+        for (;; k++)
         {
             if (!TryShift(localStart, ev.Recurrence, k * ev.RecurrenceInterval, out var shifted))
             {
@@ -99,14 +104,22 @@ internal static class RecurrenceExpander
         if (allDay)
         {
             allDaySpanDays = ev.EndDateExclusive!.Value.DayNumber - ev.StartDate!.Value.DayNumber;
-            if (allDaySpanDays <= 0) yield break;
+            if (allDaySpanDays <= 0)
+            {
+                yield break;
+            }
+
             localStart = ev.StartDate.Value.ToDateTime(TimeOnly.MinValue);
             skipSpanDays = allDaySpanDays + 1.0;
         }
         else
         {
             timedDuration = ev.EndsAtUtc - ev.StartsAtUtc;
-            if (timedDuration <= TimeSpan.Zero) yield break;
+            if (timedDuration <= TimeSpan.Zero)
+            {
+                yield break;
+            }
+
             localStart = SafeConvertToLocal(ev.StartsAtUtc, tz);
             skipSpanDays = timedDuration.TotalDays + 1.0;
         }
@@ -125,34 +138,81 @@ internal static class RecurrenceExpander
         var k = (long)Math.Floor(skipDays / (period * ev.RecurrenceInterval));
 
         var produced = 0;
-        for (; ; k++)
+        for (;; k++)
         {
-            if (!TryShift(localStart, ev.Recurrence, k * ev.RecurrenceInterval, out var s)) yield break;
+            if (!TryShift(localStart, ev.Recurrence, k * ev.RecurrenceInterval, out var s))
+            {
+                yield break;
+            }
 
             var date = DateOnly.FromDateTime(s);
-            if (ev.RecurrenceUntil is { } until && date > until) yield break;
+            if (ev.RecurrenceUntil is { } until && date > until)
+            {
+                yield break;
+            }
 
             if (allDay)
             {
-                if (date.DayNumber > DateOnly.MaxValue.DayNumber - allDaySpanDays) yield break;
+                if (date.DayNumber > DateOnly.MaxValue.DayNumber - allDaySpanDays)
+                {
+                    yield break;
+                }
+
                 var endDate = date.AddDays(allDaySpanDays);
-                if (!TryToUtc(date.ToDateTime(TimeOnly.MinValue), tz, out var startUtc)) yield break;
-                if (startUtc >= to) yield break;
-                if (!TryToUtc(endDate.ToDateTime(TimeOnly.MinValue), tz, out var endUtc)) yield break;
-                if (endUtc <= from) continue;
-                if (++produced > max) yield break;
+                if (!TryToUtc(date.ToDateTime(TimeOnly.MinValue), tz, out var startUtc))
+                {
+                    yield break;
+                }
+
+                if (startUtc >= to)
+                {
+                    yield break;
+                }
+
+                if (!TryToUtc(endDate.ToDateTime(TimeOnly.MinValue), tz, out var endUtc))
+                {
+                    yield break;
+                }
+
+                if (endUtc <= from)
+                {
+                    continue;
+                }
+
+                if (++produced > max)
+                {
+                    yield break;
+                }
 
                 yield return new Occurrence(startUtc, endUtc, date, date, endDate);
             }
             else
             {
-                if (!TryToUtc(s, tz, out var startUtc)) yield break;
-                if (startUtc >= to) yield break;
-                if (DateTimeOffset.MaxValue - startUtc < timedDuration) yield break;
+                if (!TryToUtc(s, tz, out var startUtc))
+                {
+                    yield break;
+                }
+
+                if (startUtc >= to)
+                {
+                    yield break;
+                }
+
+                if (DateTimeOffset.MaxValue - startUtc < timedDuration)
+                {
+                    yield break;
+                }
 
                 var endUtc = startUtc + timedDuration;
-                if (endUtc <= from) continue;
-                if (++produced > max) yield break;
+                if (endUtc <= from)
+                {
+                    continue;
+                }
+
+                if (++produced > max)
+                {
+                    yield break;
+                }
 
                 yield return new Occurrence(startUtc, endUtc, date, null, null);
             }
