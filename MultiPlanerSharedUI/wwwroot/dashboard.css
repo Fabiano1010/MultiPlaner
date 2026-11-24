@@ -1,3 +1,5 @@
+/* Dashboard */
+
 .main-content-dashboard {
     display: flex;
     flex-direction: column;
@@ -6,7 +8,6 @@
     align-items: center;
     width: 100%;
     min-height: 100dvh;
-
 }
 
 .dashboard-header {
@@ -18,16 +19,7 @@
     gap: 0.5rem;
 }
 
-.dashboard-header p {
-    width: 100%;
-    font-weight: bold;
-    text-align: center;
-}
-.dashboard-empty{
-    width: 100%;
-    text-align: center;
-}
-
+/* używane także na stronie Home */
 .welcome-msg {
     font-size: var(--font-size-xl);
     font-weight: bold;
@@ -39,7 +31,6 @@
 .welcome-msg-sub {
     width: 100%;
     text-align: center;
-
 }
 
 .dashboard-content {
@@ -47,7 +38,6 @@
     display: flex;
     flex-direction: row;
     justify-content: center;
-
 }
 
 .dashboard-left {
@@ -61,8 +51,11 @@
     text-align: center;
 }
 
-.dashboard-left-content {
-    height: 100%;
+.dashboard-left-content { height: 100%; }
+
+.dashboard-empty {
+    width: 100%;
+    text-align: center;
 }
 
 .dashboard-right {
@@ -71,18 +64,12 @@
     width: 45%;
 }
 
-.dashboard-right-ongoing-events, .dashboard-right-upcoming-events {
-    height: 50%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
 .dashboard-events {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
 }
+
 .dashboard-clock {
     display: flex;
     justify-content: center;
@@ -106,38 +93,29 @@
     max-width: 30rem;
 }
 
-.rooms-container-dashboard .room .room-body .room-content .room-image {
-    width: 95%;
-}
+.rooms-container-dashboard .room .room-body .room-content .room-image { width: 95%; }
 
 @media (max-width: 1090px) {
-    .dashboard-right .my-event-top {
-        flex-wrap: wrap;
-    }
+    .dashboard-right .my-event-top { flex-wrap: wrap; }
 
     .dashboard-right .my-event-meta {
         flex-direction: column;
         gap: 0.1rem;
     }
 
-    .rooms-container-dashboard {
-        flex-direction: row;
-    }
+    .rooms-container-dashboard { flex-direction: row; }
 }
 
 @media (max-width: 880px) {
-    .dashboard-events {
-        grid-template-columns: 1fr;
-    }
+    .dashboard-events { grid-template-columns: 1fr; }
 
     .dashboard-content {
         flex-direction: column;
         width: 100%;
     }
 
-    .dashboard-left, .dashboard-right {
-        width: 100%;
-    }
+    .dashboard-left,
+    .dashboard-right { width: 100%; }
 
     .rooms-container-dashboard .room {
         width: 70%;
@@ -146,16 +124,12 @@
 }
 
 @media (max-width: 769px) {
-    .rooms-container-dashboard {
-        flex-direction: column;
-    }
+    .rooms-container-dashboard { flex-direction: column; }
 
     .rooms-container-dashboard .room {
         width: 70%;
         max-width: none;
     }
-    
-    .rooms-container-dashboard > :nth-child(n + 2) {
-        display: none;
-    }
+
+    .rooms-container-dashboard > :nth-child(n + 2) { display: none; }
 }
