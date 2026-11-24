@@ -30,13 +30,26 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
 
     public async Task<RoomMember> RequireMemberAsync(Room room, CancellationToken cancellationToken)
     {
-        var userId = actor.UserId;
-        var guestId = actor.GuestSessionId;
-        var member = await db.RoomMembers.AsNoTracking()
-            .SingleOrDefaultAsync(m => m.RoomId == room.Id && m.LeftAtUtc == null &&
-                                       ((userId != null && m.UserId == userId) ||
-                                        (guestId != null && m.GuestSessionId == guestId)),
-                cancellationToken);
+        RoomMember? member;
+        if (actor.UserId is { } userId)
+        {
+            member = await db.RoomMembers.AsNoTracking()
+                .SingleOrDefaultAsync(
+                    m => m.RoomId == room.Id && m.UserId != null && m.UserId == userId && m.LeftAtUtc == null,
+                    cancellationToken);
+        }
+        else if (actor.GuestSessionId is { } guestId)
+        {
+            member = await db.RoomMembers.AsNoTracking()
+                .SingleOrDefaultAsync(
+                    m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId && m.LeftAtUtc == null,
+                    cancellationToken);
+        }
+        else
+        {
+            throw new ApiException(404, "room_not_found", "Room not found.");
+        }
+
         return member ?? throw new ApiException(404, "room_not_found", "Room not found.");
     }
 
