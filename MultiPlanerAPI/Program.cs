@@ -18,24 +18,68 @@ using MultiPlanerSharedModels.Contracts.Auth;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(options => options.SizeLimit = 100_000);
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions
+    {
+        Expiration = SessionValidationCache.EntryTtl,
+        LocalCacheExpiration = SessionValidationCache.EntryTtl
+    };
+});
+
 var keyPath = builder.Configuration["DataProtection:KeysPath"] ??
               Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys");
-Directory.CreateDirectory(keyPath);
-if (!OperatingSystem.IsWindows())
+if (OperatingSystem.IsWindows())
 {
-    File.SetUnixFileMode(keyPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+    Directory.CreateDirectory(keyPath);
+}
+else if (!Directory.Exists(keyPath))
+{
+    Directory.CreateDirectory(keyPath,
+        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
 }
 
 var dataProtection = builder.Services.AddDataProtection()
     .SetApplicationName("MultiPlanerAPI")
     .PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+var dpCertificates = new List<X509Certificate2>();
 var certPath = builder.Configuration["DataProtection:CertificatePath"];
 if (!string.IsNullOrWhiteSpace(certPath))
 {
     var certPassword = builder.Configuration["DataProtection:CertificatePassword"];
-    var certificate = X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword);
-    dataProtection.ProtectKeysWithCertificate(certificate);
+    var primaryCert = X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword);
+    if (!primaryCert.HasPrivateKey)
+    {
+        primaryCert.Dispose();
+        throw new InvalidOperationException("DataProtection certificate must contain a private key.");
+    }
+
+    dpCertificates.Add(primaryCert);
+    dataProtection.ProtectKeysWithCertificate(primaryCert);
+
+    var decryptionCerts = new List<X509Certificate2>();
+    foreach (var extraPath in builder.Configuration.GetSection("DataProtection:DecryptionCertificatePaths")
+                 .Get<string[]>() ?? [])
+    {
+        if (string.IsNullOrWhiteSpace(extraPath)) continue;
+        var extraCert = X509CertificateLoader.LoadPkcs12FromFile(extraPath, certPassword);
+        if (!extraCert.HasPrivateKey)
+        {
+            extraCert.Dispose();
+            foreach (var loaded in dpCertificates) loaded.Dispose();
+            throw new InvalidOperationException(
+                $"DataProtection decryption certificate '{extraPath}' must contain a private key.");
+        }
+
+        dpCertificates.Add(extraCert);
+        decryptionCerts.Add(extraCert);
+    }
+
+    if (decryptionCerts.Count > 0)
+    {
+        dataProtection.UnprotectKeysWithAnyCertificate([..decryptionCerts]);
+    }
 }
 else if (!builder.Environment.IsDevelopment())
 {
@@ -143,7 +187,21 @@ builder.Services.AddCors(options => options.AddPolicy("BrowserClient", policy =>
     .AllowAnyHeader()
     .AllowCredentials()));
 
-var app = builder.Build();
+WebApplication app;
+try
+{
+    app = builder.Build();
+}
+catch
+{
+    foreach (var cert in dpCertificates) cert.Dispose();
+    throw;
+}
+
+app.Lifetime.ApplicationStopped.Register(() =>
+{
+    foreach (var cert in dpCertificates) cert.Dispose();
+});
 
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
