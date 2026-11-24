@@ -35,7 +35,8 @@ public sealed class RoomService(
     {
         if (status is not ("active" or "archived" or "all"))
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["status"] = ["Use active, archived or all."] });
+            throw ApiException.Validation(new Dictionary<string, string[]>
+                { ["status"] = ["Use active, archived or all."] });
         }
 
         var userId = actor.UserId;
@@ -62,7 +63,8 @@ public sealed class RoomService(
         query = status switch
         {
             "active" => query.Where(x => x.Room.ArchivedAtUtc == null && x.Room.ExpiresAtUtc > now),
-            "archived" => query.Where(x => x.Room.ArchivedAtUtc != null || (x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now)),
+            "archived" => query.Where(x =>
+                x.Room.ArchivedAtUtc != null || (x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now)),
             _ => query.Where(x => x.Room.ArchivedAtUtc != null || x.Room.ExpiresAtUtc > now || x.Room.ArchiveOnExpiry)
         };
 
@@ -122,15 +124,32 @@ public sealed class RoomService(
         }
 
         context.RoomMembers.Attach(member);
-        if (request.DisplayName is not null) { member.DisplayName = request.DisplayName.Trim(); }
-        if (request.Color is not null) { member.Color = request.Color.ToUpperInvariant(); }
-        if (request.IsFavourite is { } favourite) { member.IsFavourite = favourite; }
-        if (request.NotificationsMuted is { } muted) { member.NotificationsMuted = muted; }
+        if (request.DisplayName is not null)
+        {
+            member.DisplayName = request.DisplayName.Trim();
+        }
+
+        if (request.Color is not null)
+        {
+            member.Color = request.Color.ToUpperInvariant();
+        }
+
+        if (request.IsFavourite is { } favourite)
+        {
+            member.IsFavourite = favourite;
+        }
+
+        if (request.NotificationsMuted is { } muted)
+        {
+            member.NotificationsMuted = muted;
+        }
+
         await context.SaveChangesAsync(ct);
         return ToMembershipResponse(member);
     }
 
-    public async Task<PagedResponse<RoomMemberResponse>> ListMembersAsync(int roomId, PageRequest page, CancellationToken ct)
+    public async Task<PagedResponse<RoomMemberResponse>> ListMembersAsync(int roomId, PageRequest page,
+        CancellationToken ct)
     {
         var (room, viewer) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
@@ -183,19 +202,32 @@ public sealed class RoomService(
             var roomAccess = new RoomAccessService(context, actor, clock);
             var member = await roomAccess.RequireManagerAsync(room, ct);
             roomAccess.RequireActive(room);
-            if ((request.TimeZoneId is not null || request.ExpiresAtUtc is not null) && room.OwnerUserId != actor.UserId)
+            if ((request.TimeZoneId is not null || request.ExpiresAtUtc is not null) &&
+                room.OwnerUserId != actor.UserId)
             {
                 throw new ApiException(403, "room_owner_required", "Only the owner may change time zone or expiry.");
             }
+
             if (!room.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
             {
                 throw new ApiException(409, "concurrency_conflict", "Room settings changed. Reload and retry.");
             }
 
             ValidateUpdate(request, room, clock.GetUtcNow());
-            if (request.Name is not null) { room.Name = request.Name.Trim(); }
-            if (request.TimeZoneId is not null) { room.TimeZoneId = request.TimeZoneId; }
-            if (request.ExpiresAtUtc is { } expiry) { room.ExpiresAtUtc = expiry; }
+            if (request.Name is not null)
+            {
+                room.Name = request.Name.Trim();
+            }
+
+            if (request.TimeZoneId is not null)
+            {
+                room.TimeZoneId = request.TimeZoneId;
+            }
+
+            if (request.ExpiresAtUtc is { } expiry)
+            {
+                room.ExpiresAtUtc = expiry;
+            }
 
             await context.SaveChangesAsync(ct);
             return (Room: room, Member: member);
@@ -216,11 +248,13 @@ public sealed class RoomService(
             {
                 throw new ApiException(403, "room_owner_required", "Only the room owner may manage it.");
             }
+
             var now = clock.GetUtcNow();
             if (room.GetArchivedAtUtc(now) is not null)
             {
                 return true;
             }
+
             new RoomAccessService(context, actor, clock).RequireActive(room);
             room.ArchivedAtUtc = now;
             await context.SaveChangesAsync(ct);
@@ -231,7 +265,9 @@ public sealed class RoomService(
     public async Task DeleteAsync(int roomId, CancellationToken ct)
     {
         var ownerId = actor.RequireUserId();
-        var coverKey = await mutations.ExecuteInTransactionAsync(operationDb => DeleteRoomAsync(operationDb, roomId, ownerId, ct), ct);
+        var coverKey =
+            await mutations.ExecuteInTransactionAsync(operationDb => DeleteRoomAsync(operationDb, roomId, ownerId, ct),
+                ct);
         if (coverKey is not null)
         {
             await covers.DeleteAsync(coverKey);
@@ -265,15 +301,22 @@ public sealed class RoomService(
 
     internal static RoomResponse ToResponse(
         Room room, RoomMember member, DateTimeOffset now,
-        string? ownerDisplayName = null, int? folderId = null, DateTimeOffset? lastOpenedAtUtc = null) =>
-        new(room.Id, room.Name, room.TimeZoneId, room.OwnerUserId, member.Id, room.OwnerUserId == member.UserId,
+        string? ownerDisplayName = null, int? folderId = null, DateTimeOffset? lastOpenedAtUtc = null)
+    {
+        return new RoomResponse(room.Id, room.Name, room.TimeZoneId, room.OwnerUserId, member.Id,
+            room.OwnerUserId == member.UserId,
             room.ExpiresAtUtc, room.GetArchivedAtUtc(now), Membership: ToMembershipResponse(member),
             ArchiveOnExpiry: room.ArchiveOnExpiry, OwnerDisplayName: ownerDisplayName, RowVersion: room.RowVersion,
             HasCover: room.CoverStorageKey is not null, IsAdmin: member.IsAdmin, FolderId: folderId,
             LastOpenedAtUtc: lastOpenedAtUtc);
+    }
 
-    private static RoomMembershipResponse ToMembershipResponse(RoomMember member) =>
-        new(member.Id, member.DisplayName, member.Color, member.IsFavourite, member.RowVersion, member.NotificationsMuted);
+    private static RoomMembershipResponse ToMembershipResponse(RoomMember member)
+    {
+        return new RoomMembershipResponse(member.Id, member.DisplayName, member.Color, member.IsFavourite,
+            member.RowVersion,
+            member.NotificationsMuted);
+    }
 
     private static void ValidateCreate(CreateRoomRequest request, DateTimeOffset now, DateTimeOffset expiry)
     {
@@ -282,15 +325,18 @@ public sealed class RoomService(
         {
             errors["name"] = ["Room name must contain at least two non-whitespace characters."];
         }
+
         if (request.TimeZoneId is { } zone &&
             LocaleValidation.GetErrors(null, null, zone).TryGetValue("timeZoneId", out var zoneErrors))
         {
             errors["timeZoneId"] = zoneErrors;
         }
+
         if (expiry.Offset != TimeSpan.Zero || expiry <= now || expiry > now.AddDays(365))
         {
             errors["expiresAtUtc"] = ["Room expiry must be UTC, in the future and within one year."];
         }
+
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
@@ -304,16 +350,19 @@ public sealed class RoomService(
         {
             errors["name"] = ["Room name must contain at least two non-whitespace characters."];
         }
+
         if (request.TimeZoneId is not null &&
             LocaleValidation.GetErrors(null, null, request.TimeZoneId).TryGetValue("timeZoneId", out var zoneErrors))
         {
             errors["timeZoneId"] = zoneErrors;
         }
+
         if (request.ExpiresAtUtc is { } expiry &&
             (expiry.Offset != TimeSpan.Zero || expiry <= now || expiry > room.CreatedAtUtc.AddDays(365)))
         {
             errors["expiresAtUtc"] = ["Room expiry must be UTC, in the future and within one year of creation."];
         }
+
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
@@ -321,7 +370,8 @@ public sealed class RoomService(
     }
 
     private async Task<RoomResponse> CreateRoomAsync(
-        CreateRoomRequest request, ApplicationUser user, DateTimeOffset now, DateTimeOffset expiry, CancellationToken ct)
+        CreateRoomRequest request, ApplicationUser user, DateTimeOffset now, DateTimeOffset expiry,
+        CancellationToken ct)
     {
         await using var operationDb = new AppDbContext(dbOptions, clock);
         await using var transaction = await operationDb.Database.BeginTransactionAsync(ct);
@@ -356,7 +406,8 @@ public sealed class RoomService(
         return response;
     }
 
-    private static async Task<string?> DeleteRoomAsync(AppDbContext operationDb, int roomId, int ownerId, CancellationToken ct)
+    private static async Task<string?> DeleteRoomAsync(AppDbContext operationDb, int roomId, int ownerId,
+        CancellationToken ct)
     {
         var room = await RoomMutationService.LockAsync(operationDb, roomId, ct);
         if (room.OwnerUserId != ownerId)
@@ -370,10 +421,12 @@ public sealed class RoomService(
         return coverKey;
     }
 
-    private Task<int?> FolderIdOfAsync(AppDbContext context, int roomId, CancellationToken ct) =>
-        context.UserFolderRooms.AsNoTracking()
+    private Task<int?> FolderIdOfAsync(AppDbContext context, int roomId, CancellationToken ct)
+    {
+        return context.UserFolderRooms.AsNoTracking()
             .Where(p => p.RoomId == roomId && p.OwnerUserId == actor.UserId)
             .Select(p => (int?)p.FolderId).SingleOrDefaultAsync(ct);
+    }
 
     private static async Task DeleteRoomContentsAsync(AppDbContext operationDb, int roomId, CancellationToken ct)
     {

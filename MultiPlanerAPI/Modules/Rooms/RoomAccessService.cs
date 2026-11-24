@@ -15,7 +15,8 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var result = await (from member in db.RoomMembers.AsNoTracking()
                 join room in db.Rooms.AsNoTracking() on member.RoomId equals room.Id
                 where room.Id == roomId && member.LeftAtUtc == null &&
-                      ((userId != null && member.UserId == userId) || (guestId != null && member.GuestSessionId == guestId))
+                      ((userId != null && member.UserId == userId) ||
+                       (guestId != null && member.GuestSessionId == guestId))
                 select new { Room = room, Member = member })
             .SingleOrDefaultAsync(ct) ?? throw new ApiException(404, "room_not_found", "Room not found.");
         return (result.Room, result.Member);
@@ -26,15 +27,21 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         if (actor.UserId is { } userId)
         {
             return await db.RoomMembers.AsNoTracking()
-                .SingleOrDefaultAsync(m => m.RoomId == room.Id && m.UserId != null && m.UserId == userId && m.LeftAtUtc == null, ct)
-                ?? throw new ApiException(404, "room_not_found", "Room not found.");
+                       .SingleOrDefaultAsync(
+                           m => m.RoomId == room.Id && m.UserId != null && m.UserId == userId && m.LeftAtUtc == null,
+                           ct)
+                   ?? throw new ApiException(404, "room_not_found", "Room not found.");
         }
+
         if (actor.GuestSessionId is { } guestId)
         {
             return await db.RoomMembers.AsNoTracking()
-                .SingleOrDefaultAsync(m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId && m.LeftAtUtc == null, ct)
-                ?? throw new ApiException(404, "room_not_found", "Room not found.");
+                       .SingleOrDefaultAsync(
+                           m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId &&
+                                m.LeftAtUtc == null, ct)
+                   ?? throw new ApiException(404, "room_not_found", "Room not found.");
         }
+
         throw new ApiException(404, "room_not_found", "Room not found.");
     }
 
@@ -47,6 +54,7 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         {
             throw new ApiException(403, "room_owner_required", "Only the room owner may manage it.");
         }
+
         return room;
     }
 
@@ -56,8 +64,10 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var (room, member) = await RequireMemberAsync(roomId, ct);
         if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
         {
-            throw new ApiException(403, "room_manager_required", "Only the owner or an administrator may manage this room.");
+            throw new ApiException(403, "room_manager_required",
+                "Only the owner or an administrator may manage this room.");
         }
+
         return room;
     }
 
@@ -67,8 +77,10 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var member = await RequireMemberAsync(room, ct);
         if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
         {
-            throw new ApiException(403, "room_manager_required", "Only the owner or an administrator may manage this room.");
+            throw new ApiException(403, "room_manager_required",
+                "Only the owner or an administrator may manage this room.");
         }
+
         return member;
     }
 

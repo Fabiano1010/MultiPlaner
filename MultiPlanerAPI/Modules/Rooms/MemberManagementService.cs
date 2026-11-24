@@ -7,11 +7,15 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class MemberManagementService(RoomMutationService mutations, CurrentActor actor, TimeProvider clock)
 {
-    public Task ChangeRoleAsync(int roomId, int memberId, ChangeMemberRoleRequest request, CancellationToken ct) =>
-        MutateAsync(roomId, memberId, request.RowVersion, remove: false, request.IsAdmin, ct);
+    public Task ChangeRoleAsync(int roomId, int memberId, ChangeMemberRoleRequest request, CancellationToken ct)
+    {
+        return MutateAsync(roomId, memberId, request.RowVersion, false, request.IsAdmin, ct);
+    }
 
-    public Task RemoveAsync(int roomId, int memberId, RemoveMemberRequest request, CancellationToken ct) =>
-        MutateAsync(roomId, memberId, request.RowVersion, remove: true, admin: false, ct);
+    public Task RemoveAsync(int roomId, int memberId, RemoveMemberRequest request, CancellationToken ct)
+    {
+        return MutateAsync(roomId, memberId, request.RowVersion, true, false, ct);
+    }
 
     private Task MutateAsync(int roomId, int memberId, byte[] version, bool remove, bool admin, CancellationToken ct)
     {
@@ -28,14 +32,17 @@ public sealed class MemberManagementService(RoomMutationService mutations, Curre
             {
                 throw new ApiException(403, "owner_protected", "The owner cannot be removed or demoted.");
             }
+
             if (member.IsAdmin && room.OwnerUserId != actor.UserId)
             {
                 throw new ApiException(403, "room_owner_required", "Only the owner may manage administrators.");
             }
+
             if (!member.RowVersion.AsSpan().SequenceEqual(version))
             {
                 throw new ApiException(409, "concurrency_conflict", "Member changed. Reload and retry.");
             }
+
             if (!remove && admin && member.UserId is null)
             {
                 throw new ApiException(400, "guest_cannot_be_admin", "Guests cannot become administrators.");
@@ -48,7 +55,8 @@ public sealed class MemberManagementService(RoomMutationService mutations, Curre
                 member.IsFavourite = false;
                 if (member.UserId is { } userId)
                 {
-                    await db.UserFolderRooms.Where(f => f.OwnerUserId == userId && f.RoomId == roomId).ExecuteDeleteAsync(ct);
+                    await db.UserFolderRooms.Where(f => f.OwnerUserId == userId && f.RoomId == roomId)
+                        .ExecuteDeleteAsync(ct);
                 }
             }
 

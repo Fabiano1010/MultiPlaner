@@ -42,11 +42,14 @@ public sealed class AvatarService(
             storage.Delete(key);
             throw;
         }
+
         storage.Delete(old);
     }
 
-    public async Task DeleteAsync(CancellationToken ct) =>
+    public async Task DeleteAsync(CancellationToken ct)
+    {
         storage.Delete(await ReplaceAsync(null, null, ct));
+    }
 
     public async Task<(Stream Stream, string Type)> OpenAsync(int userId, CancellationToken ct)
     {
@@ -107,15 +110,33 @@ public sealed class AvatarService(
         });
     }
 
-    private static ApiException Invalid(string message) =>
-        ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
+    private static ApiException Invalid(string message)
+    {
+        return ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
+    }
 
     internal static string? DetectType(ReadOnlySpan<byte> h)
     {
-        if (h.Length < 12) { return null; }
-        if (h[0] == 255 && h[1] == 216 && h[2] == 255) { return "image/jpeg"; }
-        if (h[..8].SequenceEqual(PngSignature)) { return "image/png"; }
-        if (h[..4].SequenceEqual("RIFF"u8) && h[8..12].SequenceEqual("WEBP"u8)) { return "image/webp"; }
+        if (h.Length < 12)
+        {
+            return null;
+        }
+
+        if (h[0] == 255 && h[1] == 216 && h[2] == 255)
+        {
+            return "image/jpeg";
+        }
+
+        if (h[..8].SequenceEqual(PngSignature))
+        {
+            return "image/png";
+        }
+
+        if (h[..4].SequenceEqual("RIFF"u8) && h[8..12].SequenceEqual("WEBP"u8))
+        {
+            return "image/webp";
+        }
+
         return null;
     }
 }

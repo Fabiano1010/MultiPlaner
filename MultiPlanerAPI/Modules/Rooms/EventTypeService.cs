@@ -60,13 +60,22 @@ public sealed class EventTypeService(
             {
                 throw new ApiException(409, "concurrency_conflict", "Event type changed. Reload and retry.");
             }
+
             if (request.Name is not null)
             {
                 type.Name = await ValidateNameAsync(context, roomId, id, request.Name, ct);
                 type.NormalizedName = type.Name.ToUpperInvariant();
             }
-            if (request.Color is not null) { type.Color = request.Color.ToUpperInvariant(); }
-            if (request.IsArchived is { } archived) { type.IsArchived = archived; }
+
+            if (request.Color is not null)
+            {
+                type.Color = request.Color.ToUpperInvariant();
+            }
+
+            if (request.IsArchived is { } archived)
+            {
+                type.IsArchived = archived;
+            }
 
             context.Entry(type).Property(t => t.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
@@ -81,21 +90,27 @@ public sealed class EventTypeService(
         roomAccess.RequireActive(room);
     }
 
-    private static async Task<string> ValidateNameAsync(AppDbContext context, int roomId, int? id, string value, CancellationToken ct)
+    private static async Task<string> ValidateNameAsync(AppDbContext context, int roomId, int? id, string value,
+        CancellationToken ct)
     {
         var name = value.Trim();
         if (name.Length == 0)
         {
             throw ApiException.Validation(new Dictionary<string, string[]> { ["name"] = ["Name cannot be blank."] });
         }
+
         var normalized = name.ToUpperInvariant();
-        if (await context.RoomEventTypes.AnyAsync(t => t.RoomId == roomId && t.Id != id && t.NormalizedName == normalized, ct))
+        if (await context.RoomEventTypes.AnyAsync(
+                t => t.RoomId == roomId && t.Id != id && t.NormalizedName == normalized, ct))
         {
             throw new ApiException(409, "event_type_name_taken", "This room already has an event type with this name.");
         }
+
         return name;
     }
 
-    private static EventTypeResponse Map(RoomEventType t) =>
-        new(t.Id, t.RoomId, t.Name, t.Color, t.IsArchived, t.RowVersion);
+    private static EventTypeResponse Map(RoomEventType t)
+    {
+        return new EventTypeResponse(t.Id, t.RoomId, t.Name, t.Color, t.IsArchived, t.RowVersion);
+    }
 }

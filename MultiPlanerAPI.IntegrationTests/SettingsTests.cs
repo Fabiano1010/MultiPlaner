@@ -453,16 +453,17 @@ public sealed class SettingsTests(ApiFixture fixture)
             // 3. With CertificatePath in Production, generated key XML is encrypted at rest
             string payload;
             using (var configured = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+                   {
+                       b.UseEnvironment("Production");
+                       b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                       b.UseSetting("DataProtection:KeysPath", keysDir);
+                       b.UseSetting("DataProtection:CertificatePath", pfxPath);
+                       b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                       b.UseSetting("RoomArchival:Enabled", "false");
+                   }))
             {
-                b.UseEnvironment("Production");
-                b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
-                b.UseSetting("DataProtection:KeysPath", keysDir);
-                b.UseSetting("DataProtection:CertificatePath", pfxPath);
-                b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
-                b.UseSetting("RoomArchival:Enabled", "false");
-            }))
-            {
-                var protector = configured.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
+                var protector = configured.Services.GetRequiredService<IDataProtectionProvider>()
+                    .CreateProtector("test");
                 payload = protector.Protect("secret");
                 Assert.Equal("secret", protector.Unprotect(payload));
             }
@@ -475,30 +476,31 @@ public sealed class SettingsTests(ApiFixture fixture)
 
             // 4. Restart with same cert unprotects previously protected payload
             using (var restarted = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+                   {
+                       b.UseEnvironment("Production");
+                       b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                       b.UseSetting("DataProtection:KeysPath", keysDir);
+                       b.UseSetting("DataProtection:CertificatePath", pfxPath);
+                       b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                       b.UseSetting("RoomArchival:Enabled", "false");
+                   }))
             {
-                b.UseEnvironment("Production");
-                b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
-                b.UseSetting("DataProtection:KeysPath", keysDir);
-                b.UseSetting("DataProtection:CertificatePath", pfxPath);
-                b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
-                b.UseSetting("RoomArchival:Enabled", "false");
-            }))
-            {
-                var protector = restarted.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
+                var protector = restarted.Services.GetRequiredService<IDataProtectionProvider>()
+                    .CreateProtector("test");
                 Assert.Equal("secret", protector.Unprotect(payload));
             }
 
             // 5. Rotating to a new cert keeps old keys readable via DecryptionCertificatePaths
             using (var rotated = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
-            {
-                b.UseEnvironment("Production");
-                b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
-                b.UseSetting("DataProtection:KeysPath", keysDir);
-                b.UseSetting("DataProtection:CertificatePath", pfx2Path);
-                b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
-                b.UseSetting("DataProtection:DecryptionCertificatePaths:0", pfxPath);
-                b.UseSetting("RoomArchival:Enabled", "false");
-            }))
+                   {
+                       b.UseEnvironment("Production");
+                       b.UseSetting("ConnectionStrings:DefaultConnection", "Server=localhost;Database=Unused;");
+                       b.UseSetting("DataProtection:KeysPath", keysDir);
+                       b.UseSetting("DataProtection:CertificatePath", pfx2Path);
+                       b.UseSetting("DataProtection:CertificatePassword", pfxPassword);
+                       b.UseSetting("DataProtection:DecryptionCertificatePaths:0", pfxPath);
+                       b.UseSetting("RoomArchival:Enabled", "false");
+                   }))
             {
                 var protector = rotated.Services.GetRequiredService<IDataProtectionProvider>().CreateProtector("test");
                 Assert.Equal("secret", protector.Unprotect(payload));

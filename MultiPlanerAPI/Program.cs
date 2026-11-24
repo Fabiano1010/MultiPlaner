@@ -50,7 +50,8 @@ if (!string.IsNullOrWhiteSpace(certPath))
     var certPassword = builder.Configuration["DataProtection:CertificatePassword"];
     dataProtection.ProtectKeysWithCertificate(LoadPrivateKeyCert(certPath, certPassword, dpCertificates));
 
-    var extraPaths = builder.Configuration.GetSection("DataProtection:DecryptionCertificatePaths").Get<string[]>() ?? [];
+    var extraPaths = builder.Configuration.GetSection("DataProtection:DecryptionCertificatePaths").Get<string[]>() ??
+                     [];
     var decryptionCerts = extraPaths
         .Where(p => !string.IsNullOrWhiteSpace(p))
         .Select(p => LoadPrivateKeyCert(p, certPassword, dpCertificates))
@@ -226,6 +227,7 @@ static X509Certificate2 LoadPrivateKeyCert(string path, string? password, List<X
         {
             loaded.Dispose();
         }
+
         throw new InvalidOperationException($"DataProtection certificate '{path}' must contain a private key.");
     }
 

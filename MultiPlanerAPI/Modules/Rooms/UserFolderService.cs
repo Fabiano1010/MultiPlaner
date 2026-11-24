@@ -17,9 +17,11 @@ public sealed class UserFolderService(
     public async Task<IReadOnlyList<UserFolderResponse>> ListAsync(CancellationToken ct)
     {
         var userId = actor.RequireUserId();
-        var folders = await db.UserFolders.AsNoTracking().Where(f => f.OwnerUserId == userId).OrderBy(f => f.Name).ToListAsync(ct);
+        var folders = await db.UserFolders.AsNoTracking().Where(f => f.OwnerUserId == userId).OrderBy(f => f.Name)
+            .ToListAsync(ct);
         var assignments = await db.UserFolderRooms.AsNoTracking().Where(a => a.OwnerUserId == userId).ToListAsync(ct);
-        return folders.Select(f => ToResponse(f, assignments.Where(a => a.FolderId == f.Id).Select(a => a.RoomId).ToArray())).ToArray();
+        return folders.Select(f =>
+            ToResponse(f, assignments.Where(a => a.FolderId == f.Id).Select(a => a.RoomId).ToArray())).ToArray();
     }
 
     public async Task<UserFolderResponse> CreateAsync(CreateUserFolderRequest request, CancellationToken ct)
@@ -46,8 +48,16 @@ public sealed class UserFolderService(
         {
             throw new ApiException(409, "concurrency_conflict", "Folder changed. Reload and retry.");
         }
-        if (request.Name is not null) { folder.Name = ValidName(request.Name); }
-        if (request.IsFavourite is { } favourite) { folder.IsFavourite = favourite; }
+
+        if (request.Name is not null)
+        {
+            folder.Name = ValidName(request.Name);
+        }
+
+        if (request.IsFavourite is { } favourite)
+        {
+            folder.IsFavourite = favourite;
+        }
 
         await SaveAsync(ct);
         var rooms = await db.UserFolderRooms.Where(a => a.FolderId == id && a.OwnerUserId == folder.OwnerUserId)
@@ -58,7 +68,8 @@ public sealed class UserFolderService(
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
         var folder = await RequireFolderAsync(id, ct);
-        var assignments = await db.UserFolderRooms.Where(a => a.FolderId == id && a.OwnerUserId == folder.OwnerUserId).ToListAsync(ct);
+        var assignments = await db.UserFolderRooms.Where(a => a.FolderId == id && a.OwnerUserId == folder.OwnerUserId)
+            .ToListAsync(ct);
         db.UserFolderRooms.RemoveRange(assignments);
         db.UserFolders.Remove(folder);
         await db.SaveChangesAsync(ct);
@@ -73,7 +84,8 @@ public sealed class UserFolderService(
             await roomAccess.RequireMemberAsync(room, ct);
             roomAccess.RequireReadable(room);
 
-            if (!await operationDb.UserFolders.AsNoTracking().AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId, ct))
+            if (!await operationDb.UserFolders.AsNoTracking()
+                    .AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId, ct))
             {
                 throw new ApiException(404, "folder_not_found", "Folder not found.");
             }
@@ -82,7 +94,8 @@ public sealed class UserFolderService(
                 a => a.OwnerUserId == userId && a.RoomId == roomId, ct);
             if (assignment is null)
             {
-                operationDb.UserFolderRooms.Add(new UserFolderRoom { OwnerUserId = userId, RoomId = roomId, FolderId = folderId });
+                operationDb.UserFolderRooms.Add(new UserFolderRoom
+                    { OwnerUserId = userId, RoomId = roomId, FolderId = folderId });
             }
             else
             {
@@ -97,6 +110,7 @@ public sealed class UserFolderService(
             {
                 throw new ApiException(404, "folder_not_found", "Folder not found.");
             }
+
             return true;
         }, ct);
     }
@@ -110,26 +124,33 @@ public sealed class UserFolderService(
         {
             return;
         }
+
         db.UserFolderRooms.Remove(assignment);
         await db.SaveChangesAsync(ct);
     }
 
-    private async Task<UserFolder> RequireFolderAsync(int id, CancellationToken ct) =>
-        await db.UserFolders.SingleOrDefaultAsync(f => f.Id == id && f.OwnerUserId == actor.RequireUserId(), ct)
-        ?? throw new ApiException(404, "folder_not_found", "Folder not found.");
+    private async Task<UserFolder> RequireFolderAsync(int id, CancellationToken ct)
+    {
+        return await db.UserFolders.SingleOrDefaultAsync(f => f.Id == id && f.OwnerUserId == actor.RequireUserId(), ct)
+               ?? throw new ApiException(404, "folder_not_found", "Folder not found.");
+    }
 
     private static string ValidName(string name)
     {
         var trimmed = name.Trim();
         if (trimmed.Length is < 2 or > 128)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["name"] = ["Folder name must contain 2–128 characters."] });
+            throw ApiException.Validation(new Dictionary<string, string[]>
+                { ["name"] = ["Folder name must contain 2–128 characters."] });
         }
+
         return trimmed;
     }
 
-    private static UserFolderResponse ToResponse(UserFolder folder, IReadOnlyList<int> roomIds) =>
-        new(folder.Id, folder.Name, folder.IsFavourite, folder.RowVersion, roomIds);
+    private static UserFolderResponse ToResponse(UserFolder folder, IReadOnlyList<int> roomIds)
+    {
+        return new UserFolderResponse(folder.Id, folder.Name, folder.IsFavourite, folder.RowVersion, roomIds);
+    }
 
     private async Task SaveAsync(CancellationToken ct)
     {

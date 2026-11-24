@@ -20,6 +20,7 @@ public sealed class RoomCoverService(
         {
             throw new ApiException(404, "cover_not_found", "Cover not found.");
         }
+
         try
         {
             return (storage.OpenRead(room.CoverStorageKey), room.CoverContentType!);
@@ -43,10 +44,13 @@ public sealed class RoomCoverService(
         var header = new byte[12];
         if (await source.ReadAtLeastAsync(header, header.Length, false, ct) < 12)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["file"] = ["Unsupported image format."] });
+            throw ApiException.Validation(new Dictionary<string, string[]>
+                { ["file"] = ["Unsupported image format."] });
         }
+
         var contentType = DetectType(header)
-            ?? throw ApiException.Validation(new Dictionary<string, string[]> { ["file"] = ["Use JPEG, PNG or WebP."] });
+                          ?? throw ApiException.Validation(new Dictionary<string, string[]>
+                              { ["file"] = ["Use JPEG, PNG or WebP."] });
 
         await using var upload = file.OpenReadStream();
         var key = await storage.SaveAsync(upload, ct);
@@ -60,6 +64,7 @@ public sealed class RoomCoverService(
             await storage.DeleteAsync(key);
             throw;
         }
+
         if (oldKey is not null)
         {
             await storage.DeleteAsync(oldKey);
@@ -92,9 +97,21 @@ public sealed class RoomCoverService(
 
     private static string? DetectType(ReadOnlySpan<byte> bytes)
     {
-        if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) { return "image/jpeg"; }
-        if (bytes[..8].SequenceEqual(PngSignature)) { return "image/png"; }
-        if (bytes[..4].SequenceEqual("RIFF"u8) && bytes[8..12].SequenceEqual("WEBP"u8)) { return "image/webp"; }
+        if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
+        {
+            return "image/jpeg";
+        }
+
+        if (bytes[..8].SequenceEqual(PngSignature))
+        {
+            return "image/png";
+        }
+
+        if (bytes[..4].SequenceEqual("RIFF"u8) && bytes[8..12].SequenceEqual("WEBP"u8))
+        {
+            return "image/webp";
+        }
+
         return null;
     }
 }

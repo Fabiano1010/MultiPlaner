@@ -5,8 +5,10 @@ namespace MultiPlanerAPI.Modules.Events;
 
 internal static class RecurrenceExpander
 {
-    internal static DateOnly FirstDate(CalendarEvent ev, TimeZoneInfo tz) =>
-        ev.IsAllDay && ev.StartDate is { } d ? d : DateOnly.FromDateTime(SafeToLocal(ev.StartsAtUtc, tz));
+    internal static DateOnly FirstDate(CalendarEvent ev, TimeZoneInfo tz)
+    {
+        return ev.IsAllDay && ev.StartDate is { } d ? d : DateOnly.FromDateTime(SafeToLocal(ev.StartsAtUtc, tz));
+    }
 
     internal static bool OccursOn(CalendarEvent ev, TimeZoneInfo tz, DateOnly date)
     {
@@ -24,18 +26,21 @@ internal static class RecurrenceExpander
             return false;
         }
 
-        var step = (long)Math.Floor((date.DayNumber - firstDate.DayNumber) / (PeriodDays(ev.Recurrence) * ev.RecurrenceInterval));
+        var step = (long)Math.Floor((date.DayNumber - firstDate.DayNumber) /
+                                    (PeriodDays(ev.Recurrence) * ev.RecurrenceInterval));
         for (;; step++)
         {
             if (!TryShift(localStart, ev.Recurrence, step * ev.RecurrenceInterval, out var shifted))
             {
                 return false;
             }
+
             var occDate = DateOnly.FromDateTime(shifted);
             if (occDate > date)
             {
                 return false;
             }
+
             if (occDate == date)
             {
                 return TryBuild(ev, allDay, shifted, date, tz, out _);
@@ -72,6 +77,7 @@ internal static class RecurrenceExpander
             {
                 yield break;
             }
+
             var date = DateOnly.FromDateTime(shifted);
             if ((ev.RecurrenceUntil is { } until && date > until) ||
                 !TryBuild(ev, allDay, shifted, date, tz, out var occ) ||
@@ -79,25 +85,31 @@ internal static class RecurrenceExpander
             {
                 yield break;
             }
+
             if (occ.EndsAtUtc <= from)
             {
                 continue;
             }
+
             if (++produced > max)
             {
                 yield break;
             }
+
             yield return occ;
         }
     }
 
-    private static double PeriodDays(RecurrenceFrequency frequency) => frequency switch
+    private static double PeriodDays(RecurrenceFrequency frequency)
     {
-        RecurrenceFrequency.Daily => 1.0,
-        RecurrenceFrequency.Weekly => 7.0,
-        RecurrenceFrequency.Monthly => 31.0,
-        _ => 366.0
-    };
+        return frequency switch
+        {
+            RecurrenceFrequency.Daily => 1.0,
+            RecurrenceFrequency.Weekly => 7.0,
+            RecurrenceFrequency.Monthly => 31.0,
+            _ => 366.0
+        };
+    }
 
     private static bool TryBuild(
         CalendarEvent ev, bool allDay, DateTime shifted, DateOnly date, TimeZoneInfo tz, out RecurrenceOccurrence occ)
@@ -110,21 +122,25 @@ internal static class RecurrenceExpander
             {
                 return false;
             }
+
             var endDate = date.AddDays(span);
             if (!TryToUtc(date.ToDateTime(TimeOnly.MinValue), tz, out var startUtc) ||
                 !TryToUtc(endDate.ToDateTime(TimeOnly.MinValue), tz, out var endUtc))
             {
                 return false;
             }
+
             occ = new RecurrenceOccurrence(startUtc, endUtc, date, date, endDate);
             return true;
         }
 
         var duration = ev.EndsAtUtc - ev.StartsAtUtc;
-        if (duration <= TimeSpan.Zero || !TryToUtc(shifted, tz, out var start) || DateTimeOffset.MaxValue - start < duration)
+        if (duration <= TimeSpan.Zero || !TryToUtc(shifted, tz, out var start) ||
+            DateTimeOffset.MaxValue - start < duration)
         {
             return false;
         }
+
         occ = new RecurrenceOccurrence(start, start + duration, date, null, null);
         return true;
     }
@@ -175,6 +191,7 @@ internal static class RecurrenceExpander
             {
                 return false;
             }
+
             unspecified = unspecified.Add(gap);
             if (tz.IsInvalidTime(unspecified))
             {
@@ -182,6 +199,7 @@ internal static class RecurrenceExpander
                 {
                     return false;
                 }
+
                 unspecified = unspecified.AddHours(1);
             }
         }

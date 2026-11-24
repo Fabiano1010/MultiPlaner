@@ -50,7 +50,8 @@ public sealed class PollService(
             {
                 RoomId = roomId, AuthorMemberId = member.Id, Question = question,
                 AllowMultiple = request.AllowMultiple, ClosesAtUtc = request.ClosesAtUtc!.Value,
-                Options = options.Select(o => new PollOption { Position = o.Position, Text = o.Text, Color = o.Color }).ToList()
+                Options = options.Select(o => new PollOption { Position = o.Position, Text = o.Text, Color = o.Color })
+                    .ToList()
             };
             context.Polls.Add(poll);
             await context.SaveChangesAsync(ct);
@@ -60,11 +61,13 @@ public sealed class PollService(
         return (await BuildAsync(db, [result.Poll], result.Room, result.Member, ct))[0];
     }
 
-    public async Task<PagedResponse<PollResponse>> ListAsync(int roomId, PageRequest page, string status, CancellationToken ct)
+    public async Task<PagedResponse<PollResponse>> ListAsync(int roomId, PageRequest page, string status,
+        CancellationToken ct)
     {
         if (status is not ("open" or "closed" or "all"))
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["status"] = ["Use open, closed or all."] });
+            throw ApiException.Validation(
+                new Dictionary<string, string[]> { ["status"] = ["Use open, closed or all."] });
         }
 
         var (room, viewer) = await access.RequireMemberAsync(roomId, ct);
@@ -86,8 +89,10 @@ public sealed class PollService(
             return new PagedResponse<PollResponse>([], count, page.Page, page.PageSize);
         }
 
-        var polls = await WithOptions(query.OrderByDescending(p => p.Id)).Skip((int)offset).Take(page.PageSize).ToListAsync(ct);
-        return new PagedResponse<PollResponse>(await BuildAsync(db, polls, room, viewer, ct), count, page.Page, page.PageSize);
+        var polls = await WithOptions(query.OrderByDescending(p => p.Id)).Skip((int)offset).Take(page.PageSize)
+            .ToListAsync(ct);
+        return new PagedResponse<PollResponse>(await BuildAsync(db, polls, room, viewer, ct), count, page.Page,
+            page.PageSize);
     }
 
     public async Task<PollResponse> GetAsync(int roomId, int pollId, CancellationToken ct)
@@ -103,24 +108,30 @@ public sealed class PollService(
     {
         var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, includeOptions: true, ct);
+            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
             if (poll.GetClosedAtUtc(now) is not null)
             {
                 throw new ApiException(409, "poll_closed", "A closed poll cannot be edited.");
             }
+
             if (!poll.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
             {
                 throw new ApiException(409, "concurrency_conflict", "Poll changed. Reload and retry.");
             }
 
             var errors = new Dictionary<string, string[]>();
-            if (request.Question is not null) { poll.Question = NormalizeQuestion(request.Question, errors); }
+            if (request.Question is not null)
+            {
+                poll.Question = NormalizeQuestion(request.Question, errors);
+            }
+
             if (request.ClosesAtUtc is { } closes)
             {
                 ValidateClose(closes, now, errors);
                 poll.ClosesAtUtc = closes;
             }
+
             var replacement = request.Options is null ? null : NormalizeOptions(request.Options, errors);
             if (errors.Count != 0)
             {
@@ -134,7 +145,12 @@ public sealed class PollService(
                     throw new ApiException(409, "poll_has_votes",
                         "Options and selection mode cannot change after the first vote.");
                 }
-                if (request.AllowMultiple is { } multiple) { poll.AllowMultiple = multiple; }
+
+                if (request.AllowMultiple is { } multiple)
+                {
+                    poll.AllowMultiple = multiple;
+                }
+
                 if (replacement is not null)
                 {
                     context.PollOptions.RemoveRange(poll.Options);
@@ -155,13 +171,14 @@ public sealed class PollService(
     {
         var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, includeOptions: true, ct);
+            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
             if (poll.GetClosedAtUtc(now) is null)
             {
                 poll.ClosedAtUtc = now;
                 await context.SaveChangesAsync(ct);
             }
+
             return (Poll: poll, Room: room, Member: member);
         }, ct);
 
@@ -172,7 +189,7 @@ public sealed class PollService(
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            await LoadForManageAsync(context, room, roomId, pollId, includeOptions: false, ct);
+            await LoadForManageAsync(context, room, roomId, pollId, false, ct);
             await context.PollVotes.Where(v => v.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.PollOptions.Where(o => o.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.Polls.Where(p => p.Id == pollId && p.RoomId == roomId).ExecuteDeleteAsync(ct);
@@ -188,7 +205,7 @@ public sealed class PollService(
             var (room, member) = await roomAccess.RequireMemberAsync(roomId, ct);
             roomAccess.RequireActive(room);
 
-            var poll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions: true, ct);
+            var poll = await RoomMutationService.LockPollAsync(context, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
             if (poll.GetClosedAtUtc(now) is not null)
             {
@@ -202,19 +219,22 @@ public sealed class PollService(
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["optionIds"] = ["Choose options that belong to this poll."] });
             }
+
             if (!poll.AllowMultiple && optionIds.Length > 1)
             {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["optionIds"] = ["This poll allows a single choice."] });
             }
 
-            var existing = await context.PollVotes.Where(v => v.PollId == pollId && v.MemberId == member.Id).ToListAsync(ct);
+            var existing = await context.PollVotes.Where(v => v.PollId == pollId && v.MemberId == member.Id)
+                .ToListAsync(ct);
             if (poll.AllowMultiple)
             {
                 context.PollVotes.RemoveRange(existing.Where(v => !optionIds.Contains(v.OptionId)));
                 foreach (var id in optionIds.Except(existing.Select(v => v.OptionId)))
                 {
-                    context.PollVotes.Add(new PollVote { PollId = pollId, MemberId = member.Id, OptionId = id, Slot = id, CastAtUtc = now });
+                    context.PollVotes.Add(new PollVote
+                        { PollId = pollId, MemberId = member.Id, OptionId = id, Slot = id, CastAtUtc = now });
                 }
             }
             else
@@ -245,22 +265,32 @@ public sealed class PollService(
             context.PollVotes.RemoveRange(existing);
             return;
         }
+
         if (existing.Count == 0)
         {
-            context.PollVotes.Add(new PollVote { PollId = pollId, MemberId = memberId, OptionId = optionIds[0], Slot = 0, CastAtUtc = now });
+            context.PollVotes.Add(new PollVote
+                { PollId = pollId, MemberId = memberId, OptionId = optionIds[0], Slot = 0, CastAtUtc = now });
             return;
         }
+
         existing[0].OptionId = optionIds[0];
         existing[0].CastAtUtc = now;
     }
 
-    private static ApiException NotFound() => new(404, "poll_not_found", "Poll not found.");
+    private static ApiException NotFound()
+    {
+        return new ApiException(404, "poll_not_found", "Poll not found.");
+    }
 
-    private static IQueryable<Poll> WithOptions(IQueryable<Poll> query) =>
-        query.Include(p => p.Options.OrderBy(o => o.Position));
+    private static IQueryable<Poll> WithOptions(IQueryable<Poll> query)
+    {
+        return query.Include(p => p.Options.OrderBy(o => o.Position));
+    }
 
-    private static bool CanManage(Room room, RoomMember viewer, Poll poll) =>
-        poll.AuthorMemberId == viewer.Id || room.OwnerUserId == viewer.UserId || viewer.IsAdmin;
+    private static bool CanManage(Room room, RoomMember viewer, Poll poll)
+    {
+        return poll.AuthorMemberId == viewer.Id || room.OwnerUserId == viewer.UserId || viewer.IsAdmin;
+    }
 
     private async Task<(RoomMember Member, Poll Poll)> LoadForManageAsync(
         AppDbContext context, Room room, int roomId, int pollId, bool includeOptions, CancellationToken ct)
@@ -274,6 +304,7 @@ public sealed class PollService(
             throw new ApiException(403, "poll_manage_required",
                 "Only the author, the owner or an administrator may change this poll.");
         }
+
         return (member, poll);
     }
 
@@ -284,6 +315,7 @@ public sealed class PollService(
         {
             errors["question"] = ["The question must contain 2-256 characters."];
         }
+
         return text;
     }
 
@@ -295,7 +327,8 @@ public sealed class PollService(
         }
     }
 
-    private static List<PollOption> NormalizeOptions(IReadOnlyList<PollOptionRequest>? input, Dictionary<string, string[]> errors)
+    private static List<PollOption> NormalizeOptions(IReadOnlyList<PollOptionRequest>? input,
+        Dictionary<string, string[]> errors)
     {
         var result = new List<PollOption>();
         if (input is null || input.Count is < 2 or > MaxOptions)
@@ -313,11 +346,13 @@ public sealed class PollService(
                 errors["options"] = ["Each option must contain 1-128 characters."];
                 return result;
             }
+
             if (!seen.Add(text))
             {
                 errors["options"] = ["Options must be unique."];
                 return result;
             }
+
             var color = string.IsNullOrWhiteSpace(input[i].Color)
                 ? DefaultColors[i % DefaultColors.Length]
                 : input[i].Color!.Trim().ToUpperInvariant();
@@ -326,8 +361,10 @@ public sealed class PollService(
                 errors["options"] = ["Option colour must be a 6-digit hex value."];
                 return result;
             }
+
             result.Add(new PollOption { Position = i, Text = text, Color = color });
         }
+
         return result;
     }
 
@@ -347,7 +384,8 @@ public sealed class PollService(
             .GroupBy(v => v.OptionId).Select(g => new { OptionId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.OptionId, x => x.Count, ct);
         var voters = await context.PollVotes.AsNoTracking().Where(v => pollIds.Contains(v.PollId))
-            .GroupBy(v => v.PollId).Select(g => new { PollId = g.Key, Count = g.Select(v => v.MemberId).Distinct().Count() })
+            .GroupBy(v => v.PollId).Select(g => new
+                { PollId = g.Key, Count = g.Select(v => v.MemberId).Distinct().Count() })
             .ToDictionaryAsync(x => x.PollId, x => x.Count, ct);
         var mine = (await context.PollVotes.AsNoTracking()
                 .Where(v => pollIds.Contains(v.PollId) && v.MemberId == viewer.Id)
@@ -368,7 +406,8 @@ public sealed class PollService(
                 poll.Id, poll.RoomId, poll.Question, poll.AllowMultiple, poll.ClosesAtUtc, closedAt, closed,
                 new PollAuthorResponse(poll.AuthorMemberId, author?.DisplayName ?? "", author?.HasLeft ?? true),
                 poll.Options.OrderBy(o => o.Position)
-                    .Select(o => new PollOptionResponse(o.Id, o.Text, o.Color, optionCounts.GetValueOrDefault(o.Id))).ToList(),
+                    .Select(o => new PollOptionResponse(o.Id, o.Text, o.Color, optionCounts.GetValueOrDefault(o.Id)))
+                    .ToList(),
                 voters.GetValueOrDefault(poll.Id),
                 mine[poll.Id].ToList(),
                 poll.RowVersion,

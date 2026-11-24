@@ -514,7 +514,8 @@ public sealed class StageFourTests(ApiFixture fixture)
         var from = Start.AddHours(-1).ToString("O");
         var to = Start.AddDays(2).ToString("O");
         var full = await Read<PagedResponse<EventResponse>>(
-            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=1&pageSize=100"));
+            await owner.GetAsync(
+                $"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=1&pageSize=100"));
 
         Assert.Equal(6, full.Items.Count);
         for (var i = 1; i < full.Items.Count; i++)
@@ -526,11 +527,14 @@ public sealed class StageFourTests(ApiFixture fixture)
         }
 
         var page1 = await Read<PagedResponse<EventResponse>>(
-            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=1&pageSize=2"));
+            await owner.GetAsync(
+                $"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=1&pageSize=2"));
         var page2 = await Read<PagedResponse<EventResponse>>(
-            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=2&pageSize=2"));
+            await owner.GetAsync(
+                $"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=2&pageSize=2"));
         var page3 = await Read<PagedResponse<EventResponse>>(
-            await owner.GetAsync($"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=3&pageSize=2"));
+            await owner.GetAsync(
+                $"{Events(room.Id)}?from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&page=3&pageSize=2"));
 
         var paged = page1.Items.Concat(page2.Items).Concat(page3.Items).ToList();
         Assert.Equal(full.Items.Select(x => (x.Id, x.StartsAtUtc)), paged.Select(x => (x.Id, x.StartsAtUtc)));

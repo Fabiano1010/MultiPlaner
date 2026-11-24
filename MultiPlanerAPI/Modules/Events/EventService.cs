@@ -33,12 +33,14 @@ public sealed class EventService(
             join author in context.RoomMembers.AsNoTracking() on ev.AuthorMemberId equals author.Id
             join viewer in context.RoomMembers.AsNoTracking() on room.Id equals viewer.RoomId
             where viewer.LeftAtUtc == null &&
-                  ((userId != null && viewer.UserId == userId) || (guestId != null && viewer.GuestSessionId == guestId)) &&
+                  ((userId != null && viewer.UserId == userId) ||
+                   (guestId != null && viewer.GuestSessionId == guestId)) &&
                   (room.ArchivedAtUtc != null || room.ExpiresAtUtc > now || room.ArchiveOnExpiry)
             select new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = viewer.Id };
     }
 
-    public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter, CancellationToken ct)
+    public async Task<PagedResponse<EventResponse>> ListAsync(int? roomId, EventListRequest filter,
+        CancellationToken ct)
     {
         if (roomId is { } id)
         {
@@ -47,6 +49,7 @@ public sealed class EventService(
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["roomId"] = ["Room filter must match the route."] });
             }
+
             var (room, _) = await access.RequireMemberAsync(id, ct);
             access.RequireReadable(room);
         }
@@ -67,7 +70,11 @@ public sealed class EventService(
             .OrderBy(x => x.Event.Id).Take(MaxSeriesPerQuery).ToListAsync(ct);
 
         var zones = new Dictionary<string, TimeZoneInfo>(StringComparer.Ordinal);
-        TimeZoneInfo Zone(string id) => zones.TryGetValue(id, out var z) ? z : zones[id] = TimeZoneInfo.FindSystemTimeZoneById(id);
+
+        TimeZoneInfo Zone(string id)
+        {
+            return zones.TryGetValue(id, out var z) ? z : zones[id] = TimeZoneInfo.FindSystemTimeZoneById(id);
+        }
 
         var offset = (long)(filter.Page - 1) * filter.PageSize;
         if (series.Count == 0)
@@ -77,6 +84,7 @@ public sealed class EventService(
             {
                 return new PagedResponse<EventResponse>([], count, filter.Page, filter.PageSize);
             }
+
             var rows = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
                 .Skip((int)offset).Take(filter.PageSize).ToListAsync(ct);
             var map = await LoadParticipantsMapAsync(db, rows.Select(x => x.Event.Id).ToArray(), ct);
@@ -100,8 +108,10 @@ public sealed class EventService(
                 .Select(x => new { x.EventId, x.OccurrenceDate }).ToListAsync(ct))
             .Select(x => (x.EventId, x.OccurrenceDate)).ToHashSet();
 
-        var (pageItems, totalCount) = MergeEvents(singles, series, skipped, Zone, from, expandTo, (int)offset, filter.PageSize, ct);
-        var participants = await LoadParticipantsMapAsync(db, pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray(), ct);
+        var (pageItems, totalCount) = MergeEvents(singles, series, skipped, Zone, from, expandTo, (int)offset,
+            filter.PageSize, ct);
+        var participants =
+            await LoadParticipantsMapAsync(db, pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray(), ct);
         return new PagedResponse<EventResponse>(
             pageItems.Select(i => Map(i.Row, participants.GetValueOrDefault(i.Row.Event.Id, []), i.Occ,
                 Zone(i.Row.Event.TimeZoneId ?? i.Row.Room.TimeZoneId))).ToArray(),
@@ -114,38 +124,46 @@ public sealed class EventService(
         {
             query = query.Where(x => x.Event.RoomId == requestedRoom);
         }
+
         if (roomId is null)
         {
             var now = clock.GetUtcNow();
             query = filter.Status switch
             {
                 "active" => query.Where(x => x.Room.ArchivedAtUtc == null && x.Room.ExpiresAtUtc > now),
-                "archived" => query.Where(x => x.Room.ArchivedAtUtc != null || (x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now)),
+                "archived" => query.Where(x =>
+                    x.Room.ArchivedAtUtc != null || (x.Room.ArchiveOnExpiry && x.Room.ExpiresAtUtc <= now)),
                 _ => query
             };
         }
+
         if (filter.EventTypeId is { } typeId)
         {
             query = query.Where(x => x.Event.EventTypeId == typeId);
         }
+
         if (filter.AuthorMemberId is { } authorId)
         {
             query = query.Where(x => x.Event.AuthorMemberId == authorId);
         }
+
         if (filter.IsPinned is { } pinned)
         {
             query = query.Where(x => x.Event.IsPinned == pinned);
         }
+
         if (filter.IsHighPriority is { } priority)
         {
             query = query.Where(x => x.Event.IsHighPriority == priority);
         }
+
         return query;
     }
 
     private static (List<(EventRow Row, RecurrenceOccurrence? Occ)> PageItems, int TotalCount) MergeEvents(
         List<EventRow> singles, List<EventRow> series, HashSet<(int EventId, DateOnly Date)> skipped,
-        Func<string, TimeZoneInfo> zone, DateTimeOffset from, DateTimeOffset expandTo, int skip, int pageSize, CancellationToken ct)
+        Func<string, TimeZoneInfo> zone, DateTimeOffset from, DateTimeOffset expandTo, int skip, int pageSize,
+        CancellationToken ct)
     {
         var queue = new PriorityQueue<(int Source, EventRow Row, RecurrenceOccurrence? Occ), (DateTimeOffset, int)>();
         var enums = new IEnumerator<RecurrenceOccurrence>[series.Count];
@@ -161,6 +179,7 @@ public sealed class EventService(
                     return true;
                 }
             }
+
             occ = default;
             return false;
         }
@@ -171,6 +190,7 @@ public sealed class EventService(
             {
                 queue.Enqueue((-1, singles[0], null), (singles[0].Event.StartsAtUtc, singles[0].Event.Id));
             }
+
             for (var i = 0; i < series.Count; i++)
             {
                 ct.ThrowIfCancellationRequested();
@@ -192,10 +212,12 @@ public sealed class EventService(
                 {
                     page.Add((entry.Row, entry.Occ));
                 }
+
                 if (++total >= MaxMergedRows)
                 {
                     break;
                 }
+
                 if (entry.Source < 0)
                 {
                     if (++singleIdx < singles.Count)
@@ -209,6 +231,7 @@ public sealed class EventService(
                     queue.Enqueue((entry.Source, entry.Row, nextOcc), (nextOcc.StartsAtUtc, entry.Row.Event.Id));
                 }
             }
+
             return (page, total);
         }
         finally
@@ -224,7 +247,8 @@ public sealed class EventService(
     {
         var (room, _) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
-        var row = await VisibleEvents(db).SingleOrDefaultAsync(x => x.Event.RoomId == roomId && x.Event.Id == eventId, ct)
+        var row = await VisibleEvents(db)
+                      .SingleOrDefaultAsync(x => x.Event.RoomId == roomId && x.Event.Id == eventId, ct)
                   ?? throw new ApiException(404, "event_not_found", "Event not found.");
         var participants = await db.EventParticipants.Where(p => p.EventId == eventId)
             .OrderBy(p => p.MemberId).Select(p => p.MemberId).ToArrayAsync(ct);
@@ -246,18 +270,21 @@ public sealed class EventService(
             };
             EventTime.Apply(ev, request.Time, room.TimeZoneId);
             await ApplyRecurrenceAsync(context, ev, request.Recurrence, room, ct);
-            var validated = await ValidateParticipantsAsync(context, roomId, request.ParticipantMemberIds ?? [member.Id], ct);
+            var validated =
+                await ValidateParticipantsAsync(context, roomId, request.ParticipantMemberIds ?? [member.Id], ct);
             context.CalendarEvents.Add(ev);
             await context.SaveChangesAsync(ct);
             context.EventParticipants.AddRange(validated.Select(id => new EventParticipant
                 { EventId = ev.Id, RoomId = roomId, MemberId = id }));
             await context.SaveChangesAsync(ct);
-            return (new EventRow { Event = ev, Type = type, Room = room, Author = member, ViewerMemberId = member.Id }, validated);
+            return (new EventRow { Event = ev, Type = type, Room = room, Author = member, ViewerMemberId = member.Id },
+                validated);
         }, ct);
         return Map(row, participants);
     }
 
-    public async Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request, CancellationToken ct)
+    public async Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request,
+        CancellationToken ct)
     {
         var (row, participants) = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
@@ -267,11 +294,30 @@ public sealed class EventService(
             RequireVersion(ev, request.RowVersion);
             RoomAccessService.RequireOwnEntry(member, ev.AuthorMemberId, room.OwnerUserId);
 
-            if (request.Title is not null) { ev.Title = Title(request.Title); }
-            if (request.Description is not null) { ev.Description = EmptyToNull(request.Description); }
-            if (request.Color is not null) { ev.Color = EmptyToNull(request.Color)?.ToUpperInvariant(); }
-            if (request.IsHighPriority is { } priority) { ev.IsHighPriority = priority; }
-            if (request.IsPinned is { } pinned) { ev.IsPinned = pinned; }
+            if (request.Title is not null)
+            {
+                ev.Title = Title(request.Title);
+            }
+
+            if (request.Description is not null)
+            {
+                ev.Description = EmptyToNull(request.Description);
+            }
+
+            if (request.Color is not null)
+            {
+                ev.Color = EmptyToNull(request.Color)?.ToUpperInvariant();
+            }
+
+            if (request.IsHighPriority is { } priority)
+            {
+                ev.IsHighPriority = priority;
+            }
+
+            if (request.IsPinned is { } pinned)
+            {
+                ev.IsPinned = pinned;
+            }
 
             RoomEventType? type = null;
             if (request.EventTypeId is { } typeId && typeId != ev.EventTypeId)
@@ -285,10 +331,12 @@ public sealed class EventService(
             {
                 EventTime.Apply(ev, request.Time, room.TimeZoneId);
             }
+
             if (request.Recurrence is not null || request.Time is not null)
             {
                 await ApplyRecurrenceAsync(context, ev, request.Recurrence, room, ct);
             }
+
             if ((ev.StartsAtUtc, ev.EndsAtUtc, ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil) != oldSchedule)
             {
                 await context.EventOccurrenceExceptions.Where(x => x.EventId == eventId).ExecuteDeleteAsync(ct);
@@ -321,6 +369,7 @@ public sealed class EventService(
             {
                 throw new ApiException(403, "event_pin_forbidden", "Only the author or room owner may pin this event.");
             }
+
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
             ev.IsPinned = request.IsPinned;
@@ -348,7 +397,8 @@ public sealed class EventService(
         }, ct);
     }
 
-    public Task SkipOccurrenceAsync(int roomId, int eventId, DateOnly date, EventVersionRequest request, CancellationToken ct)
+    public Task SkipOccurrenceAsync(int roomId, int eventId, DateOnly date, EventVersionRequest request,
+        CancellationToken ct)
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
@@ -360,16 +410,21 @@ public sealed class EventService(
             {
                 throw new ApiException(409, "event_not_recurring", "This event does not repeat.");
             }
+
             var tz = TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? room.TimeZoneId);
             if (!RecurrenceExpander.OccursOn(ev, tz, date))
             {
                 throw ApiException.Validation(new Dictionary<string, string[]>
                     { ["date"] = ["This date is not an occurrence of the event."] });
             }
-            if (!await context.EventOccurrenceExceptions.AnyAsync(x => x.EventId == eventId && x.OccurrenceDate == date, ct))
+
+            if (!await context.EventOccurrenceExceptions.AnyAsync(x => x.EventId == eventId && x.OccurrenceDate == date,
+                    ct))
             {
-                context.EventOccurrenceExceptions.Add(new EventOccurrenceException { EventId = eventId, OccurrenceDate = date });
+                context.EventOccurrenceExceptions.Add(new EventOccurrenceException
+                    { EventId = eventId, OccurrenceDate = date });
             }
+
             context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
             return true;
@@ -386,6 +441,7 @@ public sealed class EventService(
             ev.RecurrenceUntil = null;
             return;
         }
+
         if (request is null && ev.Recurrence == RecurrenceFrequency.None)
         {
             return;
@@ -401,14 +457,17 @@ public sealed class EventService(
         {
             errors["recurrence"] = ["Repeat interval must be between 1 and 12."];
         }
+
         if (until is { } u && (u < first || u > maxUntil))
         {
             errors["recurrence"] = ["Repeat end must be between the first date and ten years later."];
         }
+
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
         }
+
         if (request is null)
         {
             return;
@@ -435,6 +494,7 @@ public sealed class EventService(
         {
             return new Dictionary<int, int[]>();
         }
+
         var rows = await context.EventParticipants.AsNoTracking()
             .Where(p => eventIds.Contains(p.EventId))
             .OrderBy(p => p.EventId).ThenBy(p => p.MemberId)
@@ -446,13 +506,15 @@ public sealed class EventService(
         AppDbContext context, Room room, RoomMember member, CalendarEvent ev,
         RoomEventType? loadedType, int[]? loadedParticipants, CancellationToken ct)
     {
-        var type = loadedType ?? await context.RoomEventTypes.AsNoTracking().SingleAsync(t => t.Id == ev.EventTypeId, ct);
+        var type = loadedType ??
+                   await context.RoomEventTypes.AsNoTracking().SingleAsync(t => t.Id == ev.EventTypeId, ct);
         var author = ev.AuthorMemberId == member.Id
             ? member
             : await context.RoomMembers.AsNoTracking().SingleAsync(m => m.Id == ev.AuthorMemberId, ct);
         var participants = loadedParticipants ?? await context.EventParticipants.AsNoTracking()
             .Where(p => p.EventId == ev.Id).OrderBy(p => p.MemberId).Select(p => p.MemberId).ToArrayAsync(ct);
-        return (new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = member.Id }, participants);
+        return (new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = member.Id },
+            participants);
     }
 
     private async Task<RoomMember> RequireWriterAsync(AppDbContext context, Room room, CancellationToken ct)
@@ -463,14 +525,19 @@ public sealed class EventService(
         return member;
     }
 
-    private static DateTimeOffset ClampAddDays(DateTimeOffset value, int days) =>
-        days >= 0 && value > DateTimeOffset.MaxValue.AddDays(-days) ? DateTimeOffset.MaxValue :
-        days < 0 && value < DateTimeOffset.MinValue.AddDays(-days) ? DateTimeOffset.MinValue :
-        value.AddDays(days);
+    private static DateTimeOffset ClampAddDays(DateTimeOffset value, int days)
+    {
+        return days >= 0 && value > DateTimeOffset.MaxValue.AddDays(-days) ? DateTimeOffset.MaxValue :
+            days < 0 && value < DateTimeOffset.MinValue.AddDays(-days) ? DateTimeOffset.MinValue :
+            value.AddDays(days);
+    }
 
-    private static async Task<CalendarEvent> FindEventAsync(AppDbContext context, int roomId, int eventId, CancellationToken ct) =>
-        await context.CalendarEvents.SingleOrDefaultAsync(e => e.RoomId == roomId && e.Id == eventId, ct)
-        ?? throw new ApiException(404, "event_not_found", "Event not found.");
+    private static async Task<CalendarEvent> FindEventAsync(AppDbContext context, int roomId, int eventId,
+        CancellationToken ct)
+    {
+        return await context.CalendarEvents.SingleOrDefaultAsync(e => e.RoomId == roomId && e.Id == eventId, ct)
+               ?? throw new ApiException(404, "event_not_found", "Event not found.");
+    }
 
     private static void RequireVersion(CalendarEvent ev, byte[] version)
     {
@@ -488,7 +555,8 @@ public sealed class EventService(
         }
     }
 
-    private static async Task<int[]> ValidateParticipantsAsync(AppDbContext context, int roomId, int[] ids, CancellationToken ct)
+    private static async Task<int[]> ValidateParticipantsAsync(AppDbContext context, int roomId, int[] ids,
+        CancellationToken ct)
     {
         var distinct = ids.Distinct().ToArray();
         if (distinct.Any(id => id <= 0) || distinct.Length != ids.Length ||
@@ -498,10 +566,12 @@ public sealed class EventService(
             throw ApiException.Validation(new Dictionary<string, string[]>
                 { ["participantMemberIds"] = ["Use distinct active members of this room."] });
         }
+
         return distinct;
     }
 
-    private EventResponse Map(EventRow row, int[] participants, RecurrenceOccurrence? occurrence = null, TimeZoneInfo? cachedZone = null)
+    private EventResponse Map(EventRow row, int[] participants, RecurrenceOccurrence? occurrence = null,
+        TimeZoneInfo? cachedZone = null)
     {
         var ev = row.Event;
         var now = clock.GetUtcNow();
@@ -509,7 +579,8 @@ public sealed class EventService(
         var own = row.ViewerMemberId == ev.AuthorMemberId || row.Room.OwnerUserId == actor.UserId;
         var occurrenceDate = occurrence is { } occ
             ? occ.Date
-            : RecurrenceExpander.FirstDate(ev, cachedZone ?? TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? row.Room.TimeZoneId));
+            : RecurrenceExpander.FirstDate(ev,
+                cachedZone ?? TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? row.Room.TimeZoneId));
 
         var response = new EventResponse(
             ev.Id, ev.RoomId, row.Room.Name, row.Room.TimeZoneId, row.Room.GetArchivedAtUtc(now) is not null,
@@ -532,14 +603,24 @@ public sealed class EventService(
             : response;
     }
 
-    private static async Task<RoomEventType> RequireActiveTypeAsync(AppDbContext context, int roomId, int typeId, CancellationToken ct) =>
-        await context.RoomEventTypes.AsNoTracking().SingleOrDefaultAsync(t => t.RoomId == roomId && t.Id == typeId && !t.IsArchived, ct)
-        ?? throw ApiException.Validation(new Dictionary<string, string[]> { ["eventTypeId"] = ["Select an active event type from this room."] });
+    private static async Task<RoomEventType> RequireActiveTypeAsync(AppDbContext context, int roomId, int typeId,
+        CancellationToken ct)
+    {
+        return await context.RoomEventTypes.AsNoTracking()
+                   .SingleOrDefaultAsync(t => t.RoomId == roomId && t.Id == typeId && !t.IsArchived, ct)
+               ?? throw ApiException.Validation(new Dictionary<string, string[]>
+                   { ["eventTypeId"] = ["Select an active event type from this room."] });
+    }
 
-    private static string Title(string value) =>
-        string.IsNullOrWhiteSpace(value)
+    private static string Title(string value)
+    {
+        return string.IsNullOrWhiteSpace(value)
             ? throw ApiException.Validation(new Dictionary<string, string[]> { ["title"] = ["Title cannot be blank."] })
             : value.Trim();
+    }
 
-    private static string? EmptyToNull(string? value) => string.IsNullOrEmpty(value) ? null : value;
+    private static string? EmptyToNull(string? value)
+    {
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
 }

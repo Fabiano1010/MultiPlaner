@@ -18,7 +18,8 @@ public sealed class InvitationService(
     RoomAccessService access,
     InvitationTokenProtector tokens)
 {
-    public async Task<RoomInvitationResponse> CreateAsync(int roomId, CreateRoomInvitationRequest request, CancellationToken ct)
+    public async Task<RoomInvitationResponse> CreateAsync(int roomId, CreateRoomInvitationRequest request,
+        CancellationToken ct)
     {
         actor.RequireUserId();
         var room = await access.RequireManagerAsync(roomId, ct);
@@ -51,6 +52,7 @@ public sealed class InvitationService(
         {
             await guests.SignInAsync(sessionId, ct);
         }
+
         return response;
     }
 
@@ -62,8 +64,9 @@ public sealed class InvitationService(
             await roomAccess.RequireManagerAsync(room, ct);
             roomAccess.RequireActive(room);
 
-            var invitation = await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)
-                             ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
+            var invitation =
+                await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)
+                ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
             invitation.RevokedAtUtc ??= clock.GetUtcNow();
             await context.SaveChangesAsync(ct);
             return true;
@@ -91,6 +94,7 @@ public sealed class InvitationService(
         {
             throw new ApiException(500, "invalid_invitation_storage", "Stored invitation could not be verified.");
         }
+
         return links.CreateResponse(invitation, token);
     }
 
@@ -102,10 +106,12 @@ public sealed class InvitationService(
         {
             errors["expiresAtUtc"] = ["Invitation expiry must be UTC, in the future and no later than room expiry."];
         }
+
         if (request.MaxUses is <= 0)
         {
             errors["maxUses"] = ["Max uses must be greater than zero."];
         }
+
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
@@ -128,6 +134,7 @@ public sealed class InvitationService(
         {
             throw new ApiException(409, "room_changed", "Room expiry changed. Reload and retry.");
         }
+
         if (expiry <= issuedAt)
         {
             throw ApiException.Validation(new Dictionary<string, string[]>
@@ -135,7 +142,8 @@ public sealed class InvitationService(
         }
 
         await operationDb.RoomInvitations.Where(i => i.RoomId == roomId && i.RevokedAtUtc == null)
-            .ExecuteUpdateAsync(u => u.SetProperty(i => i.RevokedAtUtc, issuedAt).SetProperty(i => i.UpdatedAtUtc, issuedAt), ct);
+            .ExecuteUpdateAsync(
+                u => u.SetProperty(i => i.RevokedAtUtc, issuedAt).SetProperty(i => i.UpdatedAtUtc, issuedAt), ct);
 
         var token = InvitationTokens.Generate();
         var invitation = new RoomInvitation
@@ -151,31 +159,38 @@ public sealed class InvitationService(
         return response;
     }
 
-    private async Task<string> GetDisplayNameAsync(int? userId, Guid? guestId, JoinInvitationRequest request, CancellationToken ct)
+    private async Task<string> GetDisplayNameAsync(int? userId, Guid? guestId, JoinInvitationRequest request,
+        CancellationToken ct)
     {
         if (userId is { } id)
         {
             return await db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => u.DisplayName).SingleAsync(ct);
         }
+
         if (guestId is { } sessionId)
         {
-            return await db.GuestSessions.AsNoTracking().Where(s => s.Id == sessionId).Select(s => s.DisplayName).SingleAsync(ct);
+            return await db.GuestSessions.AsNoTracking().Where(s => s.Id == sessionId).Select(s => s.DisplayName)
+                .SingleAsync(ct);
         }
+
         if (request.DisplayName is null)
         {
             throw ApiException.Validation(new Dictionary<string, string[]>
                 { ["displayName"] = ["A guest display name is required."] });
         }
+
         var errors = LocaleValidation.GetErrors(request.DisplayName, null, null);
         if (errors.Count != 0)
         {
             throw ApiException.Validation(errors);
         }
+
         return request.DisplayName.Trim();
     }
 
     private async Task<RoomResponse> JoinRoomAsync(
-        RoomInvitation invitation, Room room, int? userId, Guid? guestId, Guid? newGuestId, string displayName, CancellationToken ct)
+        RoomInvitation invitation, Room room, int? userId, Guid? guestId, Guid? newGuestId, string displayName,
+        CancellationToken ct)
     {
         await using var operationDb = new AppDbContext(dbOptions, clock);
         await using var transaction = await operationDb.Database.BeginTransactionAsync(ct);
@@ -190,7 +205,8 @@ public sealed class InvitationService(
              (newGuestId != null && m.GuestSessionId == newGuestId)), ct);
         if (existing is { LeftAtUtc: null })
         {
-            var currentOwner = await operationDb.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName).SingleAsync(ct);
+            var currentOwner = await operationDb.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName)
+                .SingleAsync(ct);
             return RoomService.ToResponse(room, existing, clock.GetUtcNow(), currentOwner);
         }
 
@@ -203,17 +219,21 @@ public sealed class InvitationService(
         await operationDb.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        var ownerName = await operationDb.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName).SingleAsync(ct);
+        var ownerName = await operationDb.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName)
+            .SingleAsync(ct);
         return RoomService.ToResponse(room, member, clock.GetUtcNow(), ownerName);
     }
 
     private static RoomMember AddParticipant(
-        AppDbContext operationDb, int roomId, int? userId, Guid? guestId, Guid? newGuestId, string displayName, DateTimeOffset now)
+        AppDbContext operationDb, int roomId, int? userId, Guid? guestId, Guid? newGuestId, string displayName,
+        DateTimeOffset now)
     {
         if (newGuestId is { } sessionId)
         {
-            operationDb.GuestSessions.Add(new GuestSession { Id = sessionId, DisplayName = displayName, ExpiresAtUtc = now.AddDays(30) });
+            operationDb.GuestSessions.Add(new GuestSession
+                { Id = sessionId, DisplayName = displayName, ExpiresAtUtc = now.AddDays(30) });
         }
+
         var member = new RoomMember
         {
             RoomId = roomId, UserId = userId, GuestSessionId = guestId ?? newGuestId, DisplayName = displayName
@@ -222,13 +242,15 @@ public sealed class InvitationService(
         return member;
     }
 
-    private static async Task ConsumeInvitationAsync(AppDbContext operationDb, Guid invitationId, DateTimeOffset now, CancellationToken ct)
+    private static async Task ConsumeInvitationAsync(AppDbContext operationDb, Guid invitationId, DateTimeOffset now,
+        CancellationToken ct)
     {
         var consumed = await operationDb.RoomInvitations
             .Where(i => i.Id == invitationId && i.RevokedAtUtc == null && i.ExpiresAtUtc > now &&
                         (i.MaxUses == null || i.UseCount < i.MaxUses) &&
                         operationDb.Rooms.Any(r => r.Id == i.RoomId && r.ArchivedAtUtc == null && r.ExpiresAtUtc > now))
-            .ExecuteUpdateAsync(u => u.SetProperty(i => i.UseCount, i => i.UseCount + 1).SetProperty(i => i.UpdatedAtUtc, now), ct);
+            .ExecuteUpdateAsync(
+                u => u.SetProperty(i => i.UseCount, i => i.UseCount + 1).SetProperty(i => i.UpdatedAtUtc, now), ct);
         if (consumed == 0)
         {
             throw new ApiException(410, "invitation_unavailable", "Invitation has expired or reached its use limit.");
@@ -252,6 +274,7 @@ public sealed class InvitationService(
         {
             throw new ApiException(410, "invitation_unavailable", "Invitation has expired or reached its use limit.");
         }
+
         return (invitation, room);
     }
 }
