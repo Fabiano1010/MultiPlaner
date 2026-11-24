@@ -8,62 +8,45 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeProvider clock)
 {
-    public async Task<(Room Room, RoomMember Member)> RequireMemberAsync(
-        int roomId, CancellationToken cancellationToken)
+    public async Task<(Room Room, RoomMember Member)> RequireMemberAsync(int roomId, CancellationToken ct)
     {
         var userId = actor.UserId;
         var guestId = actor.GuestSessionId;
         var result = await (from member in db.RoomMembers.AsNoTracking()
                 join room in db.Rooms.AsNoTracking() on member.RoomId equals room.Id
                 where room.Id == roomId && member.LeftAtUtc == null &&
-                      ((userId != null && member.UserId == userId) ||
-                       (guestId != null && member.GuestSessionId == guestId))
+                      ((userId != null && member.UserId == userId) || (guestId != null && member.GuestSessionId == guestId))
                 select new { Room = room, Member = member })
-            .SingleOrDefaultAsync(cancellationToken);
-        if (result is null)
-        {
-            throw new ApiException(404, "room_not_found", "Room not found.");
-        }
-
+            .SingleOrDefaultAsync(ct) ?? throw new ApiException(404, "room_not_found", "Room not found.");
         return (result.Room, result.Member);
     }
 
-    public async Task<RoomMember> RequireMemberAsync(Room room, CancellationToken cancellationToken)
+    public async Task<RoomMember> RequireMemberAsync(Room room, CancellationToken ct)
     {
-        RoomMember? member;
         if (actor.UserId is { } userId)
         {
-            member = await db.RoomMembers.AsNoTracking()
-                .SingleOrDefaultAsync(
-                    m => m.RoomId == room.Id && m.UserId != null && m.UserId == userId && m.LeftAtUtc == null,
-                    cancellationToken);
+            return await db.RoomMembers.AsNoTracking()
+                .SingleOrDefaultAsync(m => m.RoomId == room.Id && m.UserId != null && m.UserId == userId && m.LeftAtUtc == null, ct)
+                ?? throw new ApiException(404, "room_not_found", "Room not found.");
         }
-        else if (actor.GuestSessionId is { } guestId)
+        if (actor.GuestSessionId is { } guestId)
         {
-            member = await db.RoomMembers.AsNoTracking()
-                .SingleOrDefaultAsync(
-                    m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId &&
-                         m.LeftAtUtc == null,
-                    cancellationToken);
+            return await db.RoomMembers.AsNoTracking()
+                .SingleOrDefaultAsync(m => m.RoomId == room.Id && m.GuestSessionId != null && m.GuestSessionId == guestId && m.LeftAtUtc == null, ct)
+                ?? throw new ApiException(404, "room_not_found", "Room not found.");
         }
-        else
-        {
-            throw new ApiException(404, "room_not_found", "Room not found.");
-        }
-
-        return member ?? throw new ApiException(404, "room_not_found", "Room not found.");
+        throw new ApiException(404, "room_not_found", "Room not found.");
     }
 
-    public async Task<Room> RequireOwnerAsync(int roomId, CancellationToken cancellationToken)
+    public async Task<Room> RequireOwnerAsync(int roomId, CancellationToken ct)
     {
         var userId = actor.RequireUserId();
-        var room = await db.Rooms.SingleOrDefaultAsync(r => r.Id == roomId, cancellationToken)
+        var room = await db.Rooms.SingleOrDefaultAsync(r => r.Id == roomId, ct)
                    ?? throw new ApiException(404, "room_not_found", "Room not found.");
         if (room.OwnerUserId != userId)
         {
             throw new ApiException(403, "room_owner_required", "Only the room owner may manage it.");
         }
-
         return room;
     }
 
@@ -73,10 +56,8 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var (room, member) = await RequireMemberAsync(roomId, ct);
         if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
         {
-            throw new ApiException(403, "room_manager_required",
-                "Only the owner or an administrator may manage this room.");
+            throw new ApiException(403, "room_manager_required", "Only the owner or an administrator may manage this room.");
         }
-
         return room;
     }
 
@@ -86,10 +67,8 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         var member = await RequireMemberAsync(room, ct);
         if (room.OwnerUserId != actor.UserId && !member.IsAdmin)
         {
-            throw new ApiException(403, "room_manager_required",
-                "Only the owner or an administrator may manage this room.");
+            throw new ApiException(403, "room_manager_required", "Only the owner or an administrator may manage this room.");
         }
-
         return member;
     }
 
@@ -110,12 +89,11 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         }
     }
 
-    public static void RequireOwnEntry(RoomMember actor, int authorMemberId, int ownerUserId)
+    public static void RequireOwnEntry(RoomMember member, int authorMemberId, int ownerUserId)
     {
-        if (actor.Id != authorMemberId && actor.UserId != ownerUserId)
+        if (member.Id != authorMemberId && member.UserId != ownerUserId)
         {
-            throw new ApiException(403, "entry_author_required",
-                "Only the author or room owner may edit this entry.");
+            throw new ApiException(403, "entry_author_required", "Only the author or room owner may edit this entry.");
         }
     }
 }

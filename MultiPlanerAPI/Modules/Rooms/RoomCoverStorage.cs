@@ -10,19 +10,19 @@ public interface IRoomCoverStorage
 public sealed class LocalRoomCoverStorage(IConfiguration configuration, IWebHostEnvironment environment)
     : IRoomCoverStorage
 {
-    private readonly string root = Path.GetFullPath(configuration["Storage:CoverRoot"] ??
-                                                    Path.Combine(environment.ContentRootPath, "data", "room-covers"));
+    private readonly string root = Path.GetFullPath(
+        configuration["Storage:CoverRoot"] ?? Path.Combine(environment.ContentRootPath, "data", "room-covers"));
 
-    public async Task<string> SaveAsync(Stream stream, CancellationToken cancellationToken)
+    public async Task<string> SaveAsync(Stream stream, CancellationToken ct)
     {
         Directory.CreateDirectory(root);
         var key = Guid.NewGuid().ToString("N");
         var path = Path.Combine(root, key);
-        await using var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write,
-            FileShare.None, 81920, FileOptions.Asynchronous);
+        await using var output = new FileStream(
+            path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.Asynchronous);
         try
         {
-            await stream.CopyToAsync(output, cancellationToken);
+            await stream.CopyToAsync(output, ct);
         }
         catch
         {
