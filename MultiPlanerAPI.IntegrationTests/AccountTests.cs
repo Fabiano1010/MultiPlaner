@@ -43,8 +43,18 @@ public sealed class AccountTests(ApiFixture fixture)
             Assert.DoesNotContain("passwordHash", json, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("securityStamp", json, StringComparison.OrdinalIgnoreCase);
             Assert.True(response.Headers.CacheControl!.NoStore);
-            foreach (var header in response.Headers.GetValues("Set-Cookie")
-                         .Where(c => c.StartsWith(SessionAuthentication.UserCookie, StringComparison.Ordinal)))
+            Assert.False(response.Headers.Contains("Set-Cookie"));
+
+            using var loginClient = fixture.Client();
+            await ApiFixture.CsrfAsync(loginClient);
+            var loginResponse = await loginClient.PostAsJsonAsync("/api/auth/login",
+                new LoginRequest { Email = user.Email!, Password = ApiFixture.Password });
+            Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+            var setCookies = loginResponse.Headers.GetValues("Set-Cookie")
+                .Where(c => c.StartsWith(SessionAuthentication.UserCookie, StringComparison.Ordinal))
+                .ToArray();
+            Assert.NotEmpty(setCookies);
+            foreach (var header in setCookies)
             {
                 Assert.Contains("secure", header, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("httponly", header, StringComparison.OrdinalIgnoreCase);

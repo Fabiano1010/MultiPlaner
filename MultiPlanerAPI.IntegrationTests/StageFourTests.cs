@@ -430,4 +430,43 @@ public sealed class StageFourTests(ApiFixture fixture)
         Assert.Equal(ev.RowVersion, read.RowVersion);
         Assert.Equal(ev.Title, read.Title);
     }
+
+    [Fact]
+    public async Task AllowsLongRecurringEventsExtremeDatesAndWideWindowsWithoutOverflowErrors()
+    {
+        var (owner, _, _) = await fixture.RegisterAndLoginAsync();
+        using var client = owner;
+        var room = await Room(owner);
+        var types = (await owner.GetFromJsonAsync<List<EventTypeResponse>>($"/api/rooms/{room.Id}/event-types"))!;
+
+        var longSeries = await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
+        {
+            Title = "45-day daily series",
+            EventTypeId = types[0].Id,
+            Time = new EventTimeRequest { StartsAtUtc = Start, EndsAtUtc = Start.AddDays(45) },
+            Recurrence = new RecurrenceRequest { Frequency = RecurrenceFrequency.Daily, Interval = 1 }
+        }), HttpStatusCode.Created);
+
+        var skipResponse = await owner.PostAsJsonAsync(
+            $"{Events(room.Id)}/{longSeries.Id}/occurrences/2026-11-16/skip",
+            new EventVersionRequest { RowVersion = longSeries.RowVersion });
+        Assert.Equal(HttpStatusCode.NoContent, skipResponse.StatusCode);
+
+        var extremeSeries = await Read<EventResponse>(await owner.PostAsJsonAsync(Events(room.Id), new CreateEventRequest
+        {
+            Title = "Extreme multi-year span",
+            EventTypeId = types[0].Id,
+            Time = new EventTimeRequest
+            {
+                StartsAtUtc = Start,
+                EndsAtUtc = new DateTimeOffset(9999, 12, 30, 0, 0, 0, TimeSpan.Zero)
+            },
+            Recurrence = new RecurrenceRequest { Frequency = RecurrenceFrequency.Daily, Interval = 1 }
+        }), HttpStatusCode.Created);
+        Assert.True(extremeSeries.Id > 0);
+
+        var wideList = await Read<PagedResponse<EventResponse>>(await owner.GetAsync(
+            $"{Events(room.Id)}?from=2026-01-01T00:00:00Z&to=2028-01-01T00:00:00Z"));
+        Assert.NotEmpty(wideList.Items);
+    }
 }
