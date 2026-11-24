@@ -25,6 +25,11 @@ html, body {
     top: 50%;
     left: 50%;
 }
+.loading-container{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+}
 
 #blazor-error-ui {
     display: none;
@@ -139,18 +144,6 @@ html, body {
     outline-offset: 3px;
 }
 
-.btn-danger {
-    background: var(--danger);
-    color: #ffffff;
-    user-select: none;
-}
-
-.btn-danger:hover {
-    filter: drop-shadow(0px 5px 5px var(--danger));
-    transform: translateY(-2px);
-    background: var(--danger);
-}
-
 .btn-main:disabled {
     opacity: .55;
     cursor: default;
@@ -166,6 +159,17 @@ html, body {
 .btn-save {
     background: var(--accent);
     color: var(--accent-text);
+}
+.btn-danger {
+    background: var(--danger);
+    color: #ffffff;
+    user-select: none;
+}
+
+.btn-danger:hover {
+    filter: drop-shadow(0px 5px 5px var(--danger));
+    transform: translateY(-2px);
+    background: var(--danger);
 }
 
 .input-main,
