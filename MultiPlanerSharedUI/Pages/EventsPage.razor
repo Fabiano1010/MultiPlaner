@@ -179,7 +179,6 @@
         var term = _search.Trim();
         var priority = _adv?.Priority ?? "all";
         var time = _adv?.Time ?? "all";
-
         IEnumerable<EventResponse> query = _all;
 
         if (term.Length > 0)

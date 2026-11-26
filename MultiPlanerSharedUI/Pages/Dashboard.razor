@@ -92,7 +92,8 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     private string? _username;
-    private List<EventResponse> _ongoing = new(), _upcoming = new();
+    private IReadOnlyList<EventResponse> _ongoing = Array.Empty<EventResponse>();
+    private IReadOnlyList<EventResponse> _upcoming =  Array.Empty<EventResponse>();
     private int _ongoingTotal, _upcomingTotal;
     private bool _loadingLeft = true, _loadingRight = true, _showDetails;
     private string? _error;
@@ -127,10 +128,21 @@
 
             var items = result?.Items ?? Array.Empty<EventResponse>();
 
-            var ongoing = items.Where(e => e.StartsAtUtc <= now && e.EndsAtUtc > now)
-                .OrderBy(e => e.EndsAtUtc).ThenBy(e => e.Id).ToList();
-            var upcoming = items.Where(e => e.StartsAtUtc > now)
-                .OrderBy(e => e.StartsAtUtc).ThenBy(e => e.Id).ToList();
+            var ongoing = items
+                .Where(e => e.StartsAtUtc <= now && e.EndsAtUtc > now)
+                .OrderBy(e => e.StartsAtUtc)                 // w serii zostaje najwcześniejsze wystąpienie
+                .GroupBy(e => e.Id)
+                .Select(g => g.First())
+                .OrderBy(e => e.EndsAtUtc).ThenBy(e => e.Id)
+                .ToList();
+
+            var upcoming = items
+                .Where(e => e.StartsAtUtc > now)
+                .OrderBy(e => e.StartsAtUtc)
+                .GroupBy(e => e.Id)
+                .Select(g => g.First())
+                .OrderBy(e => e.StartsAtUtc).ThenBy(e => e.Id)
+                .ToList();
 
             _ongoingTotal = ongoing.Count;
             _upcomingTotal = upcoming.Count;
