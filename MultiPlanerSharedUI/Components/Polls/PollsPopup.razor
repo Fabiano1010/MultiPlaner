@@ -16,7 +16,7 @@
                 </button>
             </div>
 
-            <Poll Data="open" RoomId="Room.Id" TimeZoneId="@Room.TimeZoneId"
+            <Poll Data="open" Room="Room" TimeZoneId="@Room.TimeZoneId"
                   OnChanged="HandleChanged" OnDeleted="HandleDeleted"
                   OnEdit="StartEdit" OnReload="LoadAsync"/>
         }

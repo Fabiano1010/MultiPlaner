@@ -9,6 +9,19 @@
     gap: 0;
 }
 
+.popup-overlay.settings-overlay {
+    box-sizing: border-box;
+    padding: 0;
+    overflow: hidden;
+    align-items: center;
+}
+
+.popup-overlay.settings-overlay .settings-popup {
+    flex-shrink: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
 .settings-popup .popup-header {
     flex: none;
     min-height: 84px;
@@ -26,7 +39,7 @@
 
 .settings-layout {
     display: grid;
-    grid-template-columns:190px minmax(0, 1fr);
+    grid-template-columns: 190px minmax(0, 1fr);
     flex: 1;
     min-height: 0;
 }
@@ -57,6 +70,11 @@
     color: var(--accent-text);
 }
 
+.settings-nav button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 .settings-content {
     min-width: 0;
     overflow-y: auto;
@@ -74,8 +92,12 @@
 
 .settings-grid {
     display: grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
+}
+
+.settings-wide {
+    grid-column: 1 / -1;
 }
 
 .settings-fields {
@@ -85,13 +107,13 @@
     min-width: 0;
 }
 
-.settings-wide {
-    grid-column: 1/-1;
-}
-
 .settings-content .form-group {
     min-width: 0;
     gap: 8px;
+}
+
+.settings-content .form-group label {
+    color: inherit;
 }
 
 .settings-content .input-main {
@@ -100,12 +122,9 @@
     min-height: 44px;
     box-sizing: border-box;
 }
-.settings-content .color-picker-settings{
-    max-width: 64px;
-}
 
-.settings-content .form-group label {
-    color: inherit;
+.settings-content .color-picker-settings {
+    max-width: 64px;
 }
 
 .settings-actions {
@@ -153,6 +172,16 @@
     border: 1px solid var(--border);
 }
 
+.settings-color {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 10px;
+}
+
+.settings-color input[type=color] {
+    padding: 3px;
+}
+
 .settings-avatar.settings-profile-avatar {
     width: 112px;
     height: 112px;
@@ -162,7 +191,7 @@
 
 .settings-cover {
     width: 100%;
-    aspect-ratio: 16/9;
+    aspect-ratio: 16 / 9;
     object-fit: cover;
     border-radius: var(--border-radius);
     background: var(--surface);
@@ -189,27 +218,9 @@
     outline-offset: 3px;
 }
 
-.settings-color {
-    display: grid;
-    grid-template-columns:44px minmax(0, 1fr);
-    gap: 10px;
-}
-
-.settings-color input[type=color] {
-    padding: 3px;
-}
-
-.settings-feedback {
-    padding: 12px 28px;
-}
-
-.settings-feedback:empty {
-    display: none;
-}
-
 .member-row {
     display: grid;
-    grid-template-columns:48px minmax(0, 1fr) auto;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
     gap: 12px;
     align-items: center;
     padding: 14px 0;
@@ -227,7 +238,7 @@
     border-radius: 8px;
     overflow: hidden;
     display: grid;
-    grid-template-columns:22px minmax(0, 1fr);
+    grid-template-columns: 22px minmax(0, 1fr);
     min-height: 125px;
     margin-bottom: 16px;
 }
@@ -242,7 +253,7 @@
 
 .scheme-mini-days {
     display: grid;
-    grid-template-columns:repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 5px;
     margin: 12px 0;
 }
@@ -260,97 +271,4 @@
     padding: 4px 8px;
     font-size: 12px;
     width: 80%;
-}
-
-.popup-overlay.settings-overlay {
-    box-sizing: border-box;
-    padding: 0;
-    overflow: hidden;
-    align-items: center;
-}
-
-.popup-overlay.settings-overlay .settings-popup {
-    flex-shrink: 0;
-    margin: 0;
-    box-sizing: border-box;
-}
-
-.btn-cancel {
-    background: var(--surface);
-    color: var(--surface-text);
-}
-
-.btn-save {
-    background: var(--accent);
-    color: var(--accent-text);
-}
-
-.input-main, .form-group textarea {
-    background: var(--field-background);
-    color: var(--field-text);
-}
-
-.settings-nav button[aria-current=page] {
-    background: var(--accent);
-    color: var(--accent-text);
-}
-
-.btn-main:focus-visible, .settings-nav button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-}
-
-.btn-main:disabled {
-    opacity: .55;
-    cursor: default;
-    transform: none;
-    filter: none;
-}
-
-.input-main {
-    color-scheme: var(--native-color-scheme, light);
-}
-
-/* Navigation chrome is deliberately independent of saved color schemes. */
-.sidebar, .mobile-nav-bar {
-    background: #000000;
-    color: #ffffff;
-}
-
-.nav-item, .nav-user, .mobile-nav-toggle, .mobile-nav-close {
-    color: #ffffff;
-}
-
-.sidebar .nav-item-img, .mobile-nav-toggle img {
-    filter: brightness(0) invert(1);
-}
-
-.nav-item-current {
-    background: var(--accent);
-    color: var(--accent-text);
-}
-
-.sidebar .nav-item-current .nav-item-img {
-    filter: var(--accent-icon-filter, brightness(0) invert(1));
-}
-
-.sidebar .nav-item:hover {
-    background: var(--app-background);
-    color: var(--app-text);
-}
-.sidebar .logout-btn:hover{
-    background: #c70000;
-}
-
-.sidebar .nav-item:hover .nav-item-img {
-    filter: var(--icon-filter, brightness(0));
-}
-
-.mobile-nav-banner {
-    display: block;
-    width: auto;
-    height: 32px;
-    max-width: 180px;
-    object-fit: contain;
-    flex: none;
 }

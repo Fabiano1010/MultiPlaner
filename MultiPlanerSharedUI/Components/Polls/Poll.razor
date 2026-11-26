@@ -1,5 +1,8 @@
 ﻿@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Authorization
 @using MultiPlanerSharedModels.Contracts.Polls
+@using MultiPlanerSharedModels.Contracts.Rooms
+@using MultiPlanerSharedUI.Components.Rooms
 @inject ApiClient Api
 
 <article class="poll @(Data.IsClosed ? "poll-closed" : "")">
@@ -16,7 +19,7 @@
         @foreach (var o in Data.Options) {
             var pct = Percent(o);
             <label class="poll-option @(_selected.Contains(o.Id) ? "selected" : "")"
-                   style="@(Data.IsClosed ? $"--poll-color:#{o.Color}" : "")">
+                   style="@(ShowResults ? $"--poll-color:#{o.Color}" : "")">
                 <span class="poll-option-bar" style="width:@(pct)%"></span>
                 @if (Data.Permissions.CanVote) {
                     @if (Data.AllowMultiple) {
@@ -30,7 +33,7 @@
                 }
                 <span class="poll-option-text">@o.Text</span>
                 <span class="poll-option-count">
-                    @(Data.IsClosed ? $"{o.VoteCount} · {pct}%" : "")
+                    @(ShowResults ? $"{o.VoteCount} · {pct}%" : "") 
                 </span>
             </label>
         }
@@ -79,8 +82,9 @@
               OnConfirm="DeleteAsync" OnClose="() => _confirmDelete = false"/>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
     [Parameter][EditorRequired] public PollResponse Data { get; set; } = default!;
-    [Parameter] public int RoomId { get; set; }
+    [Parameter][EditorRequired] public RoomResponse Room { get; set; } = default!;
     [Parameter] public string TimeZoneId { get; set; } = "UTC";
     [Parameter] public EventCallback<PollResponse> OnChanged { get; set; }
     [Parameter] public EventCallback<int> OnDeleted { get; set; }
@@ -91,14 +95,20 @@
     private PollResponse? _seen;
     private bool _busy, _confirmClose, _confirmDelete;
     private string? _error;
+    private bool ShowResults =>
+        Data.IsClosed || Room.IsOwner || Data.Author.MemberId == Room.MemberId;
+    private int _userId;
 
-    private string Url => $"api/rooms/{RoomId}/polls/{Data.Id}";
+    private string Url => $"api/rooms/{Room.Id}/polls/{Data.Id}";
+
+
 
     protected override void OnParametersSet() {
         if (ReferenceEquals(_seen, Data)) return;
         _seen = Data;
         _selected = Data.MyOptionIds.ToHashSet();
     }
+
 
     private bool CanSubmit => _selected.Count > 0 && !_selected.SetEquals(Data.MyOptionIds);
 

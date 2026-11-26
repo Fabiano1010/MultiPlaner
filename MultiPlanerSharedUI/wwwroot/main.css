@@ -1,12 +1,15 @@
-﻿@import url("app.css");
+﻿@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@600&display=swap');
+
+@import url("tokens.css");
+@import url("base.css");
+@import url("layout.css");
 @import url("calendar.css");
-@import url("login.css");
-@import url("homePage.css");
+@import url("auth.css");
 @import url("rooms.css");
 @import url("popup.css");
 @import url("polls.css");
-@import url("responsive.css");
 @import url("events.css");
 @import url("dashboard.css");
 @import url("clock.css");
 @import url("settings.css");
+@import url("responsive.css");

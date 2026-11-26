@@ -41,17 +41,7 @@
         gap: 0.75rem;
         flex: none;
         min-height: calc(var(--mobile-nav-height) + var(--app-safe-top, env(safe-area-inset-top)));
-        padding: calc(0.25rem + var(--app-safe-top, env(safe-area-inset-top)))
-                 calc(var(--mobile-page-padding) + var(--app-safe-right, env(safe-area-inset-right)))
-                 0.25rem calc(var(--mobile-page-padding) + var(--app-safe-left, env(safe-area-inset-left)));
-    }
-
-    .mobile-nav-banner {
-        min-width: 0;
-        max-width: min(11rem, 65%);
-        height: auto;
-        max-height: 1.75rem;
-        object-fit: contain;
+        padding: calc(0.25rem + var(--app-safe-top, env(safe-area-inset-top))) calc(var(--mobile-page-padding) + var(--app-safe-right, env(safe-area-inset-right))) 0.25rem calc(var(--mobile-page-padding) + var(--app-safe-left, env(safe-area-inset-left)));
     }
 
     .mobile-nav-toggle,
@@ -101,8 +91,7 @@
     }
 
     .sidebar {
-        padding: calc(0.25rem + var(--app-safe-top, env(safe-area-inset-top))) 0.75rem
-                 calc(0.75rem + var(--app-safe-bottom, env(safe-area-inset-bottom))) calc(0.75rem + var(--app-safe-left, env(safe-area-inset-left)));
+        padding: calc(0.25rem + var(--app-safe-top, env(safe-area-inset-top))) 0.75rem calc(0.75rem + var(--app-safe-bottom, env(safe-area-inset-bottom))) calc(0.75rem + var(--app-safe-left, env(safe-area-inset-left)));
         overflow-y: auto;
         overscroll-behavior: contain;
         visibility: hidden;
@@ -399,9 +388,7 @@
 
     .ctx-menu {
         /* The desktop coordinates reserve too little room for touch-sized rows. */
-        inset: auto calc(var(--mobile-page-padding) + var(--app-safe-right, env(safe-area-inset-right)))
-                    calc(var(--mobile-page-padding) + var(--app-safe-bottom, env(safe-area-inset-bottom)))
-                    calc(var(--mobile-page-padding) + var(--app-safe-left, env(safe-area-inset-left))) !important;
+        inset: auto calc(var(--mobile-page-padding) + var(--app-safe-right, env(safe-area-inset-right))) calc(var(--mobile-page-padding) + var(--app-safe-bottom, env(safe-area-inset-bottom))) calc(var(--mobile-page-padding) + var(--app-safe-left, env(safe-area-inset-left))) !important;
         width: min(20rem, 100% - 2 * var(--mobile-page-padding) - var(--app-safe-left, env(safe-area-inset-left)) - var(--app-safe-right, env(safe-area-inset-right)));
         max-height: calc(100% - 2 * var(--mobile-page-padding) - var(--app-safe-top, env(safe-area-inset-top)) - var(--app-safe-bottom, env(safe-area-inset-bottom)));
         margin-inline: auto;
@@ -580,38 +567,12 @@
         height: auto;
     }
 
-    .events-list {
-        grid-template-columns: minmax(0, 1fr);
-        overflow: visible;
-        padding: 0;
-        gap: 0.375rem;
-    }
-
-    .events-item {
-        align-items: stretch;
-        min-height: 3.5rem;
-        max-height: none;
-        gap: 0.25rem;
-        padding: 0.75rem;
-        font-size: 0.875rem;
-    }
-
-    .events-item-details {
-        flex-wrap: wrap;
-        gap: 0.25rem 0.75rem;
-    }
-
-    .events-item-name {
-        font-size: 1rem;
-    }
-
     /* Dialog headers stay outside the scrollable content. */
     .popup-overlay {
         inset: 0;
         width: auto;
         height: 100dvh;
-        padding: calc(0.75rem + var(--app-safe-top, env(safe-area-inset-top))) calc(0.75rem + var(--app-safe-right, env(safe-area-inset-right)))
-                 calc(0.75rem + var(--app-safe-bottom, env(safe-area-inset-bottom))) calc(0.75rem + var(--app-safe-left, env(safe-area-inset-left)));
+        padding: calc(0.75rem + var(--app-safe-top, env(safe-area-inset-top))) calc(0.75rem + var(--app-safe-right, env(safe-area-inset-right))) calc(0.75rem + var(--app-safe-bottom, env(safe-area-inset-bottom))) calc(0.75rem + var(--app-safe-left, env(safe-area-inset-left)));
     }
 
     .popup-container {
@@ -717,8 +678,7 @@
     .form-row,
     .form-actions,
     .polls-header,
-    .poll-header,
-    .event-details-actions {
+    .poll-header {
         flex-wrap: wrap;
         gap: 0.5rem;
     }
@@ -759,12 +719,6 @@
 
     .poll-card {
         grid-template-columns: minmax(0, 1fr) auto;
-        color: var(--app-text);
-    }
-
-    .poll,
-    .poll-option {
-        border: 1px solid var(--border);
     }
 
     .poll-option-row > .input-main {
@@ -785,7 +739,7 @@
 }
 
 @media (orientation: landscape) and (max-width: 768px),
-       (orientation: landscape) and (max-width: 1100px) and (max-height: 600px) and (pointer: coarse) {
+(orientation: landscape) and (max-width: 1100px) and (max-height: 600px) and (pointer: coarse) {
     :root {
         --mobile-nav-height: 3rem;
     }
@@ -804,7 +758,7 @@
 }
 
 @media (orientation: landscape) and (min-width: 640px) and (max-width: 768px),
-       (orientation: landscape) and (min-width: 640px) and (max-width: 1100px) and (max-height: 600px) and (pointer: coarse) {
+(orientation: landscape) and (min-width: 640px) and (max-width: 1100px) and (max-height: 600px) and (pointer: coarse) {
     .calendar-page.calendar-page-ready {
         display: grid;
         grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
