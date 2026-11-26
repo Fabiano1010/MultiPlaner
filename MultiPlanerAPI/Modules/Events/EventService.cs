@@ -334,7 +334,14 @@ public sealed class EventService(
 
             if (request.Recurrence is not null || request.Time is not null)
             {
-                await ApplyRecurrenceAsync(context, ev, request.Recurrence, room, ct);
+                var rule = request.Recurrence
+                           ?? (ev.Recurrence == RecurrenceFrequency.None
+                               ? null
+                               : new RecurrenceRequest
+                                   { Frequency = ev.Recurrence, Interval = ev.RecurrenceInterval, Until = ev.RecurrenceUntil });
+
+                await ApplyRecurrenceAsync(context, ev, rule, room, ct);
+                await context.EventOccurrenceExceptions.Where(x => x.EventId == eventId).ExecuteDeleteAsync(ct);
             }
 
             if ((ev.StartsAtUtc, ev.EndsAtUtc, ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil) != oldSchedule)
@@ -432,61 +439,84 @@ public sealed class EventService(
     }
 
     private async Task ApplyRecurrenceAsync(
-        AppDbContext context, CalendarEvent ev, RecurrenceRequest? request, Room room, CancellationToken ct)
+    AppDbContext context, CalendarEvent ev, RecurrenceRequest? request, Room room, CancellationToken ct)
+{
+    if (request is { Frequency: RecurrenceFrequency.None })
     {
-        if (request is { Frequency: RecurrenceFrequency.None })
-        {
-            ev.Recurrence = RecurrenceFrequency.None;
-            ev.RecurrenceInterval = 1;
-            ev.RecurrenceUntil = null;
-            return;
-        }
-
-        if (request is null && ev.Recurrence == RecurrenceFrequency.None)
-        {
-            return;
-        }
-
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? room.TimeZoneId);
-        var first = RecurrenceExpander.FirstDate(ev, tz);
-        var maxUntil = first.Year <= DateOnly.MaxValue.Year - 10 ? first.AddYears(10) : DateOnly.MaxValue;
-        var until = request is null ? ev.RecurrenceUntil : request.Until;
-
-        var errors = new Dictionary<string, string[]>();
-        if (request is not null && request.Interval is < 1 or > 12)
-        {
-            errors["recurrence"] = ["Repeat interval must be between 1 and 12."];
-        }
-
-        if (until is { } u && (u < first || u > maxUntil))
-        {
-            errors["recurrence"] = ["Repeat end must be between the first date and ten years later."];
-        }
-
-        if (errors.Count != 0)
-        {
-            throw ApiException.Validation(errors);
-        }
-
-        if (request is null)
-        {
-            return;
-        }
-
-        var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        var others = await context.CalendarEvents.CountAsync(e =>
-            e.RoomId == room.Id && e.Id != ev.Id && e.Recurrence != RecurrenceFrequency.None &&
-            (e.RecurrenceUntil == null || e.RecurrenceUntil >= today), ct);
-        if (others >= MaxSeriesPerRoom)
-        {
-            throw new ApiException(409, "too_many_series", "This calendar has too many recurring events.");
-        }
-
-        ev.Recurrence = request.Frequency;
-        ev.RecurrenceInterval = request.Interval;
-        ev.RecurrenceUntil = request.Until;
+        ev.Recurrence = RecurrenceFrequency.None;
+        ev.RecurrenceInterval = 1;
+        ev.RecurrenceUntil = null;
+        return;
     }
 
+    if (request is null && ev.Recurrence == RecurrenceFrequency.None)
+    {
+        return;
+    }
+
+    var tz = TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? room.TimeZoneId);
+    var first = RecurrenceExpander.FirstDate(ev, tz);
+    var maxUntil = first.Year <= DateOnly.MaxValue.Year - 10 ? first.AddYears(10) : DateOnly.MaxValue;
+    var until = request is null ? ev.RecurrenceUntil : request.Until;
+    
+    var frequency = request?.Frequency ?? ev.Recurrence;
+    var interval = request?.Interval ?? ev.RecurrenceInterval;
+
+    var errors = new List<string>();
+    var intervalValid = interval is >= 1 and <= 12;
+    if (!intervalValid)
+    {
+        errors.Add("Repeat interval must be between 1 and 12.");
+    }
+
+    if (until is { } u && (u < first || u > maxUntil))
+    {
+        errors.Add("Repeat end must be between the first date and ten years later.");
+    }
+    
+    var lastDay = ev.IsAllDay && ev.EndDateExclusive is { } exclusive
+        ? exclusive.AddDays(-1)
+        : DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(ev.EndsAtUtc.AddTicks(-1), tz).DateTime);
+    var spanDays = lastDay.DayNumber - first.DayNumber + 1;
+
+    if (intervalValid)
+    {
+        var maxDays = frequency switch
+        {
+            RecurrenceFrequency.Daily => 1,
+            RecurrenceFrequency.Weekly => 7 * interval - 1,
+            RecurrenceFrequency.Monthly => 28 * interval - 1,
+            _ => 365 * interval - 1
+        };
+        if (spanDays > maxDays)
+        {
+            errors.Add("The event is too long to repeat at this frequency.");
+        }
+    }
+
+    if (errors.Count != 0)
+    {
+        throw ApiException.Validation(new Dictionary<string, string[]> { ["recurrence"] = errors.ToArray() });
+    }
+
+    if (request is null)
+    {
+        return;
+    }
+
+    var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+    var others = await context.CalendarEvents.CountAsync(e =>
+        e.RoomId == room.Id && e.Id != ev.Id && e.Recurrence != RecurrenceFrequency.None &&
+        (e.RecurrenceUntil == null || e.RecurrenceUntil >= today), ct);
+    if (others >= MaxSeriesPerRoom)
+    {
+        throw new ApiException(409, "too_many_series", "This calendar has too many recurring events.");
+    }
+
+    ev.Recurrence = request.Frequency;
+    ev.RecurrenceInterval = request.Interval;
+    ev.RecurrenceUntil = request.Until;
+}
     private static async Task<Dictionary<int, int[]>> LoadParticipantsMapAsync(
         AppDbContext context, int[] eventIds, CancellationToken ct)
     {

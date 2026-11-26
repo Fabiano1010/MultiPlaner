@@ -25,9 +25,9 @@
 
         @if (!_allDay) {
             <div class="form-row">
-                <div class="form-group"><label>From</label><input type="time" class="input-main" @bind="_startTime"/>
+                <div class="form-group"><label>From</label><input type="time" class="input-main" @bind="_startTime" @bind:after="NormalizeRepeat"/>
                 </div>
-                <div class="form-group"><label>To</label><input type="time" class="input-main" @bind="_endTime"/></div>
+                <div class="form-group"><label>To</label><input type="time" class="input-main" @bind="_endTime" @bind:after="NormalizeRepeat"/></div>
             </div>
         }
         <div class="form-row">
@@ -35,10 +35,12 @@
                 <label>Repeat</label>
                 <select class="input-main" @bind="_repeat">
                     <option value="@RecurrenceFrequency.None">Does not repeat</option>
-                    <option value="@RecurrenceFrequency.Daily">Every day</option>
-                    <option value="@RecurrenceFrequency.Weekly">Every week</option>
-                    <option value="@RecurrenceFrequency.Monthly">Every month</option>
-                    <option value="@RecurrenceFrequency.Yearly">Every year</option>
+                    <option value="@RecurrenceFrequency.Daily" disabled="@(!Allowed(RecurrenceFrequency.Daily))">
+                        Every day@(Allowed(RecurrenceFrequency.Daily) ? "" : " (single-day events only)")
+                    </option>
+                    <option value="@RecurrenceFrequency.Weekly" disabled="@(!Allowed(RecurrenceFrequency.Weekly))">Every week</option>
+                    <option value="@RecurrenceFrequency.Monthly" disabled="@(!Allowed(RecurrenceFrequency.Monthly))">Every month</option>
+                    <option value="@RecurrenceFrequency.Yearly" disabled="@(!Allowed(RecurrenceFrequency.Yearly))">Every year</option>
                 </select>
             </div>
             @if (_repeat != RecurrenceFrequency.None) {
@@ -104,6 +106,21 @@
     private RecurrenceFrequency _repeat;
     private DateOnly? _until;
 
+    private int SpanDays => _end.DayNumber - _start.DayNumber + 1;
+
+    private bool Allowed(RecurrenceFrequency f) => f switch
+    {
+        RecurrenceFrequency.Daily   => SpanDays == 1,
+        RecurrenceFrequency.Weekly  => SpanDays < 7,
+        RecurrenceFrequency.Monthly => SpanDays < 28,
+        RecurrenceFrequency.Yearly  => SpanDays < 365,
+        _ => true
+    };
+    
+    private void NormalizeRepeat()
+    {
+        if (!Allowed(_repeat)) _repeat = RecurrenceFrequency.None;
+    }
 
     protected override async Task OnParametersSetAsync() {
         if (IsVisible && !_wasVisible) {
@@ -139,6 +156,11 @@
 
         if (_end < _start) {
             _error = "End date must not be before start date.";
+            return;
+        }
+        if (!Allowed(_repeat))
+        {
+            _error = "This repeat option is not available for an event of this length.";
             return;
         }
 
