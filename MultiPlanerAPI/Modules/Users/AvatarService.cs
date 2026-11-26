@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
+using MultiPlanerAPI.Modules.Rooms;
 
 namespace MultiPlanerAPI.Modules.Users;
 
 public sealed class AvatarService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> options,
+    RoomMutationService mutations,
     CurrentActor actor,
     TimeProvider clock,
     AvatarStorage storage)
@@ -91,23 +92,16 @@ public sealed class AvatarService(
 
     private Task<string?> ReplaceAsync(string? key, string? type, CancellationToken ct)
     {
-        return db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        return mutations.ExecuteForUserAsync(actor.RequireUserId(), async (context, user) =>
         {
-            await using var context = new AppDbContext(options, clock);
-            await using var tx = await context.Database.BeginTransactionAsync(ct);
-            var id = actor.RequireUserId();
-            var user = await context.Users
-                .FromSqlInterpolated($"SELECT * FROM [dbo].[AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
-                .SingleAsync(ct);
             var old = user.AvatarStorageKey;
             user.AvatarStorageKey = key;
             user.AvatarContentType = type;
             user.AvatarUrl = null;
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
             await context.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
             return old;
-        });
+        }, ct);
     }
 
     private static ApiException Invalid(string message)

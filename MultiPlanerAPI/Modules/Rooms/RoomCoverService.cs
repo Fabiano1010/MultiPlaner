@@ -4,13 +4,12 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomCoverService(
     RoomAccessService access,
-    IRoomCoverStorage storage,
+    RoomCoverStorage storage,
     RoomMutationService mutations,
     Users.CurrentActor actor,
     TimeProvider clock)
 {
     private const long MaximumBytes = 10 * 1024 * 1024;
-    private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
     public async Task<(Stream Stream, string ContentType)> OpenAsync(int roomId, CancellationToken ct)
     {
@@ -23,7 +22,7 @@ public sealed class RoomCoverService(
 
         try
         {
-            return (storage.OpenRead(room.CoverStorageKey), room.CoverContentType!);
+            return (storage.Open(room.CoverStorageKey), room.CoverContentType!);
         }
         catch (FileNotFoundException)
         {
@@ -37,20 +36,17 @@ public sealed class RoomCoverService(
         access.RequireActive(room);
         if (file.Length is <= 0 or > MaximumBytes)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["file"] = ["Cover must be 1–10 MB."] });
+            throw Invalid("Cover must be 1–10 MB.");
         }
 
         await using var source = file.OpenReadStream();
         var header = new byte[12];
         if (await source.ReadAtLeastAsync(header, header.Length, false, ct) < 12)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["file"] = ["Unsupported image format."] });
+            throw Invalid("Unsupported image format.");
         }
 
-        var contentType = DetectType(header)
-                          ?? throw ApiException.Validation(new Dictionary<string, string[]>
-                              { ["file"] = ["Use JPEG, PNG or WebP."] });
+        var contentType = Users.AvatarService.DetectType(header) ?? throw Invalid("Use JPEG, PNG or WebP.");
 
         await using var upload = file.OpenReadStream();
         var key = await storage.SaveAsync(upload, ct);
@@ -61,23 +57,16 @@ public sealed class RoomCoverService(
         }
         catch
         {
-            await storage.DeleteAsync(key);
+            storage.Delete(key);
             throw;
         }
 
-        if (oldKey is not null)
-        {
-            await storage.DeleteAsync(oldKey);
-        }
+        storage.Delete(oldKey);
     }
 
     public async Task DeleteAsync(int roomId, CancellationToken ct)
     {
-        var oldKey = await ReplaceAsync(roomId, null, null, ct);
-        if (oldKey is not null)
-        {
-            await storage.DeleteAsync(oldKey);
-        }
+        storage.Delete(await ReplaceAsync(roomId, null, null, ct));
     }
 
     private Task<string?> ReplaceAsync(int roomId, string? key, string? contentType, CancellationToken ct)
@@ -95,23 +84,8 @@ public sealed class RoomCoverService(
         }, ct);
     }
 
-    private static string? DetectType(ReadOnlySpan<byte> bytes)
+    private static ApiException Invalid(string message)
     {
-        if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
-        {
-            return "image/jpeg";
-        }
-
-        if (bytes[..8].SequenceEqual(PngSignature))
-        {
-            return "image/png";
-        }
-
-        if (bytes[..4].SequenceEqual("RIFF"u8) && bytes[8..12].SequenceEqual("WEBP"u8))
-        {
-            return "image/webp";
-        }
-
-        return null;
+        return ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
     }
 }
