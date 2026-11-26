@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
@@ -15,8 +16,10 @@ public sealed class InvitationService(
     TimeProvider clock,
     InvitationLinkBuilder links,
     RoomAccessService access,
-    InvitationTokenProtector tokens)
+    IDataProtectionProvider dataProtection)
 {
+    private readonly IDataProtector protector = InvitationTokens.CreateProtector(dataProtection);
+
     public async Task<RoomInvitationResponse> CreateAsync(int roomId, CreateRoomInvitationRequest request,
         CancellationToken ct)
     {
@@ -27,8 +30,8 @@ public sealed class InvitationService(
 
         var expiry = request.ExpiresAtUtc ?? (now.AddDays(7) < room.ExpiresAtUtc ? now.AddDays(7) : room.ExpiresAtUtc);
         ValidateCreate(request, expiry, now, room.ExpiresAtUtc);
-        return await mutations.ExecuteAsync(roomId,
-            (operationDb, lockedRoom) => CreateInvitationAsync(operationDb, lockedRoom, request.MaxUses, expiry, ct),
+        return await mutations.ExecuteAsManagerAsync(roomId,
+            (operationDb, lockedRoom, _) => CreateInvitationAsync(operationDb, lockedRoom, request.MaxUses, expiry, ct),
             ct);
     }
 
@@ -60,12 +63,8 @@ public sealed class InvitationService(
 
     public Task RevokeAsync(int roomId, Guid invitationId, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsManagerAsync(roomId, async (context, _, _) =>
         {
-            var roomAccess = access.For(context);
-            await roomAccess.RequireManagerAsync(room, ct);
-            roomAccess.RequireActive(room);
-
             var invitation =
                 await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)
                 ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
@@ -91,7 +90,7 @@ public sealed class InvitationService(
                 "This invitation predates recoverable links. Generate a new invitation.");
         }
 
-        var token = tokens.Unprotect(invitation.ProtectedToken);
+        var token = protector.Unprotect(invitation.ProtectedToken);
         if (InvitationTokens.Hash(token) != invitation.TokenHash)
         {
             throw new ApiException(500, "invalid_invitation_storage", "Stored invitation could not be verified.");
@@ -124,9 +123,6 @@ public sealed class InvitationService(
         AppDbContext operationDb, Room room, int? maxUses, DateTimeOffset expiry, CancellationToken ct)
     {
         var issuedAt = clock.GetUtcNow();
-        var roomAccess = access.For(operationDb);
-        await roomAccess.RequireManagerAsync(room, ct);
-        roomAccess.RequireActive(room);
 
         if (expiry > room.ExpiresAtUtc)
         {
@@ -145,7 +141,7 @@ public sealed class InvitationService(
         var token = InvitationTokens.Generate();
         var invitation = new RoomInvitation
         {
-            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = tokens.Protect(token),
+            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = protector.Protect(token),
             ExpiresAtUtc = expiry, MaxUses = maxUses
         };
         operationDb.RoomInvitations.Add(invitation);

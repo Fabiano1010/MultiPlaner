@@ -1,13 +1,9 @@
-using MultiPlanerAPI.Infrastructure;
-
 namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomCoverService(
     RoomAccessService access,
     RoomCoverStorage storage,
-    RoomMutationService mutations,
-    Users.CurrentActor actor,
-    TimeProvider clock)
+    RoomMutationService mutations)
 {
     private const long MaximumBytes = 10 * 1024 * 1024;
 
@@ -15,54 +11,17 @@ public sealed class RoomCoverService(
     {
         var (room, _) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
-        if (room.CoverStorageKey is null)
-        {
-            throw new ApiException(404, "cover_not_found", "Cover not found.");
-        }
-
-        try
-        {
-            return (storage.Open(room.CoverStorageKey), room.CoverContentType!);
-        }
-        catch (FileNotFoundException)
-        {
-            throw new ApiException(404, "cover_not_found", "Cover not found.");
-        }
+        return storage.OpenOrThrow(room.CoverStorageKey, room.CoverContentType,
+            "cover_not_found", "Cover not found.");
     }
 
     public async Task SaveAsync(int roomId, IFormFile file, CancellationToken ct)
     {
         var room = await access.RequireManagerAsync(roomId, ct);
         access.RequireActive(room);
-        if (file.Length is <= 0 or > MaximumBytes)
-        {
-            throw ApiException.Validation("file", "Cover must be 1–10 MB.");
-        }
-
-        await using var source = file.OpenReadStream();
-        var header = new byte[12];
-        if (await source.ReadAtLeastAsync(header, header.Length, false, ct) < 12)
-        {
-            throw ApiException.Validation("file", "Unsupported image format.");
-        }
-
-        var contentType = Users.AvatarService.DetectType(header)
-                          ?? throw ApiException.Validation("file", "Use JPEG, PNG or WebP.");
-
-        await using var upload = file.OpenReadStream();
-        var key = await storage.SaveAsync(upload, ct);
-        string? oldKey;
-        try
-        {
-            oldKey = await ReplaceAsync(roomId, key, contentType, ct);
-        }
-        catch
-        {
-            storage.Delete(key);
-            throw;
-        }
-
-        storage.Delete(oldKey);
+        await storage.SaveValidatedImageAsync(
+            file, MaximumBytes, "Cover must be 1–10 MB.", "Unsupported image format.",
+            (key, contentType, token) => ReplaceAsync(roomId, key, contentType, token), ct);
     }
 
     public async Task DeleteAsync(int roomId, CancellationToken ct)
@@ -72,11 +31,8 @@ public sealed class RoomCoverService(
 
     private Task<string?> ReplaceAsync(int roomId, string? key, string? contentType, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsManagerAsync(roomId, async (context, room, _) =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
-            await roomAccess.RequireManagerAsync(room, ct);
-            roomAccess.RequireActive(room);
             var oldKey = room.CoverStorageKey;
             room.CoverStorageKey = key;
             room.CoverContentType = contentType;

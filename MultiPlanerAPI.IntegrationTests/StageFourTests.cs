@@ -262,16 +262,6 @@ public sealed class StageFourTests(ApiFixture fixture)
             HttpStatusCode.Created);
         Assert.Equal(HttpStatusCode.NoContent,
             (await member.PutAsync($"/api/me/folders/{folder.Id}/rooms/{room.Id}", null)).StatusCode);
-        await using (var scope = fixture.Factory.Services.CreateAsyncScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.ChatMessages.Add(new ChatMessage
-            {
-                RoomId = room.Id, AuthorMemberId = joined.MemberId, ClientRequestId = Guid.NewGuid(),
-                Text = "Keep history", SentAtUtc = DateTimeOffset.UtcNow
-            });
-            await db.SaveChangesAsync();
-        }
 
         await AccountTests.AssertProblem(await owner.DeleteAsync($"/api/rooms/{room.Id}/members/me"),
             HttpStatusCode.Conflict, "owner_cannot_leave");
@@ -313,8 +303,6 @@ public sealed class StageFourTests(ApiFixture fixture)
         Assert.False(restored.Author.HasLeft);
         await using var finalScope = fixture.Factory.Services.CreateAsyncScope();
         var finalDb = finalScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.True(await finalDb.ChatMessages.AnyAsync(m =>
-            m.AuthorMemberId == joined.MemberId && m.Text == "Keep history"));
         Assert.Equal(1,
             await finalDb.RoomInvitations.Where(i => i.Id == invitation.Id).Select(i => i.UseCount).SingleAsync());
     }

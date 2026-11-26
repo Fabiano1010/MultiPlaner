@@ -31,12 +31,8 @@ public sealed class PollService(
             throw ApiException.Validation(errors);
         }
 
-        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var result = await mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var roomAccess = access.For(context);
-            var member = await roomAccess.RequireMemberAsync(room, ct);
-            roomAccess.RequireActive(room);
-
             var closeErrors = new Dictionary<string, string[]>();
             ValidateClose(request.ClosesAtUtc, clock.GetUtcNow(), closeErrors);
             if (closeErrors.Count != 0)
@@ -103,9 +99,9 @@ public sealed class PollService(
 
     public async Task<PollResponse> UpdateAsync(int roomId, int pollId, UpdatePollRequest request, CancellationToken ct)
     {
-        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var result = await mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, true, ct);
+            var poll = await LockForManageAsync(context, room, member, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
             if (poll.GetClosedAtUtc(now) is not null)
             {
@@ -162,9 +158,9 @@ public sealed class PollService(
 
     public async Task<PollResponse> CloseAsync(int roomId, int pollId, CancellationToken ct)
     {
-        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var result = await mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var (member, poll) = await LoadForManageAsync(context, room, roomId, pollId, true, ct);
+            var poll = await LockForManageAsync(context, room, member, roomId, pollId, true, ct);
             var now = clock.GetUtcNow();
             if (poll.GetClosedAtUtc(now) is null)
             {
@@ -180,9 +176,9 @@ public sealed class PollService(
 
     public Task DeleteAsync(int roomId, int pollId, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            await LoadForManageAsync(context, room, roomId, pollId, false, ct);
+            await LockForManageAsync(context, room, member, roomId, pollId, false, ct);
             await context.PollVotes.Where(v => v.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.PollOptions.Where(o => o.PollId == pollId).ExecuteDeleteAsync(ct);
             await context.Polls.Where(p => p.Id == pollId && p.RoomId == roomId).ExecuteDeleteAsync(ct);
@@ -283,12 +279,10 @@ public sealed class PollService(
         return poll.AuthorMemberId == viewer.Id || room.OwnerUserId == viewer.UserId || viewer.IsAdmin;
     }
 
-    private async Task<(RoomMember Member, Poll Poll)> LoadForManageAsync(
-        AppDbContext context, Room room, int roomId, int pollId, bool includeOptions, CancellationToken ct)
+    private static async Task<Poll> LockForManageAsync(
+        AppDbContext context, Room room, RoomMember member, int roomId, int pollId, bool includeOptions,
+        CancellationToken ct)
     {
-        var roomAccess = access.For(context);
-        var member = await roomAccess.RequireMemberAsync(room, ct);
-        roomAccess.RequireActive(room);
         var poll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions, ct);
         if (!CanManage(room, member, poll))
         {
@@ -296,7 +290,7 @@ public sealed class PollService(
                 "Only the author, the owner or an administrator may change this poll.");
         }
 
-        return (member, poll);
+        return poll;
     }
 
     private static string NormalizeQuestion(string? question, Dictionary<string, string[]> errors)

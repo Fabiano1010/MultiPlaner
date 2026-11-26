@@ -46,31 +46,6 @@ public sealed class EventParticipantConfiguration : IEntityTypeConfiguration<Eve
     }
 }
 
-public sealed class EventAttachmentConfiguration : IEntityTypeConfiguration<EventAttachment>
-{
-    public void Configure(EntityTypeBuilder<EventAttachment> b)
-    {
-        b.ToTable("EventAttachments", t => t.HasCheckConstraint("CK_EventAttachment_Size", "[SizeBytes] > 0"));
-        b.Property(x => x.StorageKey).HasMaxLength(512).IsRequired();
-        b.Property(x => x.OriginalFileName).HasMaxLength(255).IsRequired();
-        b.Property(x => x.ContentType).HasMaxLength(128).IsRequired();
-        b.HasIndex(x => x.StorageKey).IsUnique();
-        b.HasOne<CalendarEvent>().WithMany().HasForeignKey(x => x.EventId).OnDelete(DeleteBehavior.NoAction);
-    }
-}
-
-public sealed class AvailabilityConfiguration : IEntityTypeConfiguration<AvailabilityInterval>
-{
-    public void Configure(EntityTypeBuilder<AvailabilityInterval> b)
-    {
-        b.ToTable("AvailabilityIntervals",
-            t => t.HasCheckConstraint("CK_Availability_Interval", "[EndsAtUtc] > [StartsAtUtc]"));
-        b.HasOne<RoomMember>().WithMany().HasForeignKey(x => new { x.MemberId, x.RoomId })
-            .HasPrincipalKey(x => new { x.Id, x.RoomId }).OnDelete(DeleteBehavior.NoAction);
-        b.HasIndex(x => new { x.RoomId, x.MemberId, x.StartsAtUtc, x.EndsAtUtc });
-    }
-}
-
 public sealed class EventOccurrenceExceptionConfiguration : IEntityTypeConfiguration<EventOccurrenceException>
 {
     public void Configure(EntityTypeBuilder<EventOccurrenceException> b)

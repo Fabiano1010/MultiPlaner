@@ -11,8 +11,7 @@ namespace MultiPlanerAPI.Modules.Rooms;
 public sealed class UserFolderService(
     AppDbContext db,
     CurrentActor actor,
-    RoomMutationService mutations,
-    TimeProvider clock)
+    RoomMutationService mutations)
 {
     public async Task<IReadOnlyList<UserFolderResponse>> ListAsync(CancellationToken ct)
     {
@@ -74,12 +73,9 @@ public sealed class UserFolderService(
 
     public Task AssignAsync(int folderId, int roomId, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (operationDb, room) =>
+        return mutations.ExecuteAsReadableMemberAsync(roomId, async (operationDb, _, _) =>
         {
             var userId = actor.RequireUserId();
-            var roomAccess = new RoomAccessService(operationDb, actor, clock);
-            await roomAccess.RequireMemberAsync(room, ct);
-            roomAccess.RequireReadable(room);
 
             if (!await operationDb.UserFolders.AsNoTracking()
                     .AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId, ct))

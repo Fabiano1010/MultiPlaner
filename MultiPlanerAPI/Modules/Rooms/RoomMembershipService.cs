@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
+using MultiPlanerAPI.Models;
 using MultiPlanerAPI.Modules.Users;
 
 namespace MultiPlanerAPI.Modules.Rooms;
@@ -29,19 +31,23 @@ public sealed class RoomMembershipService(RoomMutationService mutations, Current
                 return true;
             }
 
-            member.LeftAtUtc = clock.GetUtcNow();
-            member.IsAdmin = false;
-            member.IsFavourite = false;
-
-            if (userId is not null)
-            {
-                await db.UserFolderRooms
-                    .Where(a => a.OwnerUserId == userId && a.RoomId == roomId)
-                    .ExecuteDeleteAsync(ct);
-            }
-
+            await DeactivateMemberAsync(db, member, clock.GetUtcNow(), ct);
             await db.SaveChangesAsync(ct);
             return true;
         }, ct);
+    }
+
+    internal static async Task DeactivateMemberAsync(
+        AppDbContext db, RoomMember member, DateTimeOffset now, CancellationToken ct)
+    {
+        member.LeftAtUtc = now;
+        member.IsAdmin = false;
+        member.IsFavourite = false;
+        if (member.UserId is { } userId)
+        {
+            await db.UserFolderRooms
+                .Where(a => a.OwnerUserId == userId && a.RoomId == member.RoomId)
+                .ExecuteDeleteAsync(ct);
+        }
     }
 }

@@ -13,38 +13,12 @@ public sealed class AvatarService(
     AvatarStorage storage)
 {
     public const long MaxBytes = 5 * 1024 * 1024;
-    private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    public async Task SaveAsync(IFormFile file, CancellationToken ct)
+    public Task SaveAsync(IFormFile file, CancellationToken ct)
     {
         actor.RequireUserId();
-        if (file.Length is <= 0 or > MaxBytes)
-        {
-            throw ApiException.Validation("file", "Avatar must be between 1 byte and 5 MB.");
-        }
-
-        await using var source = file.OpenReadStream();
-        var header = new byte[12];
-        if (await source.ReadAtLeastAsync(header, 12, false, ct) < 12)
-        {
-            throw ApiException.Validation("file", "Use JPEG, PNG or WebP.");
-        }
-
-        var type = DetectType(header) ?? throw ApiException.Validation("file", "Use JPEG, PNG or WebP.");
-        await using var upload = file.OpenReadStream();
-        var key = await storage.SaveAsync(upload, ct);
-        string? old;
-        try
-        {
-            old = await ReplaceAsync(key, type, ct);
-        }
-        catch
-        {
-            storage.Delete(key);
-            throw;
-        }
-
-        storage.Delete(old);
+        return storage.SaveValidatedImageAsync(
+            file, MaxBytes, "Avatar must be between 1 byte and 5 MB.", "Use JPEG, PNG or WebP.", ReplaceAsync, ct);
     }
 
     public async Task DeleteAsync(CancellationToken ct)
@@ -60,19 +34,8 @@ public sealed class AvatarService(
         }
 
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == userId, ct);
-        if (user?.AvatarStorageKey is null)
-        {
-            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-        }
-
-        try
-        {
-            return (storage.Open(user.AvatarStorageKey), user.AvatarContentType!);
-        }
-        catch (FileNotFoundException)
-        {
-            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-        }
+        return storage.OpenOrThrow(user?.AvatarStorageKey, user?.AvatarContentType,
+            "avatar_not_found", "Avatar not found.");
     }
 
     private Task<bool> SharesReadableRoomAsync(int targetUserId, CancellationToken ct)
@@ -109,28 +72,5 @@ public sealed class AvatarService(
         : storageKey is not null ? $"/api/users/{userId}/avatar?v={storageKey}"
         : fallbackUrl;
 
-    internal static string? DetectType(ReadOnlySpan<byte> h)
-    {
-        if (h.Length < 12)
-        {
-            return null;
-        }
-
-        if (h[0] == 255 && h[1] == 216 && h[2] == 255)
-        {
-            return "image/jpeg";
-        }
-
-        if (h[..8].SequenceEqual(PngSignature))
-        {
-            return "image/png";
-        }
-
-        if (h[..4].SequenceEqual("RIFF"u8) && h[8..12].SequenceEqual("WEBP"u8))
-        {
-            return "image/webp";
-        }
-
-        return null;
-    }
+    internal static string? DetectType(ReadOnlySpan<byte> h) => LocalFileStorage.DetectImageType(h);
 }

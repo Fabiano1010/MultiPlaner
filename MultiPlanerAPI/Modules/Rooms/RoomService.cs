@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
@@ -15,9 +16,10 @@ public sealed class RoomService(
     TimeProvider clock,
     InvitationLinkBuilder links,
     RoomAccessService access,
-    InvitationTokenProtector tokens,
+    IDataProtectionProvider dataProtection,
     RoomCoverStorage covers)
 {
+    private readonly IDataProtector protector = InvitationTokens.CreateProtector(dataProtection);
     public async Task<RoomResponse> CreateAsync(CreateRoomRequest request, CancellationToken ct)
     {
         var userId = actor.RequireUserId();
@@ -76,7 +78,7 @@ public sealed class RoomService(
         var (room, member) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
         var ownerName = await db.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName).SingleAsync(ct);
-        var folderId = await FolderIdOfAsync(db, roomId, ct);
+        var folderId = await FolderIdOfAsync(roomId, ct);
         return ToResponse(room, member, clock.GetUtcNow(), ownerName, folderId);
     }
 
@@ -99,14 +101,8 @@ public sealed class RoomService(
         // Public fields (DisplayName, Color) must serialize with room archival/deletion.
         if (request.DisplayName is not null || request.Color is not null)
         {
-            return await mutations.ExecuteAsync(roomId, async (context, room) =>
-            {
-                var roomAccess = access.For(context);
-                var member = await roomAccess.RequireMemberAsync(room, ct);
-                roomAccess.RequireReadable(room);
-                roomAccess.RequireActive(room);
-                return await SaveMembershipAsync(context, member, request, ct);
-            }, ct);
+            return await mutations.ExecuteAsMemberAsync(roomId,
+                (context, _, member) => SaveMembershipAsync(context, member, request, ct), ct);
         }
 
         var (currentRoom, currentMember) = await access.RequireMemberAsync(roomId, ct);
@@ -192,11 +188,8 @@ public sealed class RoomService(
 
     public async Task<RoomResponse> UpdateAsync(int roomId, UpdateRoomRequest request, CancellationToken ct)
     {
-        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var result = await mutations.ExecuteAsManagerAsync(roomId, async (context, room, member) =>
         {
-            var roomAccess = access.For(context);
-            var member = await roomAccess.RequireManagerAsync(room, ct);
-            roomAccess.RequireActive(room);
             if ((request.TimeZoneId is not null || request.ExpiresAtUtc is not null) &&
                 room.OwnerUserId != actor.UserId)
             {
@@ -229,7 +222,7 @@ public sealed class RoomService(
 
         var ownerName = await db.Users.AsNoTracking().Where(u => u.Id == result.Room.OwnerUserId)
             .Select(u => u.DisplayName).SingleAsync(ct);
-        var folderId = await FolderIdOfAsync(db, roomId, ct);
+        var folderId = await FolderIdOfAsync(roomId, ct);
         return ToResponse(result.Room, result.Member, clock.GetUtcNow(), ownerName, folderId);
     }
 
@@ -355,7 +348,7 @@ public sealed class RoomService(
         var weekExpiry = now.AddDays(7);
         var invitation = new RoomInvitation
         {
-            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = tokens.Protect(token),
+            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = protector.Protect(token),
             ExpiresAtUtc = weekExpiry < room.ExpiresAtUtc ? weekExpiry : room.ExpiresAtUtc
         };
         operationDb.RoomInvitations.Add(invitation);
@@ -381,9 +374,9 @@ public sealed class RoomService(
         return coverKey;
     }
 
-    private Task<int?> FolderIdOfAsync(AppDbContext context, int roomId, CancellationToken ct)
+    private Task<int?> FolderIdOfAsync(int roomId, CancellationToken ct)
     {
-        return context.UserFolderRooms.AsNoTracking()
+        return db.UserFolderRooms.AsNoTracking()
             .Where(p => p.RoomId == roomId && p.OwnerUserId == actor.UserId)
             .Select(p => (int?)p.FolderId).SingleOrDefaultAsync(ct);
     }
@@ -391,16 +384,10 @@ public sealed class RoomService(
     private static async Task DeleteRoomContentsAsync(AppDbContext operationDb, int roomId, CancellationToken ct)
     {
         await operationDb.EventParticipants.Where(p => p.RoomId == roomId).ExecuteDeleteAsync(ct);
-        var eventIds = operationDb.CalendarEvents.Where(e => e.RoomId == roomId).Select(e => e.Id);
-        await operationDb.EventAttachments.Where(a => eventIds.Contains(a.EventId)).ExecuteDeleteAsync(ct);
-        await operationDb.AvailabilityIntervals.Where(a => a.RoomId == roomId).ExecuteDeleteAsync(ct);
-        await operationDb.ChatMessages.Where(m => m.RoomId == roomId).ExecuteDeleteAsync(ct);
-        await operationDb.RoomActivities.Where(a => a.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.CalendarEvents.Where(e => e.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.RoomEventTypes.Where(t => t.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.RoomInvitations.Where(i => i.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.UserFolderRooms.Where(a => a.RoomId == roomId).ExecuteDeleteAsync(ct);
-        await operationDb.OutboxMessages.Where(m => m.RoomId == roomId).ExecuteDeleteAsync(ct);
 
         var pollIds = await RoomMutationService.LockRoomPollsAsync(operationDb, roomId, ct);
         if (pollIds.Length > 0)

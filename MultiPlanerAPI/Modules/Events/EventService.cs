@@ -22,16 +22,16 @@ public sealed class EventService(
     private const int MaxSeriesPerQuery = 500;
     private const int MaxMergedRows = 5000;
 
-    private IQueryable<EventRow> VisibleEvents(AppDbContext context)
+    private IQueryable<EventRow> VisibleEvents()
     {
         var userId = actor.UserId;
         var guestId = actor.GuestSessionId;
         var now = clock.GetUtcNow();
-        return from ev in context.CalendarEvents.AsNoTracking()
-            join type in context.RoomEventTypes.AsNoTracking() on ev.EventTypeId equals type.Id
-            join room in context.Rooms.AsNoTracking() on ev.RoomId equals room.Id
-            join author in context.RoomMembers.AsNoTracking() on ev.AuthorMemberId equals author.Id
-            join viewer in context.RoomMembers.AsNoTracking() on room.Id equals viewer.RoomId
+        return from ev in db.CalendarEvents.AsNoTracking()
+            join type in db.RoomEventTypes.AsNoTracking() on ev.EventTypeId equals type.Id
+            join room in db.Rooms.AsNoTracking() on ev.RoomId equals room.Id
+            join author in db.RoomMembers.AsNoTracking() on ev.AuthorMemberId equals author.Id
+            join viewer in db.RoomMembers.AsNoTracking() on room.Id equals viewer.RoomId
             where viewer.LeftAtUtc == null &&
                   ((userId != null && viewer.UserId == userId) ||
                    (guestId != null && viewer.GuestSessionId == guestId)) &&
@@ -53,7 +53,7 @@ public sealed class EventService(
             access.RequireReadable(room);
         }
 
-        var query = ApplyFilters(VisibleEvents(db), roomId, filter);
+        var query = ApplyFilters(VisibleEvents(), roomId, filter);
         var from = filter.From!.Value;
         var to = filter.To!.Value;
         var singlesQuery = query.Where(x =>
@@ -76,41 +76,42 @@ public sealed class EventService(
         }
 
         var offset = (long)(filter.Page - 1) * filter.PageSize;
+        List<(EventRow Row, RecurrenceOccurrence? Occ)> pageItems;
+        int totalCount;
         if (series.Count == 0)
         {
-            var count = await singlesQuery.CountAsync(ct);
-            if (offset > int.MaxValue || offset >= count)
+            totalCount = await singlesQuery.CountAsync(ct);
+            if (offset > int.MaxValue || offset >= totalCount)
             {
-                return new PagedResponse<EventResponse>([], count, filter.Page, filter.PageSize);
+                return new PagedResponse<EventResponse>([], totalCount, filter.Page, filter.PageSize);
             }
 
             var rows = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
                 .Skip((int)offset).Take(filter.PageSize).ToListAsync(ct);
-            var map = await LoadParticipantsMapAsync(db, rows.Select(x => x.Event.Id).ToArray(), ct);
-            return new PagedResponse<EventResponse>(
-                rows.Select(x => Map(x, map.GetValueOrDefault(x.Event.Id, []),
-                    cachedZone: Zone(x.Event.TimeZoneId ?? x.Room.TimeZoneId))).ToArray(),
-                count, filter.Page, filter.PageSize);
+            pageItems = rows.Select(x => (x, (RecurrenceOccurrence?)null)).ToList();
         }
-
-        if (offset >= MaxMergedRows)
+        else
         {
-            return new PagedResponse<EventResponse>([], 0, filter.Page, filter.PageSize);
+            if (offset >= MaxMergedRows)
+            {
+                return new PagedResponse<EventResponse>([], 0, filter.Page, filter.PageSize);
+            }
+
+            var singles = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
+                .Take(MaxMergedRows).ToListAsync(ct);
+            var toDay = DateOnly.FromDateTime(ClampAddDays(expandTo, 1).UtcDateTime);
+            var seriesIds = series.Select(x => x.Event.Id).ToArray();
+            var skipped = (await db.EventOccurrenceExceptions.AsNoTracking()
+                    .Where(x => seriesIds.Contains(x.EventId) && x.OccurrenceDate >= fromDay && x.OccurrenceDate <= toDay)
+                    .Select(x => new { x.EventId, x.OccurrenceDate }).ToListAsync(ct))
+                .Select(x => (x.EventId, x.OccurrenceDate)).ToHashSet();
+
+            (pageItems, totalCount) = MergeEvents(singles, series, skipped, Zone, from, expandTo, (int)offset,
+                filter.PageSize, ct);
         }
 
-        var singles = await singlesQuery.OrderBy(x => x.Event.StartsAtUtc).ThenBy(x => x.Event.Id)
-            .Take(MaxMergedRows).ToListAsync(ct);
-        var toDay = DateOnly.FromDateTime(ClampAddDays(expandTo, 1).UtcDateTime);
-        var seriesIds = series.Select(x => x.Event.Id).ToArray();
-        var skipped = (await db.EventOccurrenceExceptions.AsNoTracking()
-                .Where(x => seriesIds.Contains(x.EventId) && x.OccurrenceDate >= fromDay && x.OccurrenceDate <= toDay)
-                .Select(x => new { x.EventId, x.OccurrenceDate }).ToListAsync(ct))
-            .Select(x => (x.EventId, x.OccurrenceDate)).ToHashSet();
-
-        var (pageItems, totalCount) = MergeEvents(singles, series, skipped, Zone, from, expandTo, (int)offset,
-            filter.PageSize, ct);
         var participants =
-            await LoadParticipantsMapAsync(db, pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray(), ct);
+            await LoadParticipantsMapAsync(pageItems.Select(i => i.Row.Event.Id).Distinct().ToArray(), ct);
         return new PagedResponse<EventResponse>(
             pageItems.Select(i => Map(i.Row, participants.GetValueOrDefault(i.Row.Event.Id, []), i.Occ,
                 Zone(i.Row.Event.TimeZoneId ?? i.Row.Room.TimeZoneId))).ToArray(),
@@ -246,7 +247,7 @@ public sealed class EventService(
     {
         var (room, _) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
-        var row = await VisibleEvents(db)
+        var row = await VisibleEvents()
                       .SingleOrDefaultAsync(x => x.Event.RoomId == roomId && x.Event.Id == eventId, ct)
                   ?? throw new ApiException(404, "event_not_found", "Event not found.");
         var participants = await db.EventParticipants.Where(p => p.EventId == eventId)
@@ -256,9 +257,8 @@ public sealed class EventService(
 
     public async Task<EventResponse> CreateAsync(int roomId, CreateEventRequest request, CancellationToken ct)
     {
-        var (row, participants) = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var (row, participants) = await mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var member = await RequireWriterAsync(context, room, ct);
             var type = await RequireActiveTypeAsync(context, roomId, request.EventTypeId, ct);
             var ev = new CalendarEvent
             {
@@ -285,9 +285,8 @@ public sealed class EventService(
     public async Task<EventResponse> UpdateAsync(int roomId, int eventId, UpdateEventRequest request,
         CancellationToken ct)
     {
-        var (row, participants) = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var (row, participants) = await mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var member = await RequireWriterAsync(context, room, ct);
             var ev = await FindEventAsync(context, roomId, eventId, ct);
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
@@ -359,9 +358,8 @@ public sealed class EventService(
 
     public async Task<EventResponse> PinAsync(int roomId, int eventId, PinEventRequest request, CancellationToken ct)
     {
-        var (row, participants) = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var (row, participants) = await mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var member = await RequireWriterAsync(context, room, ct);
             var ev = await FindEventAsync(context, roomId, eventId, ct);
             if (ev.AuthorMemberId != member.Id && room.OwnerUserId != actor.UserId)
             {
@@ -379,14 +377,12 @@ public sealed class EventService(
 
     public Task DeleteAsync(int roomId, int eventId, EventVersionRequest request, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var member = await RequireWriterAsync(context, room, ct);
             var ev = await FindEventAsync(context, roomId, eventId, ct);
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
             await context.EventParticipants.Where(p => p.EventId == eventId).ExecuteDeleteAsync(ct);
-            await context.EventAttachments.Where(a => a.EventId == eventId).ExecuteDeleteAsync(ct);
             context.CalendarEvents.Remove(ev);
             await context.SaveChangesAsync(ct);
             return true;
@@ -396,9 +392,8 @@ public sealed class EventService(
     public Task SkipOccurrenceAsync(int roomId, int eventId, DateOnly date, EventVersionRequest request,
         CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsMemberAsync(roomId, async (context, room, member) =>
         {
-            var member = await RequireWriterAsync(context, room, ct);
             var ev = await FindEventAsync(context, roomId, eventId, ct);
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
@@ -482,15 +477,14 @@ public sealed class EventService(
         ev.RecurrenceUntil = request.Until;
     }
 
-    private static async Task<Dictionary<int, int[]>> LoadParticipantsMapAsync(
-        AppDbContext context, int[] eventIds, CancellationToken ct)
+    private async Task<Dictionary<int, int[]>> LoadParticipantsMapAsync(int[] eventIds, CancellationToken ct)
     {
         if (eventIds.Length == 0)
         {
             return [];
         }
 
-        var rows = await context.EventParticipants.AsNoTracking()
+        var rows = await db.EventParticipants.AsNoTracking()
             .Where(p => eventIds.Contains(p.EventId))
             .OrderBy(p => p.EventId).ThenBy(p => p.MemberId)
             .Select(p => new { p.EventId, p.MemberId }).ToListAsync(ct);
@@ -510,14 +504,6 @@ public sealed class EventService(
             .Where(p => p.EventId == ev.Id).OrderBy(p => p.MemberId).Select(p => p.MemberId).ToArrayAsync(ct);
         return (new EventRow { Event = ev, Type = type, Room = room, Author = author, ViewerMemberId = member.Id },
             participants);
-    }
-
-    private async Task<RoomMember> RequireWriterAsync(AppDbContext context, Room room, CancellationToken ct)
-    {
-        var roomAccess = access.For(context);
-        var member = await roomAccess.RequireMemberAsync(room, ct);
-        roomAccess.RequireActive(room);
-        return member;
     }
 
     private static DateTimeOffset ClampAddDays(DateTimeOffset value, int days)
