@@ -173,8 +173,8 @@ public sealed class StageTwoThreeTests(ApiFixture fixture)
             var key = await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.CoverStorageKey).SingleAsync();
             Assert.Equal(HttpStatusCode.NoContent,
                 (await owner.DeleteAsync($"/api/rooms/{room.Id}")).StatusCode);
-            Assert.Throws<FileNotFoundException>(() => scope.ServiceProvider.GetRequiredService<IRoomCoverStorage>()
-                .OpenRead(key!));
+            Assert.Throws<FileNotFoundException>(() => scope.ServiceProvider.GetRequiredService<RoomCoverStorage>()
+                .Open(key!));
         }
     }
 

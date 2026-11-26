@@ -104,7 +104,6 @@ public sealed class RoomTests(ApiFixture fixture)
         using (owner)
         {
             var room = await CreateRoomAsync(owner);
-            var eventId = 0;
             await using (var scope = fixture.Factory.Services.CreateAsyncScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -118,33 +117,8 @@ public sealed class RoomTests(ApiFixture fixture)
                     await db.RoomEventTypes.Where(t => t.RoomId == room.Id).Select(t => t.Id).FirstAsync();
                 db.CalendarEvents.Add(entry);
                 await db.SaveChangesAsync();
-                eventId = entry.Id;
                 db.EventParticipants.Add(new Models.EventParticipant
                     { RoomId = room.Id, EventId = entry.Id, MemberId = room.MemberId });
-                db.EventAttachments.Add(new Models.EventAttachment
-                {
-                    EventId = entry.Id, StorageKey = Guid.NewGuid().ToString("N"),
-                    OriginalFileName = "image.png", ContentType = "image/png", SizeBytes = 16
-                });
-                db.ChatMessages.Add(new Models.ChatMessage
-                {
-                    RoomId = room.Id, AuthorMemberId = room.MemberId,
-                    ClientRequestId = Guid.NewGuid(), Text = "Hello", SentAtUtc = now
-                });
-                db.AvailabilityIntervals.Add(new Models.AvailabilityInterval
-                {
-                    RoomId = room.Id, MemberId = room.MemberId,
-                    StartsAtUtc = now.AddHours(1), EndsAtUtc = now.AddHours(2)
-                });
-                db.RoomActivities.Add(new Models.RoomActivity
-                {
-                    RoomId = room.Id, ActorMemberId = room.MemberId,
-                    Kind = "Test", ResourceId = entry.Id.ToString(), OccurredAtUtc = now
-                });
-                db.OutboxMessages.Add(new Models.OutboxMessage
-                {
-                    RoomId = room.Id, Kind = "Test", PayloadJson = "{}", CreatedAtUtc = now
-                });
                 await db.SaveChangesAsync();
             }
 
@@ -157,11 +131,6 @@ public sealed class RoomTests(ApiFixture fixture)
             Assert.False(await finalDb.RoomInvitations.AnyAsync(i => i.RoomId == room.Id));
             Assert.False(await finalDb.CalendarEvents.AnyAsync(e => e.RoomId == room.Id));
             Assert.False(await finalDb.EventParticipants.AnyAsync(p => p.RoomId == room.Id));
-            Assert.False(await finalDb.EventAttachments.AnyAsync(a => a.EventId == eventId));
-            Assert.False(await finalDb.ChatMessages.AnyAsync(m => m.RoomId == room.Id));
-            Assert.False(await finalDb.AvailabilityIntervals.AnyAsync(a => a.RoomId == room.Id));
-            Assert.False(await finalDb.RoomActivities.AnyAsync(a => a.RoomId == room.Id));
-            Assert.False(await finalDb.OutboxMessages.AnyAsync(m => m.RoomId == room.Id));
             Assert.True(await finalDb.Users.AnyAsync(u => u.Id == ownerUser.UserId));
         }
     }

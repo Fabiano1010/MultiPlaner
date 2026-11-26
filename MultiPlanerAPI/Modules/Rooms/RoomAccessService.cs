@@ -8,6 +8,8 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeProvider clock)
 {
+    internal RoomAccessService For(AppDbContext context) => new(context, actor, clock);
+
     public async Task<(Room Room, RoomMember Member)> RequireMemberAsync(int roomId, CancellationToken ct)
     {
         var userId = actor.UserId;
@@ -43,19 +45,6 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         }
 
         throw new ApiException(404, "room_not_found", "Room not found.");
-    }
-
-    public async Task<Room> RequireOwnerAsync(int roomId, CancellationToken ct)
-    {
-        var userId = actor.RequireUserId();
-        var room = await db.Rooms.SingleOrDefaultAsync(r => r.Id == roomId, ct)
-                   ?? throw new ApiException(404, "room_not_found", "Room not found.");
-        if (room.OwnerUserId != userId)
-        {
-            throw new ApiException(403, "room_owner_required", "Only the room owner may manage it.");
-        }
-
-        return room;
     }
 
     public async Task<Room> RequireManagerAsync(int roomId, CancellationToken ct)
@@ -98,14 +87,6 @@ public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeP
         if (room.GetArchivedAtUtc(now) is null && room.ExpiresAtUtc <= now)
         {
             throw new ApiException(410, "room_expired", "The room has expired.");
-        }
-    }
-
-    public static void RequireOwnEntry(RoomMember member, int authorMemberId, int ownerUserId)
-    {
-        if (member.Id != authorMemberId && member.UserId != ownerUserId)
-        {
-            throw new ApiException(403, "entry_author_required", "Only the author or room owner may edit this entry.");
         }
     }
 }

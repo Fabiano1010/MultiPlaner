@@ -20,118 +20,107 @@ public sealed class SessionValidationCache(HybridCache cache)
     private readonly ConcurrentDictionary<int, long> userVersions = new();
     private readonly ConcurrentDictionary<Guid, long> guestVersions = new();
 
-    public async ValueTask<string?> GetOrLoadSecurityStampAsync(
+    public ValueTask<string?> GetOrLoadSecurityStampAsync(
         int userId,
         Func<CancellationToken, ValueTask<string?>> loader,
         CancellationToken cancellationToken)
     {
-        var key = UserKey(userId);
-        var startVersion = userVersions.GetOrAdd(userId, 0);
-
-        var entry = await cache.GetOrCreateAsync(
-            key,
-            (userId, loader, versions: userVersions),
-            static async (state, ct) =>
-            {
-                var capturedVersion = state.versions.GetOrAdd(state.userId, 0);
-                var stamp = await state.loader(ct);
-                if (capturedVersion != state.versions.GetOrAdd(state.userId, 0))
-                {
-                    stamp = await state.loader(ct);
-                }
-
-                return new CachedUserStamp(stamp);
-            },
-            CacheOptions,
-            [UserTag(userId)],
-            cancellationToken);
-
-        if (startVersion == userVersions.GetOrAdd(userId, 0))
-        {
-            return entry.Value;
-        }
-
-        // An invalidation raced with HybridCache storing the factory result; refresh directly.
-        var fresh = await loader(cancellationToken);
-        await cache.SetAsync(key, new CachedUserStamp(fresh), CacheOptions, [UserTag(userId)], cancellationToken);
-        return fresh;
-    }
-
-    public async ValueTask InvalidateUserAsync(int userId, string? newStamp, CancellationToken cancellationToken)
-    {
-        userVersions.AddOrUpdate(userId, 1, static (_, current) => current + 1);
-        await cache.SetAsync(
+        return GetOrLoadAsync(
+            userVersions,
+            userId,
             UserKey(userId),
-            new CachedUserStamp(newStamp),
-            CacheOptions,
-            [UserTag(userId)],
+            UserTag(userId),
+            loader,
+            static value => new CachedUserStamp(value),
+            static entry => entry.Value,
             cancellationToken);
     }
 
-    public async ValueTask<DateTimeOffset?> GetOrLoadGuestExpiryAsync(
+    public ValueTask InvalidateUserAsync(int userId, string? newStamp, CancellationToken cancellationToken)
+    {
+        return InvalidateAsync(userVersions, userId, UserKey(userId), UserTag(userId), new CachedUserStamp(newStamp),
+            cancellationToken);
+    }
+
+    public ValueTask<DateTimeOffset?> GetOrLoadGuestExpiryAsync(
         Guid guestId,
         Func<CancellationToken, ValueTask<DateTimeOffset?>> loader,
         CancellationToken cancellationToken)
     {
-        var key = GuestKey(guestId);
-        var startVersion = guestVersions.GetOrAdd(guestId, 0);
+        return GetOrLoadAsync(
+            guestVersions,
+            guestId,
+            GuestKey(guestId),
+            GuestTag(guestId),
+            loader,
+            static value => new CachedGuestExpiry(value),
+            static entry => entry.ExpiresAtUtc,
+            cancellationToken);
+    }
+
+    public ValueTask InvalidateGuestAsync(Guid guestId, CancellationToken cancellationToken)
+    {
+        return InvalidateAsync(guestVersions, guestId, GuestKey(guestId), GuestTag(guestId),
+            new CachedGuestExpiry(null), cancellationToken);
+    }
+
+    private async ValueTask<TValue> GetOrLoadAsync<TId, TValue, TEntry>(
+        ConcurrentDictionary<TId, long> versions,
+        TId id,
+        string key,
+        string tag,
+        Func<CancellationToken, ValueTask<TValue>> loader,
+        Func<TValue, TEntry> wrap,
+        Func<TEntry, TValue> unwrap,
+        CancellationToken cancellationToken)
+        where TId : notnull
+    {
+        var startVersion = versions.GetOrAdd(id, 0);
 
         var entry = await cache.GetOrCreateAsync(
             key,
-            (guestId, loader, versions: guestVersions),
+            (id, loader, versions, wrap),
             static async (state, ct) =>
             {
-                var capturedVersion = state.versions.GetOrAdd(state.guestId, 0);
-                var expiry = await state.loader(ct);
-                if (capturedVersion != state.versions.GetOrAdd(state.guestId, 0))
+                var capturedVersion = state.versions.GetOrAdd(state.id, 0);
+                var value = await state.loader(ct);
+                if (capturedVersion != state.versions.GetOrAdd(state.id, 0))
                 {
-                    expiry = await state.loader(ct);
+                    value = await state.loader(ct);
                 }
 
-                return new CachedGuestExpiry(expiry);
+                return state.wrap(value);
             },
             CacheOptions,
-            [GuestTag(guestId)],
+            [tag],
             cancellationToken);
 
-        if (startVersion == guestVersions.GetOrAdd(guestId, 0))
+        if (startVersion == versions.GetOrAdd(id, 0))
         {
-            return entry.ExpiresAtUtc;
+            return unwrap(entry);
         }
 
+        // An invalidation raced with HybridCache storing the factory result; refresh directly.
         var fresh = await loader(cancellationToken);
-        await cache.SetAsync(key, new CachedGuestExpiry(fresh), CacheOptions, [GuestTag(guestId)], cancellationToken);
+        await cache.SetAsync(key, wrap(fresh), CacheOptions, [tag], cancellationToken);
         return fresh;
     }
 
-    public async ValueTask InvalidateGuestAsync(Guid guestId, CancellationToken cancellationToken)
+    private ValueTask InvalidateAsync<TId, TEntry>(
+        ConcurrentDictionary<TId, long> versions,
+        TId id,
+        string key,
+        string tag,
+        TEntry entry,
+        CancellationToken cancellationToken)
+        where TId : notnull
     {
-        guestVersions.AddOrUpdate(guestId, 1, static (_, current) => current + 1);
-        await cache.SetAsync(
-            GuestKey(guestId),
-            new CachedGuestExpiry(null),
-            CacheOptions,
-            [GuestTag(guestId)],
-            cancellationToken);
+        versions.AddOrUpdate(id, 1, static (_, current) => current + 1);
+        return cache.SetAsync(key, entry, CacheOptions, [tag], cancellationToken);
     }
 
-    private static string UserKey(int userId)
-    {
-        return $"session:user-stamp:{userId}";
-    }
-
-    private static string UserTag(int userId)
-    {
-        return $"user:{userId}";
-    }
-
-    private static string GuestKey(Guid guestId)
-    {
-        return $"session:guest-expiry:{guestId:N}";
-    }
-
-    private static string GuestTag(Guid guestId)
-    {
-        return $"guest:{guestId:N}";
-    }
+    private static string UserKey(int userId) => $"session:user-stamp:{userId}";
+    private static string UserTag(int userId) => $"user:{userId}";
+    private static string GuestKey(Guid guestId) => $"session:guest-expiry:{guestId:N}";
+    private static string GuestTag(Guid guestId) => $"guest:{guestId:N}";
 }

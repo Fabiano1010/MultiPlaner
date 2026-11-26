@@ -2,15 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
+using MultiPlanerAPI.Modules.Rooms;
 using MultiPlanerSharedModels.Contracts.Users;
 
 namespace MultiPlanerAPI.Modules.Users;
 
 public sealed class UserSettingsService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> options,
-    CurrentActor actor,
-    TimeProvider clock)
+    RoomMutationService mutations,
+    CurrentActor actor)
 {
     private static SavedThemeResponse BuiltIn(int id)
     {
@@ -37,23 +37,12 @@ public sealed class UserSettingsService(
     {
         var id = actor.RequireUserId();
         var rows = await db.SavedThemes.AsNoTracking().Where(t => t.UserId == id).OrderBy(t => t.Id).ToListAsync(ct);
-        return new[] { BuiltIn(-1), BuiltIn(-2) }.Concat(rows.Select(Map)).ToArray();
+        return [BuiltIn(-1), BuiltIn(-2), .. rows.Select(Map)];
     }
 
     private Task<T> Mutate<T>(Func<AppDbContext, int, Task<T>> operation, CancellationToken ct)
     {
-        return db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
-        {
-            await using var context = new AppDbContext(options, clock);
-            await using var tx = await context.Database.BeginTransactionAsync(ct);
-            var id = actor.RequireUserId();
-            await context.Users
-                .FromSqlInterpolated($"SELECT * FROM [dbo].[AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
-                .SingleAsync(ct);
-            var result = await operation(context, id);
-            await tx.CommitAsync(ct);
-            return result;
-        });
+        return mutations.ExecuteForUserAsync(actor.RequireUserId(), (context, user) => operation(context, user.Id), ct);
     }
 
     public Task<SavedThemeResponse> SaveAsync(int? themeId, SaveThemeRequest request, CancellationToken ct)
@@ -63,15 +52,14 @@ public sealed class UserSettingsService(
             var name = request.Name.Trim();
             if (name.Length == 0)
             {
-                throw ApiException.Validation(new Dictionary<string, string[]>
-                    { ["name"] = ["Name cannot be blank."] });
+                throw ApiException.Validation("name", "Name cannot be blank.");
             }
 
             SavedTheme theme;
             if (themeId is { } id)
             {
                 theme = await Find(context, userId, id, ct);
-                Check(theme.RowVersion, request.RowVersion);
+                ApiException.RequireVersion(theme.RowVersion, request.RowVersion, "Theme changed. Reload and retry.");
                 context.Entry(theme).Property(t => t.UpdatedAtUtc).IsModified = true;
             }
             else
@@ -99,12 +87,13 @@ public sealed class UserSettingsService(
             else
             {
                 var row = await Find(context, userId, request.ThemeId, ct);
-                Check(row.RowVersion, request.RowVersion);
+                ApiException.RequireVersion(row.RowVersion, request.RowVersion, "Theme changed. Reload and retry.");
                 chosen = Map(row);
             }
 
             var active = await context.UserThemes.SingleOrDefaultAsync(t => t.UserId == userId, ct);
-            Check(active?.RowVersion ?? [], request.ActiveRowVersion);
+            ApiException.RequireVersion(active?.RowVersion ?? [], request.ActiveRowVersion,
+                "Theme changed. Reload and retry.");
             if (active is null)
             {
                 active = new UserTheme { UserId = userId };
@@ -127,7 +116,7 @@ public sealed class UserSettingsService(
         return Mutate(async (context, userId) =>
         {
             var row = await Find(context, userId, themeId, ct);
-            Check(row.RowVersion, version);
+            ApiException.RequireVersion(row.RowVersion, version, "Theme changed. Reload and retry.");
             var active = await context.UserThemes.SingleOrDefaultAsync(t => t.UserId == userId, ct);
             if (active?.ActiveThemeId == themeId)
             {
@@ -145,14 +134,6 @@ public sealed class UserSettingsService(
     {
         return await context.SavedThemes.SingleOrDefaultAsync(t => t.Id == id && t.UserId == userId, ct)
                ?? throw new ApiException(404, "theme_not_found", "Theme not found or is protected.");
-    }
-
-    private static void Check(byte[] actual, byte[] expected)
-    {
-        if (!actual.AsSpan().SequenceEqual(expected))
-        {
-            throw new ApiException(409, "concurrency_conflict", "Theme changed. Reload and retry.");
-        }
     }
 
     private static SavedThemeResponse Map(SavedTheme t)

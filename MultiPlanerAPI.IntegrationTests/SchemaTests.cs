@@ -108,34 +108,6 @@ public sealed class SchemaTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task ChatStoresConcurrentMessagesWithoutOverwritingAndRejectsRetries()
-    {
-        var data = await CreateRoomAsync();
-        var ids = await Task.WhenAll(Enumerable.Range(0, 8).Select(async index =>
-        {
-            await using var scope = fixture.Factory.Services.CreateAsyncScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var message = new ChatMessage
-            {
-                RoomId = data.RoomId, AuthorMemberId = data.MemberId, Text = $"Message {index}",
-                ClientRequestId = Guid.NewGuid(), SentAtUtc = DateTimeOffset.UtcNow
-            };
-            db.ChatMessages.Add(message);
-            await db.SaveChangesAsync();
-            return message.ClientRequestId;
-        }));
-        await using var finalScope = fixture.Factory.Services.CreateAsyncScope();
-        var finalDb = finalScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(8, await finalDb.ChatMessages.CountAsync(m => m.RoomId == data.RoomId));
-        finalDb.ChatMessages.Add(new ChatMessage
-        {
-            RoomId = data.RoomId, AuthorMemberId = data.MemberId, Text = "Retried message",
-            ClientRequestId = ids[0], SentAtUtc = DateTimeOffset.UtcNow
-        });
-        await Assert.ThrowsAsync<DbUpdateException>(() => finalDb.SaveChangesAsync());
-    }
-
-    [Fact]
     public async Task RoomWithContentsCannotBeDeletedAccidentally()
     {
         var data = await CreateRoomAsync();

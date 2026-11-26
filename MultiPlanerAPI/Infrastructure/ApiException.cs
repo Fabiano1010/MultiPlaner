@@ -15,4 +15,17 @@ public sealed class ApiException(
         return new ApiException(StatusCodes.Status400BadRequest, "validation_failed", "One or more fields are invalid.",
             errors);
     }
+
+    public static ApiException Validation(string field, string message)
+    {
+        return Validation(new Dictionary<string, string[]> { [field] = [message] });
+    }
+
+    public static void RequireVersion(byte[] actual, byte[] expected, string message)
+    {
+        if (!actual.AsSpan().SequenceEqual(expected))
+        {
+            throw new ApiException(StatusCodes.Status409Conflict, "concurrency_conflict", message);
+        }
+    }
 }

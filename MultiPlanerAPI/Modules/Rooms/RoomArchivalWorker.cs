@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using MultiPlanerAPI.Data;
+
 namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomArchivalWorker(
@@ -6,6 +9,16 @@ public sealed class RoomArchivalWorker(
     TimeProvider clock,
     ILogger<RoomArchivalWorker> logger) : BackgroundService
 {
+    public static Task<int> ArchiveDueAsync(AppDbContext db, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow();
+        // One conditional statement is safe to repeat and to run on multiple instances.
+        return db.Rooms.Where(r => r.ArchiveOnExpiry && r.ArchivedAtUtc == null && r.ExpiresAtUtc <= now)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(r => r.ArchivedAtUtc, r => r.ExpiresAtUtc)
+                .SetProperty(r => r.UpdatedAtUtc, now), cancellationToken);
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!configuration.GetValue("RoomArchival:Enabled", true))
@@ -21,8 +34,8 @@ public sealed class RoomArchivalWorker(
                 try
                 {
                     await using var scope = scopes.CreateAsyncScope();
-                    await scope.ServiceProvider.GetRequiredService<RoomArchivalService>()
-                        .ArchiveDueAsync(stoppingToken);
+                    await ArchiveDueAsync(
+                        scope.ServiceProvider.GetRequiredService<AppDbContext>(), clock, stoppingToken);
                 }
                 catch (Exception error) when (!stoppingToken.IsCancellationRequested)
                 {

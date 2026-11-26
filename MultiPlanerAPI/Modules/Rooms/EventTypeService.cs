@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
-using MultiPlanerAPI.Modules.Users;
 using MultiPlanerSharedModels.Contracts.Events;
 
 namespace MultiPlanerAPI.Modules.Rooms;
@@ -10,9 +9,7 @@ namespace MultiPlanerAPI.Modules.Rooms;
 public sealed class EventTypeService(
     AppDbContext db,
     RoomAccessService access,
-    RoomMutationService mutations,
-    CurrentActor actor,
-    TimeProvider clock)
+    RoomMutationService mutations)
 {
     private static readonly string[] DefaultTypeNames =
         ["Meeting", "Training", "Social", "Business trip", "Leave", "Shift"];
@@ -34,9 +31,8 @@ public sealed class EventTypeService(
 
     public Task<EventTypeResponse> CreateAsync(int roomId, CreateEventTypeRequest request, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsManagerAsync(roomId, async (context, _, _) =>
         {
-            await RequireManagerAsync(context, room, ct);
             var name = await ValidateNameAsync(context, roomId, null, request.Name, ct);
             var type = new RoomEventType
             {
@@ -51,15 +47,11 @@ public sealed class EventTypeService(
 
     public Task<EventTypeResponse> UpdateAsync(int roomId, int id, UpdateEventTypeRequest request, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsManagerAsync(roomId, async (context, _, _) =>
         {
-            await RequireManagerAsync(context, room, ct);
             var type = await context.RoomEventTypes.SingleOrDefaultAsync(t => t.RoomId == roomId && t.Id == id, ct)
                        ?? throw new ApiException(404, "event_type_not_found", "Event type not found.");
-            if (!type.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-            {
-                throw new ApiException(409, "concurrency_conflict", "Event type changed. Reload and retry.");
-            }
+            ApiException.RequireVersion(type.RowVersion, request.RowVersion, "Event type changed. Reload and retry.");
 
             if (request.Name is not null)
             {
@@ -83,20 +75,13 @@ public sealed class EventTypeService(
         }, ct);
     }
 
-    private async Task RequireManagerAsync(AppDbContext context, Room room, CancellationToken ct)
-    {
-        var roomAccess = new RoomAccessService(context, actor, clock);
-        await roomAccess.RequireManagerAsync(room, ct);
-        roomAccess.RequireActive(room);
-    }
-
     private static async Task<string> ValidateNameAsync(AppDbContext context, int roomId, int? id, string value,
         CancellationToken ct)
     {
         var name = value.Trim();
         if (name.Length == 0)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["name"] = ["Name cannot be blank."] });
+            throw ApiException.Validation("name", "Name cannot be blank.");
         }
 
         var normalized = name.ToUpperInvariant();

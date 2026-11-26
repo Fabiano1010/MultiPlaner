@@ -19,12 +19,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<UserFolderRoom> UserFolderRooms => Set<UserFolderRoom>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
-    public DbSet<EventAttachment> EventAttachments => Set<EventAttachment>();
-    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
-    public DbSet<AvailabilityInterval> AvailabilityIntervals => Set<AvailabilityInterval>();
-    public DbSet<RoomActivity> RoomActivities => Set<RoomActivity>();
-    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
-    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Poll> Polls => Set<Poll>();
     public DbSet<PollOption> PollOptions => Set<PollOption>();
     public DbSet<PollVote> PollVotes => Set<PollVote>();

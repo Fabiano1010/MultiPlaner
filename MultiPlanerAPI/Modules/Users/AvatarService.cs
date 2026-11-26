@@ -1,49 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
+using MultiPlanerAPI.Modules.Rooms;
 
 namespace MultiPlanerAPI.Modules.Users;
 
 public sealed class AvatarService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> options,
+    RoomMutationService mutations,
     CurrentActor actor,
     TimeProvider clock,
     AvatarStorage storage)
 {
     public const long MaxBytes = 5 * 1024 * 1024;
-    private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    public async Task SaveAsync(IFormFile file, CancellationToken ct)
+    public Task SaveAsync(IFormFile file, CancellationToken ct)
     {
         actor.RequireUserId();
-        if (file.Length is <= 0 or > MaxBytes)
-        {
-            throw Invalid("Avatar must be between 1 byte and 5 MB.");
-        }
-
-        await using var source = file.OpenReadStream();
-        var header = new byte[12];
-        if (await source.ReadAtLeastAsync(header, 12, false, ct) < 12)
-        {
-            throw Invalid("Use JPEG, PNG or WebP.");
-        }
-
-        var type = DetectType(header) ?? throw Invalid("Use JPEG, PNG or WebP.");
-        await using var upload = file.OpenReadStream();
-        var key = await storage.SaveAsync(upload, ct);
-        string? old;
-        try
-        {
-            old = await ReplaceAsync(key, type, ct);
-        }
-        catch
-        {
-            storage.Delete(key);
-            throw;
-        }
-
-        storage.Delete(old);
+        return storage.SaveValidatedImageAsync(
+            file, MaxBytes, "Avatar must be between 1 byte and 5 MB.", "Use JPEG, PNG or WebP.", ReplaceAsync, ct);
     }
 
     public async Task DeleteAsync(CancellationToken ct)
@@ -59,19 +34,8 @@ public sealed class AvatarService(
         }
 
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == userId, ct);
-        if (user?.AvatarStorageKey is null)
-        {
-            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-        }
-
-        try
-        {
-            return (storage.Open(user.AvatarStorageKey), user.AvatarContentType!);
-        }
-        catch (FileNotFoundException)
-        {
-            throw new ApiException(404, "avatar_not_found", "Avatar not found.");
-        }
+        return storage.OpenOrThrow(user?.AvatarStorageKey, user?.AvatarContentType,
+            "avatar_not_found", "Avatar not found.");
     }
 
     private Task<bool> SharesReadableRoomAsync(int targetUserId, CancellationToken ct)
@@ -91,52 +55,22 @@ public sealed class AvatarService(
 
     private Task<string?> ReplaceAsync(string? key, string? type, CancellationToken ct)
     {
-        return db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        return mutations.ExecuteForUserAsync(actor.RequireUserId(), async (context, user) =>
         {
-            await using var context = new AppDbContext(options, clock);
-            await using var tx = await context.Database.BeginTransactionAsync(ct);
-            var id = actor.RequireUserId();
-            var user = await context.Users
-                .FromSqlInterpolated($"SELECT * FROM [dbo].[AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
-                .SingleAsync(ct);
             var old = user.AvatarStorageKey;
             user.AvatarStorageKey = key;
             user.AvatarContentType = type;
             user.AvatarUrl = null;
             user.ConcurrencyStamp = Guid.NewGuid().ToString();
             await context.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
             return old;
-        });
+        }, ct);
     }
 
-    private static ApiException Invalid(string message)
-    {
-        return ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
-    }
+    internal static string? BuildUrl(int? userId, string? storageKey, string? fallbackUrl) =>
+        userId is null ? null
+        : storageKey is not null ? $"/api/users/{userId}/avatar?v={storageKey}"
+        : fallbackUrl;
 
-    internal static string? DetectType(ReadOnlySpan<byte> h)
-    {
-        if (h.Length < 12)
-        {
-            return null;
-        }
-
-        if (h[0] == 255 && h[1] == 216 && h[2] == 255)
-        {
-            return "image/jpeg";
-        }
-
-        if (h[..8].SequenceEqual(PngSignature))
-        {
-            return "image/png";
-        }
-
-        if (h[..4].SequenceEqual("RIFF"u8) && h[8..12].SequenceEqual("WEBP"u8))
-        {
-            return "image/webp";
-        }
-
-        return null;
-    }
+    internal static string? DetectType(ReadOnlySpan<byte> h) => LocalFileStorage.DetectImageType(h);
 }

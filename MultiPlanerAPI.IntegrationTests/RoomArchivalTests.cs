@@ -41,11 +41,11 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             Assert.Null(await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync());
-            var service = scope.ServiceProvider.GetRequiredService<RoomArchivalService>();
-            await service.ArchiveDueAsync(default);
+            var clock = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+            await RoomArchivalWorker.ArchiveDueAsync(db, clock, default);
             var first = await db.Rooms.AsNoTracking().SingleAsync(r => r.Id == room.Id);
             Assert.Equal(expiry, first.ArchivedAtUtc);
-            await service.ArchiveDueAsync(default);
+            await RoomArchivalWorker.ArchiveDueAsync(db, clock, default);
             var second = await db.Rooms.AsNoTracking().SingleAsync(r => r.Id == room.Id);
             Assert.Equal(first.RowVersion, second.RowVersion);
         }
@@ -60,8 +60,9 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             var room = await CreateAsync(owner, false);
             await ExpireAsync(room.Id, DateTimeOffset.UtcNow.AddMinutes(-1));
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<RoomArchivalService>().ArchiveDueAsync(default);
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await RoomArchivalWorker.ArchiveDueAsync(db, scope.ServiceProvider.GetRequiredService<TimeProvider>(),
+                default);
             Assert.Null(await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync());
             await AccountTests.AssertProblem(await owner.GetAsync($"/api/rooms/{room.Id}"),
                 HttpStatusCode.Gone, "room_expired");
@@ -85,15 +86,14 @@ public sealed class RoomArchivalTests(ApiFixture fixture)
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             await using var scope = fixture.Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var service = new RoomArchivalService(db, new FixedClock(laterExpiry.AddMonths(-1)));
-            await service.ArchiveDueAsync(default);
+            await RoomArchivalWorker.ArchiveDueAsync(db, new FixedClock(laterExpiry.AddMonths(-1)), default);
             Assert.Null(await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync());
 
             Assert.Equal(HttpStatusCode.NoContent,
                 (await owner.PostAsync($"/api/rooms/{room.Id}/archive", null)).StatusCode);
             var manualDate = await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync();
             Assert.NotNull(manualDate);
-            await new RoomArchivalService(db, new FixedClock(laterExpiry)).ArchiveDueAsync(default);
+            await RoomArchivalWorker.ArchiveDueAsync(db, new FixedClock(laterExpiry), default);
             Assert.Equal(manualDate,
                 await db.Rooms.Where(r => r.Id == room.Id).Select(r => r.ArchivedAtUtc).SingleAsync());
         }

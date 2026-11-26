@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
@@ -10,33 +11,33 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> dbOptions,
     RoomMutationService mutations,
     CurrentActor actor,
     TimeProvider clock,
     InvitationLinkBuilder links,
     RoomAccessService access,
-    InvitationTokenProtector tokens,
-    IRoomCoverStorage covers)
+    IDataProtectionProvider dataProtection,
+    RoomCoverStorage covers)
 {
+    private readonly IDataProtector protector = InvitationTokens.CreateProtector(dataProtection);
     public async Task<RoomResponse> CreateAsync(CreateRoomRequest request, CancellationToken ct)
     {
         var userId = actor.RequireUserId();
         var now = clock.GetUtcNow();
         var expiry = request.ExpiresAtUtc ?? now.AddMonths(3);
-        ValidateCreate(request, now, expiry);
+        ValidateRoomFields(request.Name, true, request.TimeZoneId, expiry, now, now.AddDays(365),
+            "Room expiry must be UTC, in the future and within one year.");
 
         var user = await db.Users.AsNoTracking().SingleAsync(u => u.Id == userId, ct);
-        var strategy = db.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(() => CreateRoomAsync(request, user, now, expiry, ct));
+        return await mutations.ExecuteInTransactionAsync(
+            operationDb => CreateRoomAsync(operationDb, request, user, now, expiry, ct), ct);
     }
 
     public async Task<IReadOnlyList<RoomResponse>> ListAsync(string status, CancellationToken ct)
     {
         if (status is not ("active" or "archived" or "all"))
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["status"] = ["Use active, archived or all."] });
+            throw ApiException.Validation("status", "Use active, archived or all.");
         }
 
         var userId = actor.UserId;
@@ -77,7 +78,7 @@ public sealed class RoomService(
         var (room, member) = await access.RequireMemberAsync(roomId, ct);
         access.RequireReadable(room);
         var ownerName = await db.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName).SingleAsync(ct);
-        var folderId = await FolderIdOfAsync(db, roomId, ct);
+        var folderId = await FolderIdOfAsync(roomId, ct);
         return ToResponse(room, member, clock.GetUtcNow(), ownerName, folderId);
     }
 
@@ -100,14 +101,8 @@ public sealed class RoomService(
         // Public fields (DisplayName, Color) must serialize with room archival/deletion.
         if (request.DisplayName is not null || request.Color is not null)
         {
-            return await mutations.ExecuteAsync(roomId, async (context, room) =>
-            {
-                var roomAccess = new RoomAccessService(context, actor, clock);
-                var member = await roomAccess.RequireMemberAsync(room, ct);
-                roomAccess.RequireReadable(room);
-                roomAccess.RequireActive(room);
-                return await SaveMembershipAsync(context, member, request, ct);
-            }, ct);
+            return await mutations.ExecuteAsMemberAsync(roomId,
+                (context, _, member) => SaveMembershipAsync(context, member, request, ct), ct);
         }
 
         var (currentRoom, currentMember) = await access.RequireMemberAsync(roomId, ct);
@@ -118,10 +113,8 @@ public sealed class RoomService(
     private static async Task<RoomMembershipResponse> SaveMembershipAsync(
         AppDbContext context, RoomMember member, UpdateRoomMembershipRequest request, CancellationToken ct)
     {
-        if (!member.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-        {
-            throw new ApiException(409, "concurrency_conflict", "Your room settings changed. Reload them and retry.");
-        }
+        ApiException.RequireVersion(member.RowVersion, request.RowVersion,
+            "Your room settings changed. Reload them and retry.");
 
         context.RoomMembers.Attach(member);
         if (request.DisplayName is not null)
@@ -181,9 +174,7 @@ public sealed class RoomService(
         {
             var m = row.Member;
             var targetOwner = m.UserId == room.OwnerUserId;
-            var avatar = m.UserId is null ? null
-                : row.AvatarKey is not null ? $"/api/users/{m.UserId}/avatar?v={row.AvatarKey}"
-                : row.AvatarUrl;
+            var avatar = AvatarService.BuildUrl(m.UserId, row.AvatarKey, row.AvatarUrl);
             return new RoomMemberResponse(
                 m.Id, m.DisplayName, m.Color, m.GuestSessionId != null, targetOwner, m.CreatedAtUtc, m.IsAdmin,
                 avatar, m.RowVersion,
@@ -197,23 +188,19 @@ public sealed class RoomService(
 
     public async Task<RoomResponse> UpdateAsync(int roomId, UpdateRoomRequest request, CancellationToken ct)
     {
-        var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
+        var result = await mutations.ExecuteAsManagerAsync(roomId, async (context, room, member) =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
-            var member = await roomAccess.RequireManagerAsync(room, ct);
-            roomAccess.RequireActive(room);
             if ((request.TimeZoneId is not null || request.ExpiresAtUtc is not null) &&
                 room.OwnerUserId != actor.UserId)
             {
                 throw new ApiException(403, "room_owner_required", "Only the owner may change time zone or expiry.");
             }
 
-            if (!room.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-            {
-                throw new ApiException(409, "concurrency_conflict", "Room settings changed. Reload and retry.");
-            }
+            ApiException.RequireVersion(room.RowVersion, request.RowVersion, "Room settings changed. Reload and retry.");
 
-            ValidateUpdate(request, room, clock.GetUtcNow());
+            ValidateRoomFields(request.Name, false, request.TimeZoneId, request.ExpiresAtUtc, clock.GetUtcNow(),
+                room.CreatedAtUtc.AddDays(365),
+                "Room expiry must be UTC, in the future and within one year of creation.");
             if (request.Name is not null)
             {
                 room.Name = request.Name.Trim();
@@ -235,7 +222,7 @@ public sealed class RoomService(
 
         var ownerName = await db.Users.AsNoTracking().Where(u => u.Id == result.Room.OwnerUserId)
             .Select(u => u.DisplayName).SingleAsync(ct);
-        var folderId = await FolderIdOfAsync(db, roomId, ct);
+        var folderId = await FolderIdOfAsync(roomId, ct);
         return ToResponse(result.Room, result.Member, clock.GetUtcNow(), ownerName, folderId);
     }
 
@@ -255,7 +242,7 @@ public sealed class RoomService(
                 return true;
             }
 
-            new RoomAccessService(context, actor, clock).RequireActive(room);
+            access.RequireActive(room);
             room.ArchivedAtUtc = now;
             await context.SaveChangesAsync(ct);
             return true;
@@ -265,13 +252,9 @@ public sealed class RoomService(
     public async Task DeleteAsync(int roomId, CancellationToken ct)
     {
         var ownerId = actor.RequireUserId();
-        var coverKey =
-            await mutations.ExecuteInTransactionAsync(operationDb => DeleteRoomAsync(operationDb, roomId, ownerId, ct),
-                ct);
-        if (coverKey is not null)
-        {
-            await covers.DeleteAsync(coverKey);
-        }
+        var coverKey = await mutations.ExecuteAsync(roomId,
+            (operationDb, room) => DeleteRoomAsync(operationDb, room, ownerId, ct), ct);
+        covers.Delete(coverKey);
     }
 
     public async Task RecordVisitAsync(int roomId, CancellationToken ct)
@@ -318,49 +301,25 @@ public sealed class RoomService(
             member.NotificationsMuted);
     }
 
-    private static void ValidateCreate(CreateRoomRequest request, DateTimeOffset now, DateTimeOffset expiry)
+    private static void ValidateRoomFields(
+        string? name, bool nameRequired, string? timeZoneId,
+        DateTimeOffset? expiry, DateTimeOffset now, DateTimeOffset maxExpiry, string expiryError)
     {
         var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+        if ((nameRequired && string.IsNullOrWhiteSpace(name)) || (name is not null && name.Trim().Length < 2))
         {
             errors["name"] = ["Room name must contain at least two non-whitespace characters."];
         }
 
-        if (request.TimeZoneId is { } zone &&
-            LocaleValidation.GetErrors(null, null, zone).TryGetValue("timeZoneId", out var zoneErrors))
+        if (timeZoneId is not null &&
+            LocaleValidation.GetErrors(null, null, timeZoneId).TryGetValue("timeZoneId", out var zoneErrors))
         {
             errors["timeZoneId"] = zoneErrors;
         }
 
-        if (expiry.Offset != TimeSpan.Zero || expiry <= now || expiry > now.AddDays(365))
+        if (expiry is { } exp && (exp.Offset != TimeSpan.Zero || exp <= now || exp > maxExpiry))
         {
-            errors["expiresAtUtc"] = ["Room expiry must be UTC, in the future and within one year."];
-        }
-
-        if (errors.Count != 0)
-        {
-            throw ApiException.Validation(errors);
-        }
-    }
-
-    private static void ValidateUpdate(UpdateRoomRequest request, Room room, DateTimeOffset now)
-    {
-        var errors = new Dictionary<string, string[]>();
-        if (request.Name is not null && request.Name.Trim().Length < 2)
-        {
-            errors["name"] = ["Room name must contain at least two non-whitespace characters."];
-        }
-
-        if (request.TimeZoneId is not null &&
-            LocaleValidation.GetErrors(null, null, request.TimeZoneId).TryGetValue("timeZoneId", out var zoneErrors))
-        {
-            errors["timeZoneId"] = zoneErrors;
-        }
-
-        if (request.ExpiresAtUtc is { } expiry &&
-            (expiry.Offset != TimeSpan.Zero || expiry <= now || expiry > room.CreatedAtUtc.AddDays(365)))
-        {
-            errors["expiresAtUtc"] = ["Room expiry must be UTC, in the future and within one year of creation."];
+            errors["expiresAtUtc"] = [expiryError];
         }
 
         if (errors.Count != 0)
@@ -370,12 +329,9 @@ public sealed class RoomService(
     }
 
     private async Task<RoomResponse> CreateRoomAsync(
-        CreateRoomRequest request, ApplicationUser user, DateTimeOffset now, DateTimeOffset expiry,
-        CancellationToken ct)
+        AppDbContext operationDb, CreateRoomRequest request, ApplicationUser user, DateTimeOffset now,
+        DateTimeOffset expiry, CancellationToken ct)
     {
-        await using var operationDb = new AppDbContext(dbOptions, clock);
-        await using var transaction = await operationDb.Database.BeginTransactionAsync(ct);
-
         var room = new Room
         {
             OwnerUserId = user.Id, Name = request.Name.Trim(), TimeZoneId = request.TimeZoneId ?? user.TimeZoneId,
@@ -392,38 +348,35 @@ public sealed class RoomService(
         var weekExpiry = now.AddDays(7);
         var invitation = new RoomInvitation
         {
-            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = tokens.Protect(token),
+            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = protector.Protect(token),
             ExpiresAtUtc = weekExpiry < room.ExpiresAtUtc ? weekExpiry : room.ExpiresAtUtc
         };
         operationDb.RoomInvitations.Add(invitation);
         await operationDb.SaveChangesAsync(ct);
 
-        var response = ToResponse(room, member, clock.GetUtcNow(), user.DisplayName) with
+        return ToResponse(room, member, clock.GetUtcNow(), user.DisplayName) with
         {
             InitialInvitation = links.CreateResponse(invitation, token)
         };
-        await transaction.CommitAsync(ct);
-        return response;
     }
 
-    private static async Task<string?> DeleteRoomAsync(AppDbContext operationDb, int roomId, int ownerId,
+    private static async Task<string?> DeleteRoomAsync(AppDbContext operationDb, Room room, int ownerId,
         CancellationToken ct)
     {
-        var room = await RoomMutationService.LockAsync(operationDb, roomId, ct);
         if (room.OwnerUserId != ownerId)
         {
             throw new ApiException(403, "room_owner_required", "Only the room owner may manage it.");
         }
 
         var coverKey = room.CoverStorageKey;
-        await DeleteRoomContentsAsync(operationDb, roomId, ct);
-        await operationDb.Rooms.Where(r => r.Id == roomId).ExecuteDeleteAsync(ct);
+        await DeleteRoomContentsAsync(operationDb, room.Id, ct);
+        await operationDb.Rooms.Where(r => r.Id == room.Id).ExecuteDeleteAsync(ct);
         return coverKey;
     }
 
-    private Task<int?> FolderIdOfAsync(AppDbContext context, int roomId, CancellationToken ct)
+    private Task<int?> FolderIdOfAsync(int roomId, CancellationToken ct)
     {
-        return context.UserFolderRooms.AsNoTracking()
+        return db.UserFolderRooms.AsNoTracking()
             .Where(p => p.RoomId == roomId && p.OwnerUserId == actor.UserId)
             .Select(p => (int?)p.FolderId).SingleOrDefaultAsync(ct);
     }
@@ -431,16 +384,10 @@ public sealed class RoomService(
     private static async Task DeleteRoomContentsAsync(AppDbContext operationDb, int roomId, CancellationToken ct)
     {
         await operationDb.EventParticipants.Where(p => p.RoomId == roomId).ExecuteDeleteAsync(ct);
-        var eventIds = operationDb.CalendarEvents.Where(e => e.RoomId == roomId).Select(e => e.Id);
-        await operationDb.EventAttachments.Where(a => eventIds.Contains(a.EventId)).ExecuteDeleteAsync(ct);
-        await operationDb.AvailabilityIntervals.Where(a => a.RoomId == roomId).ExecuteDeleteAsync(ct);
-        await operationDb.ChatMessages.Where(m => m.RoomId == roomId).ExecuteDeleteAsync(ct);
-        await operationDb.RoomActivities.Where(a => a.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.CalendarEvents.Where(e => e.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.RoomEventTypes.Where(t => t.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.RoomInvitations.Where(i => i.RoomId == roomId).ExecuteDeleteAsync(ct);
         await operationDb.UserFolderRooms.Where(a => a.RoomId == roomId).ExecuteDeleteAsync(ct);
-        await operationDb.OutboxMessages.Where(m => m.RoomId == roomId).ExecuteDeleteAsync(ct);
 
         var pollIds = await RoomMutationService.LockRoomPollsAsync(operationDb, roomId, ct);
         if (pollIds.Length > 0)

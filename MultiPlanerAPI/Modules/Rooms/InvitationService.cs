@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
@@ -9,15 +10,16 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class InvitationService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> dbOptions,
     RoomMutationService mutations,
     CurrentActor actor,
     GuestSessionService guests,
     TimeProvider clock,
     InvitationLinkBuilder links,
     RoomAccessService access,
-    InvitationTokenProtector tokens)
+    IDataProtectionProvider dataProtection)
 {
+    private readonly IDataProtector protector = InvitationTokens.CreateProtector(dataProtection);
+
     public async Task<RoomInvitationResponse> CreateAsync(int roomId, CreateRoomInvitationRequest request,
         CancellationToken ct)
     {
@@ -28,8 +30,9 @@ public sealed class InvitationService(
 
         var expiry = request.ExpiresAtUtc ?? (now.AddDays(7) < room.ExpiresAtUtc ? now.AddDays(7) : room.ExpiresAtUtc);
         ValidateCreate(request, expiry, now, room.ExpiresAtUtc);
-        return await db.Database.CreateExecutionStrategy()
-            .ExecuteAsync(() => CreateInvitationAsync(roomId, request.MaxUses, expiry, ct));
+        return await mutations.ExecuteAsManagerAsync(roomId,
+            (operationDb, lockedRoom, _) => CreateInvitationAsync(operationDb, lockedRoom, request.MaxUses, expiry, ct),
+            ct);
     }
 
     public async Task<InvitationPreviewResponse> PreviewAsync(string token, CancellationToken ct)
@@ -46,8 +49,10 @@ public sealed class InvitationService(
         var displayName = await GetDisplayNameAsync(userId, guestId, request, ct);
         var newGuestId = userId is null && guestId is null ? Guid.NewGuid() : (Guid?)null;
 
-        var response = await db.Database.CreateExecutionStrategy()
-            .ExecuteAsync(() => JoinRoomAsync(invitation, room, userId, guestId, newGuestId, displayName, ct));
+        var response = await mutations.ExecuteAsync(room.Id,
+            (operationDb, lockedRoom) =>
+                JoinRoomAsync(operationDb, invitation, lockedRoom, userId, guestId, newGuestId, displayName, ct),
+            ct);
         if (newGuestId is { } sessionId)
         {
             await guests.SignInAsync(sessionId, ct);
@@ -58,12 +63,8 @@ public sealed class InvitationService(
 
     public Task RevokeAsync(int roomId, Guid invitationId, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (context, room) =>
+        return mutations.ExecuteAsManagerAsync(roomId, async (context, _, _) =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
-            await roomAccess.RequireManagerAsync(room, ct);
-            roomAccess.RequireActive(room);
-
             var invitation =
                 await context.RoomInvitations.SingleOrDefaultAsync(i => i.Id == invitationId && i.RoomId == roomId, ct)
                 ?? throw new ApiException(404, "invitation_not_found", "Invitation not found.");
@@ -89,7 +90,7 @@ public sealed class InvitationService(
                 "This invitation predates recoverable links. Generate a new invitation.");
         }
 
-        var token = tokens.Unprotect(invitation.ProtectedToken);
+        var token = protector.Unprotect(invitation.ProtectedToken);
         if (InvitationTokens.Hash(token) != invitation.TokenHash)
         {
             throw new ApiException(500, "invalid_invitation_storage", "Stored invitation could not be verified.");
@@ -119,16 +120,9 @@ public sealed class InvitationService(
     }
 
     private async Task<RoomInvitationResponse> CreateInvitationAsync(
-        int roomId, int? maxUses, DateTimeOffset expiry, CancellationToken ct)
+        AppDbContext operationDb, Room room, int? maxUses, DateTimeOffset expiry, CancellationToken ct)
     {
-        await using var operationDb = new AppDbContext(dbOptions, clock);
-        await using var transaction = await operationDb.Database.BeginTransactionAsync(ct);
-
         var issuedAt = clock.GetUtcNow();
-        var room = await RoomMutationService.LockAsync(operationDb, roomId, ct);
-        var roomAccess = new RoomAccessService(operationDb, actor, clock);
-        await roomAccess.RequireManagerAsync(room, ct);
-        roomAccess.RequireActive(room);
 
         if (expiry > room.ExpiresAtUtc)
         {
@@ -137,26 +131,23 @@ public sealed class InvitationService(
 
         if (expiry <= issuedAt)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["expiresAtUtc"] = ["Invitation expiry must be in the future."] });
+            throw ApiException.Validation("expiresAtUtc", "Invitation expiry must be in the future.");
         }
 
-        await operationDb.RoomInvitations.Where(i => i.RoomId == roomId && i.RevokedAtUtc == null)
+        await operationDb.RoomInvitations.Where(i => i.RoomId == room.Id && i.RevokedAtUtc == null)
             .ExecuteUpdateAsync(
                 u => u.SetProperty(i => i.RevokedAtUtc, issuedAt).SetProperty(i => i.UpdatedAtUtc, issuedAt), ct);
 
         var token = InvitationTokens.Generate();
         var invitation = new RoomInvitation
         {
-            RoomId = roomId, TokenHash = InvitationTokens.Hash(token), ProtectedToken = tokens.Protect(token),
+            RoomId = room.Id, TokenHash = InvitationTokens.Hash(token), ProtectedToken = protector.Protect(token),
             ExpiresAtUtc = expiry, MaxUses = maxUses
         };
         operationDb.RoomInvitations.Add(invitation);
         await operationDb.SaveChangesAsync(ct);
 
-        var response = links.CreateResponse(invitation, token);
-        await transaction.CommitAsync(ct);
-        return response;
+        return links.CreateResponse(invitation, token);
     }
 
     private async Task<string> GetDisplayNameAsync(int? userId, Guid? guestId, JoinInvitationRequest request,
@@ -175,8 +166,7 @@ public sealed class InvitationService(
 
         if (request.DisplayName is null)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["displayName"] = ["A guest display name is required."] });
+            throw ApiException.Validation("displayName", "A guest display name is required.");
         }
 
         var errors = LocaleValidation.GetErrors(request.DisplayName, null, null);
@@ -189,13 +179,9 @@ public sealed class InvitationService(
     }
 
     private async Task<RoomResponse> JoinRoomAsync(
-        RoomInvitation invitation, Room room, int? userId, Guid? guestId, Guid? newGuestId, string displayName,
-        CancellationToken ct)
+        AppDbContext operationDb, RoomInvitation invitation, Room room, int? userId, Guid? guestId, Guid? newGuestId,
+        string displayName, CancellationToken ct)
     {
-        await using var operationDb = new AppDbContext(dbOptions, clock);
-        await using var transaction = await operationDb.Database.BeginTransactionAsync(ct);
-
-        room = await RoomMutationService.LockAsync(operationDb, room.Id, ct);
         access.RequireActive(room);
 
         var existing = await operationDb.RoomMembers.FirstOrDefaultAsync(m =>
@@ -217,7 +203,6 @@ public sealed class InvitationService(
         member.LeftAtUtc = null;
         member.IsAdmin = false;
         await operationDb.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
 
         var ownerName = await operationDb.Users.Where(u => u.Id == room.OwnerUserId).Select(u => u.DisplayName)
             .SingleAsync(ct);

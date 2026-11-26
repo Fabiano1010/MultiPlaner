@@ -11,8 +11,7 @@ namespace MultiPlanerAPI.Modules.Rooms;
 public sealed class UserFolderService(
     AppDbContext db,
     CurrentActor actor,
-    RoomMutationService mutations,
-    TimeProvider clock)
+    RoomMutationService mutations)
 {
     public async Task<IReadOnlyList<UserFolderResponse>> ListAsync(CancellationToken ct)
     {
@@ -44,10 +43,7 @@ public sealed class UserFolderService(
     public async Task<UserFolderResponse> UpdateAsync(int id, UpdateUserFolderRequest request, CancellationToken ct)
     {
         var folder = await RequireFolderAsync(id, ct);
-        if (!folder.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-        {
-            throw new ApiException(409, "concurrency_conflict", "Folder changed. Reload and retry.");
-        }
+        ApiException.RequireVersion(folder.RowVersion, request.RowVersion, "Folder changed. Reload and retry.");
 
         if (request.Name is not null)
         {
@@ -77,12 +73,9 @@ public sealed class UserFolderService(
 
     public Task AssignAsync(int folderId, int roomId, CancellationToken ct)
     {
-        return mutations.ExecuteAsync(roomId, async (operationDb, room) =>
+        return mutations.ExecuteAsReadableMemberAsync(roomId, async (operationDb, _, _) =>
         {
             var userId = actor.RequireUserId();
-            var roomAccess = new RoomAccessService(operationDb, actor, clock);
-            await roomAccess.RequireMemberAsync(room, ct);
-            roomAccess.RequireReadable(room);
 
             if (!await operationDb.UserFolders.AsNoTracking()
                     .AnyAsync(f => f.Id == folderId && f.OwnerUserId == userId, ct))
@@ -140,8 +133,7 @@ public sealed class UserFolderService(
         var trimmed = name.Trim();
         if (trimmed.Length is < 2 or > 128)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["name"] = ["Folder name must contain 2–128 characters."] });
+            throw ApiException.Validation("name", "Folder name must contain 2–128 characters.");
         }
 
         return trimmed;

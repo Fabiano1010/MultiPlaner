@@ -1,11 +1,17 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace MultiPlanerAPI.Modules.Rooms;
 
 internal static class InvitationTokens
 {
+    public static IDataProtector CreateProtector(IDataProtectionProvider provider)
+    {
+        return provider.CreateProtector("MultiPlaner.RoomInvitation.Token.v1");
+    }
+
     public static string Generate()
     {
         return WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));

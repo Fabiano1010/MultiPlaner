@@ -89,18 +89,11 @@ public sealed class UserService(
         {
             var token = await users.GeneratePasswordResetTokenAsync(user);
             var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-            var publicBase = configuration["PasswordReset:PublicWebBaseUrl"];
-            if (!Uri.TryCreate(publicBase, UriKind.Absolute, out var baseUri) ||
-                baseUri.Scheme != Uri.UriSchemeHttps || baseUri.UserInfo.Length != 0 ||
-                baseUri.Query.Length != 0 || baseUri.Fragment.Length != 0)
-            {
-                throw new InvalidOperationException(
-                    "Configure PasswordReset:PublicWebBaseUrl as the HTTPS web application address.");
-            }
-
-            var link =
-                $"{baseUri.GetLeftPart(UriPartial.Authority)}{baseUri.AbsolutePath.TrimEnd('/')}/reset-password" +
-                $"?email={Uri.EscapeDataString(user.Email!)}&token={encoded}";
+            var webBase = PublicWebUrl.GetRequiredBase(
+                configuration,
+                "PasswordReset:PublicWebBaseUrl",
+                "Configure PasswordReset:PublicWebBaseUrl as the HTTPS web application address.");
+            var link = $"{webBase}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={encoded}";
             await emailSender.SendAsync(user.Email!, link, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -120,12 +113,12 @@ public sealed class UserService(
         }
         catch (Exception ex) when (ex is FormatException or ArgumentException)
         {
-            throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+            throw InvalidResetToken();
         }
 
         if (user is null)
         {
-            throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+            throw InvalidResetToken();
         }
 
         var result = await users.ResetPasswordAsync(user, token, request.NewPassword);
@@ -137,7 +130,7 @@ public sealed class UserService(
 
         if (result.Errors.Any(e => e.Code == "InvalidToken"))
         {
-            throw new ApiException(400, "invalid_reset_token", "The reset link is invalid or expired.");
+            throw InvalidResetToken();
         }
 
         EnsureSuccess(result);
@@ -163,13 +156,8 @@ public sealed class UserService(
             await sessionCache.InvalidateUserAsync(userId, user.SecurityStamp, cancellationToken);
         }
 
-        if (actor.GuestSessionId is { } guestId)
-        {
-            await guests.RevokeAsync(guestId, cancellationToken);
-        }
-
         await signIn.SignOutAsync();
-        await accessor.HttpContext!.SignOutAsync(SessionAuthentication.GuestScheme);
+        await ClearGuestIdentityAsync(cancellationToken);
     }
 
     public async Task<SessionResponse> GetCurrentAsync(CancellationToken cancellationToken)
@@ -241,6 +229,9 @@ public sealed class UserService(
         await signIn.RefreshSignInAsync(user);
     }
 
+    private static ApiException InvalidResetToken() =>
+        new(400, "invalid_reset_token", "The reset link is invalid or expired.");
+
     private static string? EmptyToNull(string value)
     {
         return value.Length == 0 ? null : value;
@@ -249,8 +240,7 @@ public sealed class UserService(
     private static SessionResponse ToResponse(ApplicationUser user)
     {
         return new SessionResponse("user", user.Id, null, user.DisplayName, user.Email, user.CountryCode,
-            user.TimeZoneId,
-            user.AvatarStorageKey == null ? user.AvatarUrl : $"/api/users/{user.Id}/avatar?v={user.AvatarStorageKey}",
+            user.TimeZoneId, AvatarService.BuildUrl(user.Id, user.AvatarStorageKey, user.AvatarUrl),
             user.ContactDetails, null);
     }
 

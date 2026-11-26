@@ -2,12 +2,14 @@ using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
+using MultiPlanerAPI.Modules.Users;
 
 namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomMutationService(
     AppDbContext scopedDb,
     DbContextOptions<AppDbContext> options,
+    CurrentActor actor,
     TimeProvider clock)
 {
     public Task<T> ExecuteAsync<T>(int roomId, Func<AppDbContext, Room, Task<T>> operation, CancellationToken ct)
@@ -16,6 +18,54 @@ public sealed class RoomMutationService(
         {
             var room = await LockAsync(db, roomId, ct);
             return await operation(db, room);
+        }, ct);
+    }
+
+    public Task<T> ExecuteAsMemberAsync<T>(
+        int roomId, Func<AppDbContext, Room, RoomMember, Task<T>> operation, CancellationToken ct)
+    {
+        return ExecuteAsync(roomId, async (db, room) =>
+        {
+            var access = new RoomAccessService(db, actor, clock);
+            var member = await access.RequireMemberAsync(room, ct);
+            access.RequireActive(room);
+            return await operation(db, room, member);
+        }, ct);
+    }
+
+    public Task<T> ExecuteAsManagerAsync<T>(
+        int roomId, Func<AppDbContext, Room, RoomMember, Task<T>> operation, CancellationToken ct)
+    {
+        return ExecuteAsync(roomId, async (db, room) =>
+        {
+            var access = new RoomAccessService(db, actor, clock);
+            var member = await access.RequireManagerAsync(room, ct);
+            access.RequireActive(room);
+            return await operation(db, room, member);
+        }, ct);
+    }
+
+    public Task<T> ExecuteAsReadableMemberAsync<T>(
+        int roomId, Func<AppDbContext, Room, RoomMember, Task<T>> operation, CancellationToken ct)
+    {
+        return ExecuteAsync(roomId, async (db, room) =>
+        {
+            var access = new RoomAccessService(db, actor, clock);
+            var member = await access.RequireMemberAsync(room, ct);
+            access.RequireReadable(room);
+            return await operation(db, room, member);
+        }, ct);
+    }
+
+    public Task<T> ExecuteForUserAsync<T>(
+        int userId, Func<AppDbContext, ApplicationUser, Task<T>> operation, CancellationToken ct)
+    {
+        return ExecuteInTransactionAsync(async db =>
+        {
+            var user = await db.Users
+                .FromSqlInterpolated($"SELECT * FROM [dbo].[AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {userId}")
+                .SingleAsync(ct);
+            return await operation(db, user);
         }, ct);
     }
 
