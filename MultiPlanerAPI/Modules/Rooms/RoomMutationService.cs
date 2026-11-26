@@ -19,6 +19,18 @@ public sealed class RoomMutationService(
         }, ct);
     }
 
+    public Task<T> ExecuteForUserAsync<T>(
+        int userId, Func<AppDbContext, ApplicationUser, Task<T>> operation, CancellationToken ct)
+    {
+        return ExecuteInTransactionAsync(async db =>
+        {
+            var user = await db.Users
+                .FromSqlInterpolated($"SELECT * FROM [dbo].[AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {userId}")
+                .SingleAsync(ct);
+            return await operation(db, user);
+        }, ct);
+    }
+
     public Task<T> ExecuteInTransactionAsync<T>(Func<AppDbContext, Task<T>> operation, CancellationToken ct)
     {
         var strategy = scopedDb.Database.CreateExecutionStrategy();

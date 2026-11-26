@@ -2,15 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
+using MultiPlanerAPI.Modules.Rooms;
 using MultiPlanerSharedModels.Contracts.Users;
 
 namespace MultiPlanerAPI.Modules.Users;
 
 public sealed class UserSettingsService(
     AppDbContext db,
-    DbContextOptions<AppDbContext> options,
-    CurrentActor actor,
-    TimeProvider clock)
+    RoomMutationService mutations,
+    CurrentActor actor)
 {
     private static SavedThemeResponse BuiltIn(int id)
     {
@@ -37,23 +37,12 @@ public sealed class UserSettingsService(
     {
         var id = actor.RequireUserId();
         var rows = await db.SavedThemes.AsNoTracking().Where(t => t.UserId == id).OrderBy(t => t.Id).ToListAsync(ct);
-        return new[] { BuiltIn(-1), BuiltIn(-2) }.Concat(rows.Select(Map)).ToArray();
+        return [BuiltIn(-1), BuiltIn(-2), .. rows.Select(Map)];
     }
 
     private Task<T> Mutate<T>(Func<AppDbContext, int, Task<T>> operation, CancellationToken ct)
     {
-        return db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
-        {
-            await using var context = new AppDbContext(options, clock);
-            await using var tx = await context.Database.BeginTransactionAsync(ct);
-            var id = actor.RequireUserId();
-            await context.Users
-                .FromSqlInterpolated($"SELECT * FROM [dbo].[AspNetUsers] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
-                .SingleAsync(ct);
-            var result = await operation(context, id);
-            await tx.CommitAsync(ct);
-            return result;
-        });
+        return mutations.ExecuteForUserAsync(actor.RequireUserId(), (context, user) => operation(context, user.Id), ct);
     }
 
     public Task<SavedThemeResponse> SaveAsync(int? themeId, SaveThemeRequest request, CancellationToken ct)

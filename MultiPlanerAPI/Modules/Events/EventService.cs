@@ -292,7 +292,6 @@ public sealed class EventService(
             var ev = await FindEventAsync(context, roomId, eventId, ct);
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
-            RoomAccessService.RequireOwnEntry(member, ev.AuthorMemberId, room.OwnerUserId);
 
             if (request.Title is not null)
             {
@@ -370,7 +369,6 @@ public sealed class EventService(
                 throw new ApiException(403, "event_pin_forbidden", "Only the author or room owner may pin this event.");
             }
 
-            RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
             ev.IsPinned = request.IsPinned;
             context.Entry(ev).Property(x => x.UpdatedAtUtc).IsModified = true;
@@ -388,7 +386,6 @@ public sealed class EventService(
             var ev = await FindEventAsync(context, roomId, eventId, ct);
             RequireCanModify(member, room, ev.AuthorMemberId);
             RequireVersion(ev, request.RowVersion);
-            RoomAccessService.RequireOwnEntry(member, ev.AuthorMemberId, room.OwnerUserId);
             await context.EventParticipants.Where(p => p.EventId == eventId).ExecuteDeleteAsync(ct);
             await context.EventAttachments.Where(a => a.EventId == eventId).ExecuteDeleteAsync(ct);
             context.CalendarEvents.Remove(ev);
@@ -492,7 +489,7 @@ public sealed class EventService(
     {
         if (eventIds.Length == 0)
         {
-            return new Dictionary<int, int[]>();
+            return [];
         }
 
         var rows = await context.EventParticipants.AsNoTracking()
@@ -590,7 +587,7 @@ public sealed class EventService(
             new EventAuthorResponse(row.Author.Id, row.Author.DisplayName, row.Author.GuestSessionId != null,
                 row.Author.UserId == row.Room.OwnerUserId, row.Author.LeftAtUtc != null),
             participants, ev.RowVersion,
-            new EventPermissions(active && own, active && own, active && (own || row.Room.OwnerUserId == actor.UserId)),
+            new EventPermissions(active && own, active && own, active && own),
             ev.Recurrence, ev.RecurrenceInterval, ev.RecurrenceUntil, occurrenceDate);
 
         return occurrence is { } o

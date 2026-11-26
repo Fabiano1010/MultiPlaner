@@ -158,7 +158,7 @@ builder.Services.AddScoped<InvitationService>();
 builder.Services.AddSingleton<InvitationLinkBuilder>();
 builder.Services.AddSingleton<InvitationTokenProtector>();
 builder.Services.AddScoped<UserFolderService>();
-builder.Services.AddSingleton<IRoomCoverStorage, LocalRoomCoverStorage>();
+builder.Services.AddSingleton<RoomCoverStorage>();
 builder.Services.AddScoped<RoomCoverService>();
 builder.Services.AddScoped<PollService>();
 builder.Services.AddCors(options => options.AddPolicy("BrowserClient", policy => policy
@@ -174,21 +174,11 @@ try
 }
 catch
 {
-    foreach (var cert in dpCertificates)
-    {
-        cert.Dispose();
-    }
-
+    DisposeAll(dpCertificates);
     throw;
 }
 
-app.Lifetime.ApplicationStopped.Register(() =>
-{
-    foreach (var cert in dpCertificates)
-    {
-        cert.Dispose();
-    }
-});
+app.Lifetime.ApplicationStopped.Register(() => DisposeAll(dpCertificates));
 
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
@@ -223,16 +213,20 @@ static X509Certificate2 LoadPrivateKeyCert(string path, string? password, List<X
     if (!cert.HasPrivateKey)
     {
         cert.Dispose();
-        foreach (var loaded in tracked)
-        {
-            loaded.Dispose();
-        }
-
+        DisposeAll(tracked);
         throw new InvalidOperationException($"DataProtection certificate '{path}' must contain a private key.");
     }
 
     tracked.Add(cert);
     return cert;
+}
+
+static void DisposeAll(List<X509Certificate2> certs)
+{
+    foreach (var cert in certs)
+    {
+        cert.Dispose();
+    }
 }
 
 public partial class Program;
