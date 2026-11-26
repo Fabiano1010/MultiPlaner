@@ -38,10 +38,7 @@ public sealed class MemberManagementService(RoomMutationService mutations, Curre
                 throw new ApiException(403, "room_owner_required", "Only the owner may manage administrators.");
             }
 
-            if (!member.RowVersion.AsSpan().SequenceEqual(version))
-            {
-                throw new ApiException(409, "concurrency_conflict", "Member changed. Reload and retry.");
-            }
+            ApiException.RequireVersion(member.RowVersion, version, "Member changed. Reload and retry.");
 
             if (!remove && admin && member.UserId is null)
             {

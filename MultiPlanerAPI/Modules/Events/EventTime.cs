@@ -25,7 +25,8 @@ public static class EventTime
         if (value.StartsAtUtc is not { } start || value.EndsAtUtc is not { } end || end <= start ||
             value.StartDate is not null || value.EndDateExclusive is not null)
         {
-            throw Invalid("Timed events require an increasing pair of timestamps and no local dates.");
+            throw ApiException.Validation("time",
+                "Timed events require an increasing pair of timestamps and no local dates.");
         }
 
         target.StartsAtUtc = start.ToUniversalTime();
@@ -40,7 +41,8 @@ public static class EventTime
         if (value.StartDate is not { } start || value.EndDateExclusive is not { } end || end <= start ||
             value.StartsAtUtc is not null || value.EndsAtUtc is not null)
         {
-            throw Invalid("All-day events require increasing local dates with an exclusive end and no timestamps.");
+            throw ApiException.Validation("time",
+                "All-day events require increasing local dates with an exclusive end and no timestamps.");
         }
 
         // Keep the original all-day zone when a room's display zone changes.
@@ -50,7 +52,7 @@ public static class EventTime
         target.EndsAtUtc = MidnightUtc(end, zone);
         if (target.EndsAtUtc <= target.StartsAtUtc)
         {
-            throw Invalid("Event must have a positive duration.");
+            throw ApiException.Validation("time", "Event must have a positive duration.");
         }
 
         target.StartDate = start;
@@ -63,7 +65,7 @@ public static class EventTime
         var local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
         if (zone.IsInvalidTime(local))
         {
-            throw Invalid("A selected local midnight does not exist in this time zone.");
+            throw ApiException.Validation("time", "A selected local midnight does not exist in this time zone.");
         }
 
         // When midnight repeats, the first occurrence is the start of that calendar day.
@@ -74,12 +76,7 @@ public static class EventTime
         }
         catch (ArgumentException)
         {
-            throw Invalid("Date is outside the supported UTC range.");
+            throw ApiException.Validation("time", "Date is outside the supported UTC range.");
         }
-    }
-
-    private static ApiException Invalid(string message)
-    {
-        return ApiException.Validation(new Dictionary<string, string[]> { ["time"] = [message] });
     }
 }

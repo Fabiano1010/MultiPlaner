@@ -36,17 +36,18 @@ public sealed class RoomCoverService(
         access.RequireActive(room);
         if (file.Length is <= 0 or > MaximumBytes)
         {
-            throw Invalid("Cover must be 1–10 MB.");
+            throw ApiException.Validation("file", "Cover must be 1–10 MB.");
         }
 
         await using var source = file.OpenReadStream();
         var header = new byte[12];
         if (await source.ReadAtLeastAsync(header, header.Length, false, ct) < 12)
         {
-            throw Invalid("Unsupported image format.");
+            throw ApiException.Validation("file", "Unsupported image format.");
         }
 
-        var contentType = Users.AvatarService.DetectType(header) ?? throw Invalid("Use JPEG, PNG or WebP.");
+        var contentType = Users.AvatarService.DetectType(header)
+                          ?? throw ApiException.Validation("file", "Use JPEG, PNG or WebP.");
 
         await using var upload = file.OpenReadStream();
         var key = await storage.SaveAsync(upload, ct);
@@ -82,10 +83,5 @@ public sealed class RoomCoverService(
             await context.SaveChangesAsync(ct);
             return oldKey;
         }, ct);
-    }
-
-    private static ApiException Invalid(string message)
-    {
-        return ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
     }
 }

@@ -44,10 +44,7 @@ public sealed class UserFolderService(
     public async Task<UserFolderResponse> UpdateAsync(int id, UpdateUserFolderRequest request, CancellationToken ct)
     {
         var folder = await RequireFolderAsync(id, ct);
-        if (!folder.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-        {
-            throw new ApiException(409, "concurrency_conflict", "Folder changed. Reload and retry.");
-        }
+        ApiException.RequireVersion(folder.RowVersion, request.RowVersion, "Folder changed. Reload and retry.");
 
         if (request.Name is not null)
         {
@@ -140,8 +137,7 @@ public sealed class UserFolderService(
         var trimmed = name.Trim();
         if (trimmed.Length is < 2 or > 128)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["name"] = ["Folder name must contain 2–128 characters."] });
+            throw ApiException.Validation("name", "Folder name must contain 2–128 characters.");
         }
 
         return trimmed;

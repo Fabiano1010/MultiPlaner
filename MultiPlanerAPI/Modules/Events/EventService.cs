@@ -46,8 +46,7 @@ public sealed class EventService(
         {
             if (filter.RoomId is not null && id != filter.RoomId)
             {
-                throw ApiException.Validation(new Dictionary<string, string[]>
-                    { ["roomId"] = ["Room filter must match the route."] });
+                throw ApiException.Validation("roomId", "Room filter must match the route.");
             }
 
             var (room, _) = await access.RequireMemberAsync(id, ct);
@@ -411,8 +410,7 @@ public sealed class EventService(
             var tz = TimeZoneInfo.FindSystemTimeZoneById(ev.TimeZoneId ?? room.TimeZoneId);
             if (!RecurrenceExpander.OccursOn(ev, tz, date))
             {
-                throw ApiException.Validation(new Dictionary<string, string[]>
-                    { ["date"] = ["This date is not an occurrence of the event."] });
+                throw ApiException.Validation("date", "This date is not an occurrence of the event.");
             }
 
             if (!await context.EventOccurrenceExceptions.AnyAsync(x => x.EventId == eventId && x.OccurrenceDate == date,
@@ -516,7 +514,7 @@ public sealed class EventService(
 
     private async Task<RoomMember> RequireWriterAsync(AppDbContext context, Room room, CancellationToken ct)
     {
-        var roomAccess = new RoomAccessService(context, actor, clock);
+        var roomAccess = access.For(context);
         var member = await roomAccess.RequireMemberAsync(room, ct);
         roomAccess.RequireActive(room);
         return member;
@@ -538,10 +536,7 @@ public sealed class EventService(
 
     private static void RequireVersion(CalendarEvent ev, byte[] version)
     {
-        if (!ev.RowVersion.AsSpan().SequenceEqual(version))
-        {
-            throw new ApiException(409, "concurrency_conflict", "Event changed. Reload and retry.");
-        }
+        ApiException.RequireVersion(ev.RowVersion, version, "Event changed. Reload and retry.");
     }
 
     private static void RequireCanModify(RoomMember viewer, Room room, int authorMemberId)
@@ -560,8 +555,7 @@ public sealed class EventService(
             await context.RoomMembers.CountAsync(
                 m => m.RoomId == roomId && m.LeftAtUtc == null && distinct.Contains(m.Id), ct) != distinct.Length)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["participantMemberIds"] = ["Use distinct active members of this room."] });
+            throw ApiException.Validation("participantMemberIds", "Use distinct active members of this room.");
         }
 
         return distinct;
@@ -605,14 +599,13 @@ public sealed class EventService(
     {
         return await context.RoomEventTypes.AsNoTracking()
                    .SingleOrDefaultAsync(t => t.RoomId == roomId && t.Id == typeId && !t.IsArchived, ct)
-               ?? throw ApiException.Validation(new Dictionary<string, string[]>
-                   { ["eventTypeId"] = ["Select an active event type from this room."] });
+               ?? throw ApiException.Validation("eventTypeId", "Select an active event type from this room.");
     }
 
     private static string Title(string value)
     {
         return string.IsNullOrWhiteSpace(value)
-            ? throw ApiException.Validation(new Dictionary<string, string[]> { ["title"] = ["Title cannot be blank."] })
+            ? throw ApiException.Validation("title", "Title cannot be blank.")
             : value.Trim();
     }
 

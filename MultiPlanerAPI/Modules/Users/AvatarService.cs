@@ -20,17 +20,17 @@ public sealed class AvatarService(
         actor.RequireUserId();
         if (file.Length is <= 0 or > MaxBytes)
         {
-            throw Invalid("Avatar must be between 1 byte and 5 MB.");
+            throw ApiException.Validation("file", "Avatar must be between 1 byte and 5 MB.");
         }
 
         await using var source = file.OpenReadStream();
         var header = new byte[12];
         if (await source.ReadAtLeastAsync(header, 12, false, ct) < 12)
         {
-            throw Invalid("Use JPEG, PNG or WebP.");
+            throw ApiException.Validation("file", "Use JPEG, PNG or WebP.");
         }
 
-        var type = DetectType(header) ?? throw Invalid("Use JPEG, PNG or WebP.");
+        var type = DetectType(header) ?? throw ApiException.Validation("file", "Use JPEG, PNG or WebP.");
         await using var upload = file.OpenReadStream();
         var key = await storage.SaveAsync(upload, ct);
         string? old;
@@ -104,10 +104,10 @@ public sealed class AvatarService(
         }, ct);
     }
 
-    private static ApiException Invalid(string message)
-    {
-        return ApiException.Validation(new Dictionary<string, string[]> { ["file"] = [message] });
-    }
+    internal static string? BuildUrl(int? userId, string? storageKey, string? fallbackUrl) =>
+        userId is null ? null
+        : storageKey is not null ? $"/api/users/{userId}/avatar?v={storageKey}"
+        : fallbackUrl;
 
     internal static string? DetectType(ReadOnlySpan<byte> h)
     {

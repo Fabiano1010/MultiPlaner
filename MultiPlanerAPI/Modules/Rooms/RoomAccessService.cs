@@ -8,6 +8,8 @@ namespace MultiPlanerAPI.Modules.Rooms;
 
 public sealed class RoomAccessService(AppDbContext db, CurrentActor actor, TimeProvider clock)
 {
+    internal RoomAccessService For(AppDbContext context) => new(context, actor, clock);
+
     public async Task<(Room Room, RoomMember Member)> RequireMemberAsync(int roomId, CancellationToken ct)
     {
         var userId = actor.UserId;

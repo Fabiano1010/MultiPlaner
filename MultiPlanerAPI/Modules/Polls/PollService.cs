@@ -4,7 +4,6 @@ using MultiPlanerAPI.Data;
 using MultiPlanerAPI.Infrastructure;
 using MultiPlanerAPI.Models;
 using MultiPlanerAPI.Modules.Rooms;
-using MultiPlanerAPI.Modules.Users;
 using MultiPlanerSharedModels.Contracts.Common;
 using MultiPlanerSharedModels.Contracts.Polls;
 
@@ -13,7 +12,6 @@ namespace MultiPlanerAPI.Modules.Polls;
 public sealed class PollService(
     AppDbContext db,
     RoomMutationService mutations,
-    CurrentActor actor,
     TimeProvider clock,
     RoomAccessService access)
 {
@@ -35,7 +33,7 @@ public sealed class PollService(
 
         var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
+            var roomAccess = access.For(context);
             var member = await roomAccess.RequireMemberAsync(room, ct);
             roomAccess.RequireActive(room);
 
@@ -66,8 +64,7 @@ public sealed class PollService(
     {
         if (status is not ("open" or "closed" or "all"))
         {
-            throw ApiException.Validation(
-                new Dictionary<string, string[]> { ["status"] = ["Use open, closed or all."] });
+            throw ApiException.Validation("status", "Use open, closed or all.");
         }
 
         var (room, viewer) = await access.RequireMemberAsync(roomId, ct);
@@ -115,10 +112,7 @@ public sealed class PollService(
                 throw new ApiException(409, "poll_closed", "A closed poll cannot be edited.");
             }
 
-            if (!poll.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-            {
-                throw new ApiException(409, "concurrency_conflict", "Poll changed. Reload and retry.");
-            }
+            ApiException.RequireVersion(poll.RowVersion, request.RowVersion, "Poll changed. Reload and retry.");
 
             var errors = new Dictionary<string, string[]>();
             if (request.Question is not null)
@@ -158,7 +152,6 @@ public sealed class PollService(
                 }
             }
 
-            poll.UpdatedAtUtc = now;
             context.Entry(poll).Property(p => p.UpdatedAtUtc).IsModified = true;
             await context.SaveChangesAsync(ct);
             return (Poll: poll, Room: room, Member: member);
@@ -201,7 +194,7 @@ public sealed class PollService(
     {
         var result = await mutations.ExecuteInTransactionAsync(async context =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
+            var roomAccess = access.For(context);
             var (room, member) = await roomAccess.RequireMemberAsync(roomId, ct);
             roomAccess.RequireActive(room);
 
@@ -216,14 +209,12 @@ public sealed class PollService(
             var valid = poll.Options.Select(o => o.Id).ToHashSet();
             if (optionIds.Any(id => !valid.Contains(id)))
             {
-                throw ApiException.Validation(new Dictionary<string, string[]>
-                    { ["optionIds"] = ["Choose options that belong to this poll."] });
+                throw ApiException.Validation("optionIds", "Choose options that belong to this poll.");
             }
 
             if (!poll.AllowMultiple && optionIds.Length > 1)
             {
-                throw ApiException.Validation(new Dictionary<string, string[]>
-                    { ["optionIds"] = ["This poll allows a single choice."] });
+                throw ApiException.Validation("optionIds", "This poll allows a single choice.");
             }
 
             var existing = await context.PollVotes.Where(v => v.PollId == pollId && v.MemberId == member.Id)
@@ -295,7 +286,7 @@ public sealed class PollService(
     private async Task<(RoomMember Member, Poll Poll)> LoadForManageAsync(
         AppDbContext context, Room room, int roomId, int pollId, bool includeOptions, CancellationToken ct)
     {
-        var roomAccess = new RoomAccessService(context, actor, clock);
+        var roomAccess = access.For(context);
         var member = await roomAccess.RequireMemberAsync(room, ct);
         roomAccess.RequireActive(room);
         var poll = await RoomMutationService.LockPollAsync(context, roomId, pollId, includeOptions, ct);

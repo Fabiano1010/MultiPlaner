@@ -240,8 +240,7 @@ public sealed class UserService(
     private static SessionResponse ToResponse(ApplicationUser user)
     {
         return new SessionResponse("user", user.Id, null, user.DisplayName, user.Email, user.CountryCode,
-            user.TimeZoneId,
-            user.AvatarStorageKey == null ? user.AvatarUrl : $"/api/users/{user.Id}/avatar?v={user.AvatarStorageKey}",
+            user.TimeZoneId, AvatarService.BuildUrl(user.Id, user.AvatarStorageKey, user.AvatarUrl),
             user.ContactDetails, null);
     }
 

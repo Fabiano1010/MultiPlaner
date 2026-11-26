@@ -35,8 +35,7 @@ public sealed class RoomService(
     {
         if (status is not ("active" or "archived" or "all"))
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["status"] = ["Use active, archived or all."] });
+            throw ApiException.Validation("status", "Use active, archived or all.");
         }
 
         var userId = actor.UserId;
@@ -102,7 +101,7 @@ public sealed class RoomService(
         {
             return await mutations.ExecuteAsync(roomId, async (context, room) =>
             {
-                var roomAccess = new RoomAccessService(context, actor, clock);
+                var roomAccess = access.For(context);
                 var member = await roomAccess.RequireMemberAsync(room, ct);
                 roomAccess.RequireReadable(room);
                 roomAccess.RequireActive(room);
@@ -118,10 +117,8 @@ public sealed class RoomService(
     private static async Task<RoomMembershipResponse> SaveMembershipAsync(
         AppDbContext context, RoomMember member, UpdateRoomMembershipRequest request, CancellationToken ct)
     {
-        if (!member.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-        {
-            throw new ApiException(409, "concurrency_conflict", "Your room settings changed. Reload them and retry.");
-        }
+        ApiException.RequireVersion(member.RowVersion, request.RowVersion,
+            "Your room settings changed. Reload them and retry.");
 
         context.RoomMembers.Attach(member);
         if (request.DisplayName is not null)
@@ -181,9 +178,7 @@ public sealed class RoomService(
         {
             var m = row.Member;
             var targetOwner = m.UserId == room.OwnerUserId;
-            var avatar = m.UserId is null ? null
-                : row.AvatarKey is not null ? $"/api/users/{m.UserId}/avatar?v={row.AvatarKey}"
-                : row.AvatarUrl;
+            var avatar = AvatarService.BuildUrl(m.UserId, row.AvatarKey, row.AvatarUrl);
             return new RoomMemberResponse(
                 m.Id, m.DisplayName, m.Color, m.GuestSessionId != null, targetOwner, m.CreatedAtUtc, m.IsAdmin,
                 avatar, m.RowVersion,
@@ -199,7 +194,7 @@ public sealed class RoomService(
     {
         var result = await mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
+            var roomAccess = access.For(context);
             var member = await roomAccess.RequireManagerAsync(room, ct);
             roomAccess.RequireActive(room);
             if ((request.TimeZoneId is not null || request.ExpiresAtUtc is not null) &&
@@ -208,10 +203,7 @@ public sealed class RoomService(
                 throw new ApiException(403, "room_owner_required", "Only the owner may change time zone or expiry.");
             }
 
-            if (!room.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-            {
-                throw new ApiException(409, "concurrency_conflict", "Room settings changed. Reload and retry.");
-            }
+            ApiException.RequireVersion(room.RowVersion, request.RowVersion, "Room settings changed. Reload and retry.");
 
             ValidateRoomFields(request.Name, false, request.TimeZoneId, request.ExpiresAtUtc, clock.GetUtcNow(),
                 room.CreatedAtUtc.AddDays(365),

@@ -62,7 +62,7 @@ public sealed class InvitationService(
     {
         return mutations.ExecuteAsync(roomId, async (context, room) =>
         {
-            var roomAccess = new RoomAccessService(context, actor, clock);
+            var roomAccess = access.For(context);
             await roomAccess.RequireManagerAsync(room, ct);
             roomAccess.RequireActive(room);
 
@@ -124,7 +124,7 @@ public sealed class InvitationService(
         AppDbContext operationDb, Room room, int? maxUses, DateTimeOffset expiry, CancellationToken ct)
     {
         var issuedAt = clock.GetUtcNow();
-        var roomAccess = new RoomAccessService(operationDb, actor, clock);
+        var roomAccess = access.For(operationDb);
         await roomAccess.RequireManagerAsync(room, ct);
         roomAccess.RequireActive(room);
 
@@ -135,8 +135,7 @@ public sealed class InvitationService(
 
         if (expiry <= issuedAt)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["expiresAtUtc"] = ["Invitation expiry must be in the future."] });
+            throw ApiException.Validation("expiresAtUtc", "Invitation expiry must be in the future.");
         }
 
         await operationDb.RoomInvitations.Where(i => i.RoomId == room.Id && i.RevokedAtUtc == null)
@@ -171,8 +170,7 @@ public sealed class InvitationService(
 
         if (request.DisplayName is null)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]>
-                { ["displayName"] = ["A guest display name is required."] });
+            throw ApiException.Validation("displayName", "A guest display name is required.");
         }
 
         var errors = LocaleValidation.GetErrors(request.DisplayName, null, null);

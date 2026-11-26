@@ -56,10 +56,7 @@ public sealed class EventTypeService(
             await RequireManagerAsync(context, room, ct);
             var type = await context.RoomEventTypes.SingleOrDefaultAsync(t => t.RoomId == roomId && t.Id == id, ct)
                        ?? throw new ApiException(404, "event_type_not_found", "Event type not found.");
-            if (!type.RowVersion.AsSpan().SequenceEqual(request.RowVersion))
-            {
-                throw new ApiException(409, "concurrency_conflict", "Event type changed. Reload and retry.");
-            }
+            ApiException.RequireVersion(type.RowVersion, request.RowVersion, "Event type changed. Reload and retry.");
 
             if (request.Name is not null)
             {
@@ -96,7 +93,7 @@ public sealed class EventTypeService(
         var name = value.Trim();
         if (name.Length == 0)
         {
-            throw ApiException.Validation(new Dictionary<string, string[]> { ["name"] = ["Name cannot be blank."] });
+            throw ApiException.Validation("name", "Name cannot be blank.");
         }
 
         var normalized = name.ToUpperInvariant();
