@@ -797,3 +797,21 @@
         transition: none;
     }
 }
+
+@media (max-width: 768px) {
+    .rooms-container-dashboard {
+        display: flex;
+        width: 100%;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .rooms-container-dashboard .room {
+        width: 50%;
+        height: 100%;
+        max-width: none;
+    }
+
+    .rooms-container-dashboard > :nth-child(n + 2) { display: none; }
+}

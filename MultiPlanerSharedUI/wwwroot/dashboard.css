@@ -101,11 +101,14 @@
         gap: 0.1rem;
     }
 
-    .rooms-container-dashboard { flex-direction: row; }
+    
 }
 
 @media (max-width: 880px) {
-    .dashboard-events { grid-template-columns: 1fr; }
+    .dashboard-events { 
+        display: flex;
+        
+    }
 
     .dashboard-content {
         flex-direction: column;
@@ -114,20 +117,11 @@
 
     .dashboard-left,
     .dashboard-right { width: 100%; }
-
+        
     .rooms-container-dashboard .room {
         width: 70%;
         max-width: 20rem;
     }
 }
 
-@media (max-width: 769px) {
-    .rooms-container-dashboard { flex-direction: column; }
 
-    .rooms-container-dashboard .room {
-        width: 70%;
-        max-width: none;
-    }
-
-    .rooms-container-dashboard > :nth-child(n + 2) { display: none; }
-}
