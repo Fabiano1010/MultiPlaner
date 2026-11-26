@@ -78,18 +78,16 @@
 }
 
 .rooms-container-dashboard {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
     align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    height: 100%;
+    justify-items: center;
     width: 100%;
 }
 
 .rooms-container-dashboard .room {
-    width: 45%;
+    width: 95%;
     max-width: 30rem;
 }
 
