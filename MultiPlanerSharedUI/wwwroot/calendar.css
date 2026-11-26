@@ -438,6 +438,10 @@
 .events-button:hover .plus-icon {
     filter: var(--icon-filter, brightness(0) invert(1));
 }
+.events-empty{
+    width: 100%;
+    text-align: center;
+}
 
 @media (max-width: 800px) {
     .header {
